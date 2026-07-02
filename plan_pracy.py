@@ -1,4 +1,3 @@
-import configparser
 import logging
 import os
 import sys
@@ -7,6 +6,7 @@ from datetime import datetime, date, timedelta
 
 import oracledb
 import pandas as pd
+from config import app_dir, load_config
 from PySide6.QtCore import QDate, Qt, QRect
 from PySide6.QtGui import QColor, QBrush, QPainter
 from PySide6.QtWidgets import (
@@ -46,14 +46,7 @@ DNI_TYG = {
 }
 
 
-def app_dir() -> str:
-    if getattr(sys, "frozen", False):
-        return os.path.dirname(sys.executable)
-    return os.path.dirname(os.path.abspath(__file__))
-
-
 BASE_DIR = app_dir()
-CONFIG_PATH = os.path.join(BASE_DIR, "config.ini")
 LOG_DIR = os.path.join(BASE_DIR, "logs")
 EXPORT_DIR = os.path.join(BASE_DIR, "export")
 os.makedirs(LOG_DIR, exist_ok=True)
@@ -65,14 +58,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     encoding="utf-8",
 )
-
-
-def load_config() -> configparser.ConfigParser:
-    if not os.path.exists(CONFIG_PATH):
-        raise FileNotFoundError(f"Brak pliku konfiguracyjnego: {CONFIG_PATH}")
-    cfg = configparser.ConfigParser()
-    cfg.read(CONFIG_PATH, encoding="utf-8")
-    return cfg
 
 
 def time_to_minutes(t: str) -> int:
@@ -189,13 +174,13 @@ class PlanPracyApp(QWidget):
         self.setWindowTitle("Plan Pracy v1.0.1")
         self.resize(1500, 900)
 
-        self.default_jo_id = self.cfg.get("application", "default_jo_id", fallback="249")
-        self.default_months = self.cfg.getint("application", "default_months", fallback=3)
+        self.default_jo_id = self.cfg.default_jo_id
+        self.default_months = self.cfg.default_months
         # Widok zbiorczy: 7:00-22:00, pięć stałych przedziałów po 3 godziny.
-        self.slot_minutes = self.cfg.getint("application", "slot_minutes", fallback=180)
-        self.hour_start = self.cfg.getint("application", "hour_start", fallback=7)
-        self.hour_end = self.cfg.getint("application", "hour_end", fallback=22)
-        self.view_name = self.cfg.get("application", "view_name", fallback="ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ")
+        self.slot_minutes = self.cfg.slot_minutes
+        self.hour_start = self.cfg.hour_start
+        self.hour_end = self.cfg.hour_end
+        self.view_name = self.cfg.view_name
 
         layout = QVBoxLayout(self)
 
@@ -299,9 +284,9 @@ class PlanPracyApp(QWidget):
         return val
 
     def pobierz_jednostki(self) -> pd.DataFrame:
-        db_user = self.cfg.get("database", "user")
-        db_password = self.cfg.get("database", "password")
-        db_dsn = self.cfg.get("database", "dsn")
+        db_user = self.cfg.database_user
+        db_password = self.cfg.database_password
+        db_dsn = self.cfg.database_dsn
         sql = f"""
             SELECT DISTINCT
                 jo_id,
@@ -343,9 +328,9 @@ class PlanPracyApp(QWidget):
             self.info.setText("Nie pobrano listy jednostek")
 
     def pobierz_plan(self, jo_id: int, data_od: str, data_do: str) -> pd.DataFrame:
-        db_user = self.cfg.get("database", "user")
-        db_password = self.cfg.get("database", "password")
-        db_dsn = self.cfg.get("database", "dsn")
+        db_user = self.cfg.database_user
+        db_password = self.cfg.database_password
+        db_dsn = self.cfg.database_dsn
 
         sql = f"""
             SELECT
