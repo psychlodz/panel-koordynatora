@@ -2,9 +2,16 @@ import logging
 import os
 import sys
 import hashlib
-from datetime import datetime, date, timedelta
+from datetime import datetime, date
 
 import pandas as pd
+from calendar_logic import (
+    make_slots,
+    polish_holidays,
+    prepare_df,
+    rows_for_cell,
+    safe_int,
+)
 from config import app_dir, load_config
 from db import create_connection
 from PySide6.QtCore import QDate, Qt, QRect
@@ -58,56 +65,6 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(message)s",
     encoding="utf-8",
 )
-
-
-def time_to_minutes(t: str) -> int:
-    h, m = map(int, str(t).split(":"))
-    return h * 60 + m
-
-
-def safe_int(value, default):
-    try:
-        return int(value)
-    except Exception:
-        return default
-
-
-def easter_date(year: int) -> date:
-    """Data Wielkanocy wg algorytmu Meeusa/Jonesa/Butchera."""
-    a = year % 19
-    b = year // 100
-    c = year % 100
-    d = b // 4
-    e = b % 4
-    f = (b + 8) // 25
-    g = (b - f + 1) // 3
-    h = (19 * a + b - d - g + 15) % 30
-    i = c // 4
-    k = c % 4
-    l = (32 + 2 * e + 2 * i - h - k) % 7
-    m = (a + 11 * h + 22 * l) // 451
-    month = (h + l - 7 * m + 114) // 31
-    day = ((h + l - 7 * m + 114) % 31) + 1
-    return date(year, month, day)
-
-
-def polish_holidays(year: int) -> set[date]:
-    easter = easter_date(year)
-    return {
-        date(year, 1, 1),   # Nowy Rok
-        date(year, 1, 6),   # Trzech Króli
-        easter,             # Wielkanoc
-        easter + timedelta(days=1),
-        date(year, 5, 1),
-        date(year, 5, 3),
-        easter + timedelta(days=49),  # Zielone Świątki
-        easter + timedelta(days=60),  # Boże Ciało
-        date(year, 8, 15),
-        date(year, 11, 1),
-        date(year, 11, 11),
-        date(year, 12, 25),
-        date(year, 12, 26),
-    }
 
 
 PERSON_COLORS = [
@@ -365,7 +322,7 @@ class PlanPracyApp(QWidget):
             QApplication.processEvents()
 
             df = self.pobierz_plan(jo_id, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-            self.df_last = self.prepare_df(df)
+            self.df_last = prepare_df(df)
             self.df_view = self.df_last.copy()
             self.current_start = start
             self.current_end = end
@@ -377,16 +334,6 @@ class PlanPracyApp(QWidget):
             logging.exception("Błąd podczas ładowania danych")
             QMessageBox.critical(self, "Błąd", f"Nie udało się pobrać lub wyświetlić danych:\n\n{exc}\n\nSzczegóły zapisano w logs\\plan_pracy.log")
             self.info.setText("Błąd")
-
-    def prepare_df(self, df: pd.DataFrame) -> pd.DataFrame:
-        if df.empty:
-            return df.copy()
-        out = df.copy()
-        out["DATA_DNIA_DT"] = pd.to_datetime(out["DATA_DNIA"]).dt.date
-        out["GODZ_OD_MIN"] = out["GODZ_OD"].apply(time_to_minutes)
-        out["GODZ_DO_MIN"] = out["GODZ_DO"].apply(time_to_minutes)
-        out["OPIS_PRACY"] = out["PRACOWNIK"].fillna("[bez pracownika]") + "  " + out["GODZ_OD"].astype(str) + "-" + out["GODZ_DO"].astype(str)
-        return out
 
     def update_person_colors(self, df: pd.DataFrame):
         persons = []
@@ -464,19 +411,6 @@ class PlanPracyApp(QWidget):
         # Synonim czytelny dla użytkownika: odznaczenie wszystkich oznacza widok wszystkich osób.
         self.clear_person_filters()
 
-    def minutes_to_time(self, minutes: int) -> str:
-        return f"{minutes // 60:02d}:{minutes % 60:02d}"
-
-    def make_slots(self):
-        """Stałe przedziały widoku: 07-10, 10-13, 13-16, 16-19, 19-22."""
-        return [
-            (7 * 60, 10 * 60, "07:00-10:00"),
-            (10 * 60, 13 * 60, "10:00-13:00"),
-            (13 * 60, 16 * 60, "13:00-16:00"),
-            (16 * 60, 19 * 60, "16:00-19:00"),
-            (19 * 60, 22 * 60, "19:00-22:00"),
-        ]
-
     def header_for_day(self, d: pd.Timestamp) -> str:
         marker = "\nDZISIAJ" if d.date() == date.today() else ""
         return f"{d.strftime('%Y-%m-%d')}\n{DNI_TYG[d.weekday()]}{marker}"
@@ -490,16 +424,6 @@ class PlanPracyApp(QWidget):
         if row_idx % 2 == 0:
             return QColor(250, 250, 250)
         return QColor(242, 246, 250)
-
-    def rows_for_cell(self, df: pd.DataFrame, day_date: date, slot_start: int, slot_end: int) -> pd.DataFrame:
-        """Osoby, których przedział pracy nakłada się na dany 2-godzinny slot."""
-        if df.empty:
-            return df
-        return df[
-            (df["DATA_DNIA_DT"] == day_date)
-            & (df["GODZ_OD_MIN"] < slot_end)
-            & (df["GODZ_DO_MIN"] > slot_start)
-        ].copy()
 
     def normal_text_for_cell(self, rows: pd.DataFrame) -> str:
         if rows.empty:
@@ -546,7 +470,7 @@ class PlanPracyApp(QWidget):
 
     def rysuj_tabele(self, df: pd.DataFrame, start, end):
         dni = pd.date_range(start=start, end=end, freq="D")
-        sloty = self.make_slots()
+        sloty = make_slots()
 
         self.table.clear()
         self.table.setRowCount(len(sloty))
@@ -565,7 +489,7 @@ class PlanPracyApp(QWidget):
         for row_idx, (slot_start, slot_end, slot_label) in enumerate(sloty):
             for col_idx, dzien in enumerate(dni):
                 day_date = dzien.date()
-                rows = self.rows_for_cell(df, day_date, slot_start, slot_end)
+                rows = rows_for_cell(df, day_date, slot_start, slot_end)
                 text = self.normal_text_for_cell(rows)
 
                 item = QTableWidgetItem(text)
@@ -594,13 +518,13 @@ class PlanPracyApp(QWidget):
             return
 
         dni = pd.date_range(start=self.current_start, end=self.current_end, freq="D")
-        sloty = self.make_slots()
+        sloty = make_slots()
         if col >= len(dni) or row >= len(sloty):
             return
 
         day_date = dni[col].date()
         slot_start, slot_end, slot = sloty[row]
-        rows = self.detail_rows_for_cell(self.rows_for_cell(self.df_view, day_date, slot_start, slot_end))
+        rows = self.detail_rows_for_cell(rows_for_cell(self.df_view, day_date, slot_start, slot_end))
         if rows.empty:
             return
 
