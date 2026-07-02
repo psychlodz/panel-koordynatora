@@ -1,0 +1,45 @@
+@echo off
+setlocal
+
+echo =====================================
+echo Building PlanPracy application
+echo =====================================
+echo.
+
+where python >nul 2>nul
+if errorlevel 1 (
+    echo Python was not found in PATH.
+    echo Install Python 3.11 or 3.12 and select Add Python to PATH.
+    pause
+    exit /b 1
+)
+
+if exist build rmdir /s /q build
+if exist dist rmdir /s /q dist
+
+python -m pip install --upgrade pip
+if errorlevel 1 goto error
+
+python -m pip install -r requirements.txt
+if errorlevel 1 goto error
+
+python -m pip install --upgrade cryptography
+if errorlevel 1 goto error
+
+python -m PyInstaller --clean --noconfirm plan_pracy.spec
+if errorlevel 1 goto error
+
+echo.
+echo Done.
+echo EXE file: dist\PlanPracy\PlanPracy.exe
+echo config.ini is copied next to EXE.
+echo.
+pause
+exit /b 0
+
+:error
+echo.
+echo Build failed.
+echo Check messages above.
+pause
+exit /b 1

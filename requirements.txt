@@ -1,0 +1,6 @@
+oracledb
+pandas
+PySide6
+pyinstaller
+openpyxl
+cryptography

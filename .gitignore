@@ -1,0 +1,25 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Build
+build/
+dist/
+
+# Logs
+logs/
+*.log
+
+# Eksport
+export/
+
+# Konfiguracja lokalna
+config.ini
+
+# Visual Studio Code
+.vscode/
+
+# Windows
+Thumbs.db
+Desktop.ini
