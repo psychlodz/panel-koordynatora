@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import hashlib
-from datetime import datetime, date
+from datetime import date
 
 import pandas as pd
 from calendar_logic import (
@@ -14,12 +14,12 @@ from calendar_logic import (
 )
 from config import app_dir, load_config
 from db import create_connection
+from excel_export import export_table_to_excel
 from PySide6.QtCore import QDate, Qt, QRect
 from PySide6.QtGui import QColor, QBrush, QPainter
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
-    QFileDialog,
     QHBoxLayout,
     QLabel,
     QLineEdit,
@@ -558,33 +558,7 @@ class PlanPracyApp(QWidget):
         dlg.exec()
 
     def eksportuj_excel(self):
-        try:
-            if self.table.rowCount() == 0 or self.table.columnCount() == 0:
-                QMessageBox.information(self, "Eksport", "Brak danych do eksportu.")
-                return
-
-            default_name = os.path.join(EXPORT_DIR, f"plan_pracy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx")
-            path, _ = QFileDialog.getSaveFileName(self, "Zapisz jako", default_name, "Excel (*.xlsx)")
-            if not path:
-                return
-
-            rows = [self.table.verticalHeaderItem(r).text() for r in range(self.table.rowCount())]
-            cols = [self.table.horizontalHeaderItem(c).text().replace("\n", " ") for c in range(self.table.columnCount())]
-            data = []
-            for r in range(self.table.rowCount()):
-                row = []
-                for c in range(self.table.columnCount()):
-                    item = self.table.item(r, c)
-                    row.append(item.text() if item else "")
-                data.append(row)
-
-            out = pd.DataFrame(data, index=rows, columns=cols)
-            out.to_excel(path)
-            QMessageBox.information(self, "Eksport", "Plik Excel został utworzony.")
-        except Exception as exc:
-            logging.exception("Błąd eksportu Excel")
-            QMessageBox.critical(self, "Błąd", f"Nie udało się wyeksportować danych:\n\n{exc}")
-
+        export_table_to_excel(self, self.table, EXPORT_DIR)
 
 if __name__ == "__main__":
     try:
