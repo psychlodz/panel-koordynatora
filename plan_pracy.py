@@ -4,9 +4,9 @@ import sys
 import hashlib
 from datetime import datetime, date, timedelta
 
-import oracledb
 import pandas as pd
 from config import app_dir, load_config
+from db import create_connection
 from PySide6.QtCore import QDate, Qt, QRect
 from PySide6.QtGui import QColor, QBrush, QPainter
 from PySide6.QtWidgets import (
@@ -296,7 +296,7 @@ class PlanPracyApp(QWidget):
             WHERE jo_id IS NOT NULL
             ORDER BY jo_symbol, jo_nazwa, jo_id
         """
-        with oracledb.connect(user=db_user, password=db_password, dsn=db_dsn) as conn:
+        with create_connection(user=db_user, password=db_password, dsn=db_dsn) as conn:
             return pd.read_sql(sql, conn)
 
     def odswiez_jednostki(self, show_errors: bool = True):
@@ -346,7 +346,7 @@ class PlanPracyApp(QWidget):
         """
 
         logging.info("Pobieranie planu: jo_id=%s, data_od=%s, data_do=%s", jo_id, data_od, data_do)
-        with oracledb.connect(user=db_user, password=db_password, dsn=db_dsn) as conn:
+        with create_connection(user=db_user, password=db_password, dsn=db_dsn) as conn:
             return pd.read_sql(sql, conn, params={"jo_id": jo_id, "data_od": data_od, "data_do": data_do})
 
     def zaladuj(self):
