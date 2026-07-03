@@ -174,7 +174,13 @@ def activate_next_tasks(
             )
 
 
-def complete_task(zadanie_id, data_realizacji=None) -> list[int]:
+def complete_task(
+    zadanie_id,
+    data_realizacji=None,
+    completion_status=TASK_STATUS_COMPLETED,
+    eskulap_system=None,
+    eskulap_id=None,
+) -> list[int]:
     initialize_local_db()
     completion_date = data_realizacji or datetime.now().isoformat(
         timespec="seconds"
@@ -202,10 +208,18 @@ def complete_task(zadanie_id, data_realizacji=None) -> list[int]:
                 UPDATE pk_zadania
                 SET status = ?,
                     data_realizacji = ?,
+                    eskulap_system = COALESCE(?, eskulap_system),
+                    eskulap_id = COALESCE(?, eskulap_id),
                     updated_at = CURRENT_TIMESTAMP
                 WHERE zadanie_id = ?
                 """,
-                (TASK_STATUS_COMPLETED, completion_date, zadanie_id),
+                (
+                    completion_status,
+                    completion_date,
+                    eskulap_system,
+                    eskulap_id,
+                    zadanie_id,
+                ),
             )
             return _activate_triggered_tasks(
                 connection,

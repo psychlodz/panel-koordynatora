@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QHeaderView,
     QLabel,
+    QMenuBar,
     QMessageBox,
     QPushButton,
     QTableWidget,
@@ -20,6 +21,7 @@ from app.repositories.task_repository import (
     schedule_task,
 )
 from episode_generator import complete_task
+from services.synchronization_service import synchronize_tasks
 
 
 def _patient_name(patient, fallback):
@@ -46,6 +48,13 @@ class TasksWindow(QWidget):
         self.schedule_window = None
 
         layout = QVBoxLayout(self)
+        menu_bar = QMenuBar(self)
+        administration_menu = menu_bar.addMenu("Administracja")
+        self.synchronize_action = administration_menu.addAction(
+            "Synchronizuj teraz"
+        )
+        layout.setMenuBar(menu_bar)
+
         title = QLabel("Aktywne zadania")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
@@ -104,6 +113,7 @@ class TasksWindow(QWidget):
         self.complete_button.clicked.connect(self.complete_selected_task)
         self.cancel_button.clicked.connect(self.cancel_selected_task)
         self.refresh_button.clicked.connect(self.refresh_tasks)
+        self.synchronize_action.triggered.connect(self.synchronize_now)
 
         self.refresh_tasks()
 
@@ -348,3 +358,31 @@ class TasksWindow(QWidget):
                 "KOMPAS",
                 f"Nie udało się anulować zadania:\n\n{exc}",
             )
+
+    def synchronize_now(self):
+        self.synchronize_action.setEnabled(False)
+        self.info_label.setText("Synchronizacja z Eskulapem...")
+        try:
+            result = synchronize_tasks()
+            self.refresh_tasks()
+            message = (
+                f"Sprawdzeni pacjenci: {result.patients_checked}\n"
+                f"Sprawdzone zadania: {result.tasks_checked}\n"
+                f"Zrealizowane zadania: {result.tasks_completed}\n"
+                f"Pominięte zadania: {result.tasks_skipped}"
+            )
+            if result.errors:
+                message += f"\nBłędy: {len(result.errors)}"
+            QMessageBox.information(
+                self,
+                "KOMPAS — Synchronizacja",
+                message,
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "KOMPAS — Synchronizacja",
+                f"Synchronizacja nie powiodła się:\n\n{exc}",
+            )
+        finally:
+            self.synchronize_action.setEnabled(True)

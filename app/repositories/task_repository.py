@@ -27,8 +27,12 @@ def list_active_tasks() -> list[dict]:
                 z.data_zaplanowana,
                 z.data_realizacji,
                 z.zrodlo,
+                z.eskulap_system,
+                z.eskulap_id,
                 z.uwagi,
+                z.created_at,
                 ep.pacjent_id,
+                ep.data_start,
                 ep.koordynator_id,
                 ep.program_id,
                 ep.sciezka_id,
@@ -58,6 +62,23 @@ def list_active_tasks() -> list[dict]:
             TERMINAL_STATUSES,
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def list_synchronized_event_keys() -> set[tuple[str, str]]:
+    initialize_local_db()
+    with closing(create_local_connection()) as connection:
+        rows = connection.execute(
+            """
+            SELECT eskulap_system, eskulap_id
+            FROM pk_zadania
+            WHERE eskulap_system IS NOT NULL
+              AND eskulap_id IS NOT NULL
+            """
+        ).fetchall()
+    return {
+        (str(row["eskulap_system"]), str(row["eskulap_id"]))
+        for row in rows
+    }
 
 
 def _scheduled_value(value) -> str:
