@@ -2,9 +2,6 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
-    QDialog,
-    QDialogButtonBox,
-    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -21,7 +18,7 @@ from app.repositories.episode_repository import (
     list_active_episodes,
 )
 from app.repositories.patient_repository import get_patient
-from pathway_service import list_episode_tasks
+from app.ui.episode_details_window import EpisodeDetailsDialog
 
 
 def _display_name(patient, fallback):
@@ -37,86 +34,6 @@ def _display_name(patient, fallback):
         if name:
             return name
     return str(fallback)
-
-
-class EpisodeDetailsDialog(QDialog):
-    def __init__(self, epizod_id, patient=None, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("KOMPAS — Szczegóły epizodu")
-        self.resize(850, 560)
-
-        episode = get_episode(epizod_id)
-        if episode is None:
-            raise ValueError(f"Nie znaleziono epizodu o ID {epizod_id}")
-
-        layout = QVBoxLayout(self)
-        form = QFormLayout()
-        form.addRow(
-            "Pacjent:",
-            QLabel(_display_name(patient, episode["pacjent_id"])),
-        )
-        form.addRow(
-            "PESEL:",
-            QLabel(str(patient.get("pesel") or "") if patient else ""),
-        )
-        form.addRow(
-            "Program:",
-            QLabel(episode["program_nazwa"] or episode["program_kod"] or ""),
-        )
-        form.addRow(
-            "Ścieżka:",
-            QLabel(episode["sciezka_nazwa"] or episode["sciezka_kod"] or ""),
-        )
-        form.addRow(
-            "Koordynator:",
-            QLabel(str(episode["koordynator_id"] or "Nie przypisano")),
-        )
-        form.addRow("Status:", QLabel(str(episode["status"] or "")))
-        form.addRow(
-            "Data rozpoczęcia:",
-            QLabel(str(episode["data_start"] or "")),
-        )
-        form.addRow("Uwagi:", QLabel(str(episode["uwagi"] or "")))
-        layout.addLayout(form)
-
-        layout.addWidget(QLabel("Zadania epizodu"))
-        tasks = list_episode_tasks(epizod_id)
-        self.tasks_table = QTableWidget(len(tasks), 5)
-        self.tasks_table.setHorizontalHeaderLabels(
-            ["Lp", "Zadanie", "Status", "Zaplanowano", "Zrealizowano"]
-        )
-        self.tasks_table.setEditTriggers(
-            QAbstractItemView.EditTrigger.NoEditTriggers
-        )
-        self.tasks_table.setSelectionBehavior(
-            QAbstractItemView.SelectionBehavior.SelectRows
-        )
-        self.tasks_table.verticalHeader().setVisible(False)
-        self.tasks_table.horizontalHeader().setSectionResizeMode(
-            QHeaderView.ResizeMode.ResizeToContents
-        )
-        self.tasks_table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.Stretch
-        )
-        for row_index, task in enumerate(tasks):
-            values = [
-                task["lp"],
-                task["nazwa_w_sciezce"] or task["klocek_nazwa"],
-                task["status"],
-                task["data_zaplanowana"],
-                task["data_realizacji"],
-            ]
-            for column_index, value in enumerate(values):
-                self.tasks_table.setItem(
-                    row_index,
-                    column_index,
-                    QTableWidgetItem("" if value is None else str(value)),
-                )
-        layout.addWidget(self.tasks_table, 1)
-
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
 
 
 class EpisodesWindow(QWidget):
