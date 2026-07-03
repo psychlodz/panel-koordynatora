@@ -3,6 +3,7 @@ setlocal
 
 echo =====================================
 echo Building KOMPAS application
+echo Entry point: main.py
 echo =====================================
 echo.
 

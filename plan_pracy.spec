@@ -14,6 +14,7 @@ hidden += collect_submodules('oracledb')
 hidden += collect_submodules('cryptography')
 hidden += collect_submodules('pandas')
 hidden += collect_submodules('openpyxl')
+hidden += collect_submodules('app')
 hidden += [
     'PySide6.QtCore',
     'PySide6.QtGui',
@@ -24,7 +25,7 @@ hidden += [
 ]
 
 a = Analysis(
-    ['plan_pracy.py'],
+    ['main.py'],
     pathex=[SPECPATH],
     binaries=[],
     datas=[
