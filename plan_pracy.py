@@ -128,7 +128,7 @@ class PlanPracyApp(QWidget):
         self._updating_filters = False
         self.person_color_map: dict[str, str] = {}
 
-        self.setWindowTitle("Plan Pracy v1.0.1")
+        self.setWindowTitle("KOMPAS")
         self.resize(1500, 900)
 
         self.default_jo_id = self.cfg.default_jo_id
@@ -529,7 +529,7 @@ class PlanPracyApp(QWidget):
             return
 
         dlg = QDialog(self)
-        dlg.setWindowTitle(f"Plan pracy — {day_date.isoformat()} {DNI_TYG[day_date.weekday()]}, godz. {slot}")
+        dlg.setWindowTitle(f"KOMPAS — {day_date.isoformat()} {DNI_TYG[day_date.weekday()]}, godz. {slot}")
         dlg.resize(560, 360)
         layout = QVBoxLayout(dlg)
         title = QLabel(f"{day_date.isoformat()} ({DNI_TYG[day_date.weekday()]}) — osoby pracujące w przedziale obejmującym {slot}")
@@ -563,6 +563,7 @@ class PlanPracyApp(QWidget):
 if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
+        app.setApplicationName("KOMPAS")
         win = PlanPracyApp()
         win.show()
         sys.exit(app.exec())

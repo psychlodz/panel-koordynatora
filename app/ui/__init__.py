@@ -1,0 +1,1 @@
+"""Widoki Qt aplikacji KOMPAS."""
