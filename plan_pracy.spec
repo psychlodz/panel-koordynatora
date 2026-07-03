@@ -19,7 +19,11 @@ a = Analysis(
     ['plan_pracy.py'],
     pathex=[],
     binaries=[],
-    datas=[('config.ini', '.')],
+    datas=[
+        ('config.ini', '.'),
+        ('db/schema.sql', 'db'),
+        ('db/seed.sql', 'db'),
+    ],
     hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},

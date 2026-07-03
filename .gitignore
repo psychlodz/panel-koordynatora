@@ -17,6 +17,10 @@ export/
 # Konfiguracja lokalna
 config.ini
 
+# Lokalna baza SQLite
+kompas.db
+kompas.db-*
+
 # Visual Studio Code
 .vscode/
 
