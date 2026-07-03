@@ -1,11 +1,7 @@
-from PySide6.QtCore import QDateTime, Qt
+from PySide6.QtCore import QDate, QTimer, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
-    QDateTimeEdit,
-    QDialog,
-    QDialogButtonBox,
-    QFormLayout,
     QHBoxLayout,
     QHeaderView,
     QLabel,
@@ -38,38 +34,6 @@ def _patient_name(patient, fallback):
     return str(fallback)
 
 
-class ScheduleTaskDialog(QDialog):
-    def __init__(self, current_value=None, parent=None):
-        super().__init__(parent)
-        self.setWindowTitle("KOMPAS — Zaplanuj zadanie")
-
-        layout = QVBoxLayout(self)
-        form = QFormLayout()
-        self.date_time_edit = QDateTimeEdit(QDateTime.currentDateTime())
-        self.date_time_edit.setCalendarPopup(True)
-        self.date_time_edit.setDisplayFormat("yyyy-MM-dd HH:mm")
-        if current_value:
-            parsed = QDateTime.fromString(
-                str(current_value),
-                Qt.DateFormat.ISODate,
-            )
-            if parsed.isValid():
-                self.date_time_edit.setDateTime(parsed)
-        form.addRow("Termin:", self.date_time_edit)
-        layout.addLayout(form)
-
-        buttons = QDialogButtonBox(
-            QDialogButtonBox.StandardButton.Save
-            | QDialogButtonBox.StandardButton.Cancel
-        )
-        buttons.accepted.connect(self.accept)
-        buttons.rejected.connect(self.reject)
-        layout.addWidget(buttons)
-
-    def planned_at(self):
-        return self.date_time_edit.dateTime().toString(Qt.DateFormat.ISODate)
-
-
 class TasksWindow(QWidget):
     def __init__(self):
         super().__init__()
@@ -78,6 +42,8 @@ class TasksWindow(QWidget):
         self._tasks = []
         self._tasks_by_id = {}
         self._patients = {}
+        self._scheduling_task_id = None
+        self.schedule_window = None
 
         layout = QVBoxLayout(self)
         title = QLabel("Aktywne zadania")
@@ -282,17 +248,57 @@ class TasksWindow(QWidget):
         task = self._selected_task()
         if task is None:
             return
-        dialog = ScheduleTaskDialog(task["data_zaplanowana"], self)
-        if dialog.exec() != QDialog.DialogCode.Accepted:
-            return
         try:
-            schedule_task(task["zadanie_id"], dialog.planned_at())
-            self.refresh_tasks()
+            from plan_pracy import PlanPracyApp
+
+            self._scheduling_task_id = task["zadanie_id"]
+            self.schedule_window = PlanPracyApp(
+                selection_mode=True,
+                initial_notes=task["uwagi"],
+            )
+            self.schedule_window.slot_selected.connect(
+                self.save_selected_schedule_slot
+            )
+            if task["data_zaplanowana"]:
+                planned_date = QDate.fromString(
+                    str(task["data_zaplanowana"])[:10],
+                    Qt.DateFormat.ISODate,
+                )
+                if planned_date.isValid():
+                    self.schedule_window.data_od.setDate(planned_date)
+            self.schedule_window.show()
+            QTimer.singleShot(0, self.schedule_window.zaladuj)
         except Exception as exc:
             QMessageBox.critical(
                 self,
                 "KOMPAS",
-                f"Nie udało się zaplanować zadania:\n\n{exc}",
+                f"Nie udało się otworzyć harmonogramu:\n\n{exc}",
+            )
+
+    def save_selected_schedule_slot(self, planned_at, notes):
+        if self._scheduling_task_id is None:
+            return
+        try:
+            schedule_task(
+                self._scheduling_task_id,
+                planned_at,
+                notes,
+            )
+            if self.schedule_window is not None:
+                self.schedule_window.close()
+            self._scheduling_task_id = None
+            self.schedule_window = None
+            self.refresh_tasks()
+            QMessageBox.information(
+                self,
+                "KOMPAS",
+                "Zadanie zostało zaplanowane w Harmonogramie.",
+            )
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "KOMPAS",
+                f"Nie udało się zapisać terminu zadania:\n\n{exc}",
             )
 
     def complete_selected_task(self):

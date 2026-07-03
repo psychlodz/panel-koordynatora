@@ -2,7 +2,7 @@ import logging
 import os
 import sys
 import hashlib
-from datetime import date
+from datetime import date, datetime, time
 
 import pandas as pd
 from calendar_logic import (
@@ -15,7 +15,7 @@ from calendar_logic import (
 from config import app_dir, load_config
 from db import create_connection
 from excel_export import export_table_to_excel
-from PySide6.QtCore import QDate, Qt, QRect
+from PySide6.QtCore import QDate, Qt, QRect, Signal
 from PySide6.QtGui import QColor, QBrush, QPainter
 from PySide6.QtWidgets import (
     QApplication,
@@ -32,6 +32,7 @@ from PySide6.QtWidgets import (
     QWidget,
     QDateEdit,
     QDialog,
+    QDialogButtonBox,
     QHeaderView,
     QSplitter,
     QListWidget,
@@ -39,6 +40,7 @@ from PySide6.QtWidgets import (
     QStyledItemDelegate,
     QStyle,
     QStyleOptionViewItem,
+    QTextEdit,
 )
 
 
@@ -118,8 +120,12 @@ class PersonColorDelegate(QStyledItemDelegate):
 
 
 class PlanPracyApp(QWidget):
-    def __init__(self):
+    slot_selected = Signal(str, str)
+
+    def __init__(self, selection_mode=False, initial_notes=""):
         super().__init__()
+        self.selection_mode = selection_mode
+        self.initial_notes = initial_notes or ""
         self.cfg = load_config()
         self.df_last = pd.DataFrame()
         self.df_view = pd.DataFrame()
@@ -128,7 +134,11 @@ class PlanPracyApp(QWidget):
         self._updating_filters = False
         self.person_color_map: dict[str, str] = {}
 
-        self.setWindowTitle("KOMPAS")
+        self.setWindowTitle(
+            "KOMPAS — Harmonogram — wybór terminu"
+            if self.selection_mode
+            else "KOMPAS"
+        )
         self.resize(1500, 900)
 
         self.default_jo_id = self.cfg.default_jo_id
@@ -140,6 +150,16 @@ class PlanPracyApp(QWidget):
         self.view_name = self.cfg.view_name
 
         layout = QVBoxLayout(self)
+
+        if self.selection_mode:
+            selection_hint = QLabel(
+                "Tryb planowania zadania: wybierz komórkę dnia i przedziału "
+                "godzinowego."
+            )
+            selection_hint.setStyleSheet(
+                "font-weight: bold; color: #1f5fbf;"
+            )
+            layout.addWidget(selection_hint)
 
         panel = QHBoxLayout()
         self.jednostka_combo = QComboBox()
@@ -514,7 +534,9 @@ class PlanPracyApp(QWidget):
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
 
     def show_cell_details(self, row: int, col: int):
-        if self.df_view.empty or self.current_start is None:
+        if self.current_start is None:
+            return
+        if self.df_view.empty and not self.selection_mode:
             return
 
         dni = pd.date_range(start=self.current_start, end=self.current_end, freq="D")
@@ -525,6 +547,9 @@ class PlanPracyApp(QWidget):
         day_date = dni[col].date()
         slot_start, slot_end, slot = sloty[row]
         rows = self.detail_rows_for_cell(rows_for_cell(self.df_view, day_date, slot_start, slot_end))
+        if self.selection_mode:
+            self.select_schedule_slot(day_date, slot_start, slot_end, slot, rows)
+            return
         if rows.empty:
             return
 
@@ -556,6 +581,74 @@ class PlanPracyApp(QWidget):
         btn_close.clicked.connect(dlg.close)
         layout.addWidget(btn_close)
         dlg.exec()
+
+    def select_schedule_slot(
+        self,
+        day_date,
+        slot_start,
+        slot_end,
+        slot_label,
+        rows,
+    ):
+        dlg = QDialog(self)
+        dlg.setWindowTitle("KOMPAS — Wybierz termin zadania")
+        dlg.resize(560, 420)
+        layout = QVBoxLayout(dlg)
+        layout.addWidget(
+            QLabel(
+                f"Termin: {day_date.isoformat()}, godz. {slot_label}"
+            )
+        )
+
+        people = QTableWidget()
+        people.setColumnCount(3)
+        people.setHorizontalHeaderLabels(["Pracownik", "Od", "Do"])
+        people.setRowCount(len(rows))
+        for row_index, (_, record) in enumerate(rows.iterrows()):
+            values = [
+                record["PRACOWNIK"],
+                record["GODZ_OD"],
+                record["GODZ_DO"],
+            ]
+            for column_index, value in enumerate(values):
+                people.setItem(
+                    row_index,
+                    column_index,
+                    QTableWidgetItem(str(value)),
+                )
+        people.horizontalHeader().setStretchLastSection(True)
+        layout.addWidget(people)
+
+        layout.addWidget(QLabel("Uwagi do planowania:"))
+        notes_edit = QTextEdit()
+        notes_edit.setPlainText(self.initial_notes)
+        layout.addWidget(notes_edit)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        buttons.button(QDialogButtonBox.StandardButton.Ok).setText(
+            "Wybierz termin"
+        )
+        buttons.accepted.connect(dlg.accept)
+        buttons.rejected.connect(dlg.reject)
+        layout.addWidget(buttons)
+
+        if dlg.exec() != QDialog.DialogCode.Accepted:
+            return
+
+        planned_at = datetime.combine(
+            day_date,
+            time(
+                hour=slot_start // 60,
+                minute=slot_start % 60,
+            ),
+        ).isoformat(timespec="minutes")
+        self.slot_selected.emit(
+            planned_at,
+            notes_edit.toPlainText().strip(),
+        )
 
     def eksportuj_excel(self):
         export_table_to_excel(self, self.table, EXPORT_DIR)

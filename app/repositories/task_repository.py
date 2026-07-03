@@ -73,20 +73,26 @@ def _scheduled_value(value) -> str:
     return text
 
 
-def schedule_task(zadanie_id, planned_at) -> None:
+def schedule_task(zadanie_id, planned_at, uwagi=None) -> None:
     initialize_local_db()
     with closing(create_local_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 f"""
                 UPDATE pk_zadania
-                SET status = 'ZAPLANOWANE',
+                SET status = 'ZAPLANOWANO',
                     data_zaplanowana = ?,
+                    uwagi = ?,
                     updated_at = CURRENT_TIMESTAMP
                 WHERE zadanie_id = ?
                   AND {_active_status_clause()}
                 """,
-                (_scheduled_value(planned_at), zadanie_id, *TERMINAL_STATUSES),
+                (
+                    _scheduled_value(planned_at),
+                    str(uwagi).strip() if uwagi else None,
+                    zadanie_id,
+                    *TERMINAL_STATUSES,
+                ),
             )
             if cursor.rowcount == 0:
                 raise ValueError(
