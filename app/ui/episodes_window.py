@@ -15,37 +15,20 @@ from PySide6.QtWidgets import (
 
 from app.repositories.episode_repository import (
     get_episode,
-    list_active_episodes,
+    list_episodes,
 )
-from app.repositories.patient_repository import get_patient
 from app.ui.episode_details_window import EpisodeDetailsDialog
-
-
-def _display_name(patient, fallback):
-    if patient:
-        name = " ".join(
-            part
-            for part in (
-                patient.get("nazwisko"),
-                patient.get("imie"),
-            )
-            if part
-        ).strip()
-        if name:
-            return name
-    return str(fallback)
 
 
 class EpisodesWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("KOMPAS — Aktywne epizody")
-        self.resize(1200, 680)
+        self.setWindowTitle("KOMPAS — Pacjenci w programach")
+        self.resize(1500, 720)
         self._episodes = []
-        self._patients = {}
 
         layout = QVBoxLayout(self)
-        title = QLabel("Aktywne epizody")
+        title = QLabel("Pacjenci w programach")
         title.setStyleSheet("font-size: 18px; font-weight: bold;")
         layout.addWidget(title)
 
@@ -66,16 +49,20 @@ class EpisodesWindow(QWidget):
         self.info_label = QLabel()
         layout.addWidget(self.info_label)
 
-        self.table = QTableWidget(0, 7)
+        self.table = QTableWidget(0, 11)
         self.table.setHorizontalHeaderLabels(
             [
-                "Pacjent",
-                "PESEL",
+                "ID",
+                "Pacjent ID",
                 "Program",
                 "Ścieżka",
-                "Koordynator",
                 "Status",
                 "Data rozpoczęcia",
+                "Data zakończenia",
+                "Koordynator",
+                "Zadania",
+                "Zrealizowane",
+                "Realizacja",
             ]
         )
         self.table.setSelectionBehavior(
@@ -90,7 +77,7 @@ class EpisodesWindow(QWidget):
             QHeaderView.ResizeMode.ResizeToContents
         )
         self.table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Stretch
+            2, QHeaderView.ResizeMode.Stretch
         )
         layout.addWidget(self.table, 1)
 
@@ -101,12 +88,6 @@ class EpisodesWindow(QWidget):
         self.table.cellDoubleClicked.connect(self.open_episode_details)
 
         self.refresh_episodes()
-
-    def _load_patient(self, patient_id):
-        key = str(patient_id)
-        if key not in self._patients:
-            self._patients[key] = get_patient(patient_id)
-        return self._patients[key]
 
     @staticmethod
     def _set_combo_items(combo, items):
@@ -155,26 +136,10 @@ class EpisodesWindow(QWidget):
 
     def refresh_episodes(self):
         try:
-            self._episodes = list_active_episodes()
-            self._patients = {}
-            oracle_error = None
-            for episode in self._episodes:
-                try:
-                    self._load_patient(episode["pacjent_id"])
-                except Exception as exc:
-                    oracle_error = exc
-                    self._patients[str(episode["pacjent_id"])] = None
+            self._episodes = list_episodes()
             self._refresh_filters()
             self.apply_filters()
-            if oracle_error:
-                self.info_label.setText(
-                    "Nie udało się pobrać części danych pacjentów z Oracle. "
-                    "Wyświetlono identyfikatory pacjentów."
-                )
-            else:
-                self.info_label.setText(
-                    f"Aktywne epizody: {len(self._episodes)}"
-                )
+            self.info_label.setText(f"Epizody: {len(self._episodes)}")
         except Exception as exc:
             QMessageBox.critical(
                 self,
@@ -199,15 +164,18 @@ class EpisodesWindow(QWidget):
 
         self.table.setRowCount(len(visible))
         for row_index, episode in enumerate(visible):
-            patient = self._patients.get(str(episode["pacjent_id"]))
             values = [
-                _display_name(patient, episode["pacjent_id"]),
-                patient.get("pesel") if patient else "",
+                episode["epizod_id"],
+                episode["pacjent_id"],
                 episode["program_nazwa"] or episode["program_kod"] or "",
                 episode["sciezka_nazwa"] or episode["sciezka_kod"] or "",
-                episode["koordynator_id"] or "Nie przypisano",
                 episode["status"] or "",
                 episode["data_start"] or "",
+                episode["data_zakonczenia"] or "",
+                episode["koordynator_id"] or "Nie przypisano",
+                episode["liczba_zadan"],
+                episode["liczba_zrealizowanych_zadan"],
+                f"{episode['procent_realizacji']:.1f}%",
             ]
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
@@ -225,12 +193,9 @@ class EpisodesWindow(QWidget):
             return
         try:
             episode = get_episode(epizod_id)
-            patient = (
-                self._patients.get(str(episode["pacjent_id"]))
-                if episode
-                else None
-            )
-            dialog = EpisodeDetailsDialog(epizod_id, patient, self)
+            if episode is None:
+                raise ValueError("Wybrany epizod nie istnieje")
+            dialog = EpisodeDetailsDialog(epizod_id, parent=self)
             dialog.exec()
         except Exception as exc:
             QMessageBox.critical(

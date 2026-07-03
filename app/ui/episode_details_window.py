@@ -18,6 +18,7 @@ from PySide6.QtCore import Qt
 
 from app.repositories.episode_repository import (
     get_episode,
+    list_episode_tasks,
     list_episode_process_elements,
 )
 from app.repositories.event_repository import (
@@ -80,6 +81,7 @@ class EpisodeDetailsDialog(QDialog):
         if self.episode is None:
             raise ValueError(f"Nie znaleziono epizodu o ID {epizod_id}")
         self.process_elements = list_episode_process_elements(epizod_id)
+        self.tasks = list_episode_tasks(epizod_id)
         self.patient = patient
         self.oracle_errors = []
 
@@ -223,30 +225,28 @@ class EpisodeDetailsDialog(QDialog):
     def _process_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
-        table = QTableWidget(len(self.process_elements), 8)
+        table = QTableWidget(len(self.tasks), 7)
         table.setHorizontalHeaderLabels(
             [
-                "Lp",
-                "Element",
+                "Nazwa elementu",
                 "Status",
-                "Termin",
+                "Data wymagana do",
                 "Zaplanowano",
                 "Realizacja",
                 "Źródło",
                 "Uwagi",
             ]
         )
-        _configure_table(table, 1)
-        for row_index, element in enumerate(self.process_elements):
+        _configure_table(table, 0)
+        for row_index, task in enumerate(self.tasks):
             values = [
-                element["lp"],
-                element["nazwa_w_sciezce"] or element["klocek_nazwa"],
-                element["status"] or WAITING_STATUS,
-                element["data_wymagana_do"],
-                element["data_zaplanowana"],
-                element["data_realizacji"],
-                element["zrodlo"],
-                element["uwagi"],
+                task["nazwa_w_sciezce"] or task["klocek_nazwa"],
+                task["status"],
+                task["data_wymagana_do"],
+                task["data_zaplanowana"],
+                task["data_realizacji"],
+                task["zrodlo"],
+                task["uwagi"],
             ]
             for column_index, value in enumerate(values):
                 table.setItem(

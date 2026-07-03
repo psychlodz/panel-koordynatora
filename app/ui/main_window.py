@@ -79,8 +79,8 @@ class MainWindow(QMainWindow):
         self.programs_button = QPushButton(
             "Programy\nKonfiguracja programów KOMPAS"
         )
-        self.pathways_button = QPushButton(
-            "Ścieżki\nElementy i przebieg programu"
+        self.episodes_button = QPushButton(
+            "Pacjenci w programach\nEpizody i postęp realizacji"
         )
         self.new_episode_button = QPushButton(
             "Nowy epizod\nRozpoczęcie programu pacjenta"
@@ -93,7 +93,7 @@ class MainWindow(QMainWindow):
         for button in (
             self.schedule_button,
             self.programs_button,
-            self.pathways_button,
+            self.episodes_button,
             self.new_episode_button,
             self.users_button,
         ):
@@ -102,7 +102,7 @@ class MainWindow(QMainWindow):
 
         buttons.addWidget(self.schedule_button, 0, 0)
         buttons.addWidget(self.programs_button, 0, 1)
-        buttons.addWidget(self.pathways_button, 1, 0)
+        buttons.addWidget(self.episodes_button, 1, 0)
         buttons.addWidget(self.new_episode_button, 1, 1)
         buttons.addWidget(self.users_button, 2, 0, 1, 2)
         layout.addLayout(buttons)
@@ -120,7 +120,7 @@ class MainWindow(QMainWindow):
 
         self.schedule_button.clicked.connect(self.open_schedule)
         self.programs_button.clicked.connect(self.open_programs)
-        self.pathways_button.clicked.connect(self.show_pathways_message)
+        self.episodes_button.clicked.connect(self.open_episodes)
         self.new_episode_button.clicked.connect(self.open_new_episode)
         self.users_button.clicked.connect(self.open_users)
         self.exit_button.clicked.connect(QApplication.instance().quit)
@@ -158,12 +158,13 @@ class MainWindow(QMainWindow):
 
         self._show_window("programs", factory)
 
-    def show_pathways_message(self):
-        QMessageBox.information(
-            self,
-            APP_NAME,
-            "Wybierz program w module Programy.",
-        )
+    def open_episodes(self):
+        def factory():
+            from app.ui.episodes_window import EpisodesWindow
+
+            return EpisodesWindow()
+
+        self._show_window("episodes", factory)
 
     def open_new_episode(self):
         try:
