@@ -57,6 +57,18 @@ Najważniejsze kolumny:
 - `termin_liczba`, `termin_jednostka`, `termin_od`;
 - `warunek_aktywacji`, `opis_organizacyjny`.
 
+### `pk_sciezka_zaleznosci`
+
+Skierowane zależności pomiędzy elementami jednej ścieżki. Relacja wskazuje element poprzedni (`element_od_id`) i następny (`element_do_id`). Typ jest ograniczony do `KOLEJNOSC` albo `WARUNEK`.
+
+Klucze obce:
+
+- `sciezka_id -> pk_sciezki.sciezka_id`;
+- `element_od_id -> pk_sciezka_elementy.element_id`;
+- `element_do_id -> pk_sciezka_elementy.element_id`.
+
+Schemat zabrania relacji elementu do samego siebie oraz duplikatu tej samej pary. Repozytorium dodatkowo zapobiega cyklom.
+
 ### `pk_epizody`
 
 Epizody pacjentów przypisane opcjonalnie do programu i ścieżki, ze statusem, koordynatorem i datami realizacji.

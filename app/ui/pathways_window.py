@@ -241,6 +241,7 @@ class PathwaysWindow(QWidget):
         super().__init__()
         self.program_id = program_id
         self._elements_by_id = {}
+        self.dependencies_window = None
         self.setWindowTitle("KOMPAS — Ścieżki")
         self.resize(1300, 720)
 
@@ -270,8 +271,10 @@ class PathwaysWindow(QWidget):
         pathway_buttons = QHBoxLayout()
         self.new_pathway_button = QPushButton("Nowa ścieżka")
         self.edit_pathway_button = QPushButton("Edytuj ścieżkę")
+        self.dependencies_button = QPushButton("Zależności")
         pathway_buttons.addWidget(self.new_pathway_button)
         pathway_buttons.addWidget(self.edit_pathway_button)
+        pathway_buttons.addWidget(self.dependencies_button)
         pathways_layout.addLayout(pathway_buttons)
         splitter.addWidget(pathways_panel)
 
@@ -303,6 +306,7 @@ class PathwaysWindow(QWidget):
         self.refresh_button.clicked.connect(lambda: self.refresh_pathways())
         self.new_pathway_button.clicked.connect(self.new_pathway)
         self.edit_pathway_button.clicked.connect(self.edit_pathway)
+        self.dependencies_button.clicked.connect(self.open_dependencies)
         self.add_element_button.clicked.connect(self.add_element)
         self.edit_element_button.clicked.connect(self.edit_element)
         self.delete_element_button.clicked.connect(self.delete_element)
@@ -510,3 +514,18 @@ class PathwaysWindow(QWidget):
             self.load_selected_pathway_elements()
         except Exception as exc:
             self._show_error("Nie udało się usunąć elementu", exc)
+
+    def open_dependencies(self):
+        pathway_id = self.current_pathway_id()
+        if pathway_id is None:
+            QMessageBox.information(
+                self, "KOMPAS", "Wybierz ścieżkę, aby otworzyć zależności."
+            )
+            return
+        try:
+            from app.ui.dependencies_window import DependenciesWindow
+
+            self.dependencies_window = DependenciesWindow(pathway_id)
+            self.dependencies_window.show()
+        except Exception as exc:
+            self._show_error("Nie udało się otworzyć zależności", exc)

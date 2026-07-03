@@ -67,6 +67,25 @@ CREATE TABLE IF NOT EXISTS pk_sciezka_elementy (
     UNIQUE(sciezka_id, lp)
 );
 
+CREATE TABLE IF NOT EXISTS pk_sciezka_zaleznosci (
+    zaleznosc_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sciezka_id INTEGER NOT NULL,
+    element_od_id INTEGER NOT NULL,
+    element_do_id INTEGER NOT NULL,
+    typ TEXT NOT NULL CHECK (typ IN ('KOLEJNOSC', 'WARUNEK')),
+    opis TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    FOREIGN KEY(sciezka_id) REFERENCES pk_sciezki(sciezka_id),
+    FOREIGN KEY(element_od_id) REFERENCES pk_sciezka_elementy(element_id),
+    FOREIGN KEY(element_do_id) REFERENCES pk_sciezka_elementy(element_id),
+    CHECK (element_od_id <> element_do_id),
+    UNIQUE(sciezka_id, element_od_id, element_do_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pk_sciezka_zaleznosci_sciezka
+ON pk_sciezka_zaleznosci(sciezka_id);
+
 CREATE TABLE IF NOT EXISTS pk_epizody (
     epizod_id INTEGER PRIMARY KEY AUTOINCREMENT,
     pacjent_id TEXT NOT NULL,
