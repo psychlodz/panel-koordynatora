@@ -1,6 +1,11 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import sys
+
 from PyInstaller.utils.hooks import collect_submodules
+
+sys.path.insert(0, SPECPATH)
+from version import APP_NAME
 
 block_cipher = None
 
@@ -13,11 +18,14 @@ hidden += [
     'PySide6.QtCore',
     'PySide6.QtGui',
     'PySide6.QtWidgets',
+    'app.services.auth_service',
+    'app.ui.login_dialog',
+    'app.ui.users_window',
 ]
 
 a = Analysis(
     ['plan_pracy.py'],
-    pathex=[],
+    pathex=[SPECPATH],
     binaries=[],
     datas=[
         ('config.ini', '.'),
@@ -42,7 +50,7 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='PlanPracy',
+    name=APP_NAME,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -62,5 +70,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='PlanPracy',
+    name=APP_NAME,
 )

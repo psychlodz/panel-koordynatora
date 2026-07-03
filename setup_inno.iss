@@ -1,7 +1,7 @@
-#define MyAppName "PlanPracy"
-#define MyAppVersion "1.0.0"
+#define MyAppName "KOMPAS"
+#define MyAppVersion "0.9.0"
 #define MyAppPublisher "ESK_RAPORTY"
-#define MyAppExeName "PlanPracy.exe"
+#define MyAppExeName "KOMPAS.exe"
 
 [Setup]
 AppId={{A2AB8B65-41E6-4AF1-A672-25B3B84B6D61}
@@ -11,7 +11,7 @@ AppPublisher={#MyAppPublisher}
 DefaultDirName={autopf}\{#MyAppName}
 DefaultGroupName={#MyAppName}
 OutputDir=installer
-OutputBaseFilename=PlanPracy_Setup
+OutputBaseFilename=KOMPAS_0.9.0_Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
@@ -24,7 +24,7 @@ Name: "polish"; MessagesFile: "compiler:Languages\Polish.isl"
 Name: "desktopicon"; Description: "Utwórz ikonę na pulpicie"; GroupDescription: "Dodatkowe ikony:"; Flags: unchecked
 
 [Files]
-Source: "dist\PlanPracy\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "dist\KOMPAS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "config.ini"; DestDir: "{app}"; Flags: onlyifdoesntexist
 
 [Icons]

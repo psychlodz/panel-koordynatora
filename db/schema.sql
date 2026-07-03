@@ -1,5 +1,35 @@
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE IF NOT EXISTS pk_users (
+    user_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    login TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    full_name TEXT NOT NULL,
+    password_hash TEXT NOT NULL,
+    must_change_password INTEGER NOT NULL DEFAULT 1,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    failed_login_count INTEGER NOT NULL DEFAULT 0,
+    locked_at TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    CHECK (must_change_password IN (0, 1)),
+    CHECK (is_active IN (0, 1)),
+    CHECK (failed_login_count >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS pk_roles (
+    role_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    code TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    name TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS pk_user_roles (
+    user_id INTEGER NOT NULL,
+    role_id INTEGER NOT NULL,
+    PRIMARY KEY(user_id, role_id),
+    FOREIGN KEY(user_id) REFERENCES pk_users(user_id) ON DELETE CASCADE,
+    FOREIGN KEY(role_id) REFERENCES pk_roles(role_id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS pk_programy (
     program_id INTEGER PRIMARY KEY AUTOINCREMENT,
     kod TEXT NOT NULL UNIQUE,

@@ -15,6 +15,7 @@ from calendar_logic import (
 from config import app_dir, load_config
 from db import create_connection
 from excel_export import export_table_to_excel
+from version import APP_NAME, VERSION
 from PySide6.QtCore import QDate, Qt, QRect, Signal
 from PySide6.QtGui import QColor, QBrush, QPainter
 from PySide6.QtWidgets import (
@@ -37,6 +38,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QListWidget,
     QListWidgetItem,
+    QMenuBar,
     QStyledItemDelegate,
     QStyle,
     QStyleOptionViewItem,
@@ -122,10 +124,17 @@ class PersonColorDelegate(QStyledItemDelegate):
 class PlanPracyApp(QWidget):
     slot_selected = Signal(str, str)
 
-    def __init__(self, selection_mode=False, initial_notes=""):
+    def __init__(
+        self,
+        selection_mode=False,
+        initial_notes="",
+        current_user=None,
+    ):
         super().__init__()
         self.selection_mode = selection_mode
         self.initial_notes = initial_notes or ""
+        self.current_user = current_user
+        self.users_window = None
         self.cfg = load_config()
         self.df_last = pd.DataFrame()
         self.df_view = pd.DataFrame()
@@ -135,9 +144,9 @@ class PlanPracyApp(QWidget):
         self.person_color_map: dict[str, str] = {}
 
         self.setWindowTitle(
-            "KOMPAS — Harmonogram — wybór terminu"
+            f"{APP_NAME} — Harmonogram — wybór terminu"
             if self.selection_mode
-            else "KOMPAS"
+            else APP_NAME
         )
         self.resize(1500, 900)
 
@@ -150,6 +159,13 @@ class PlanPracyApp(QWidget):
         self.view_name = self.cfg.view_name
 
         layout = QVBoxLayout(self)
+
+        if self.current_user and self.current_user.is_admin:
+            menu_bar = QMenuBar(self)
+            administration_menu = menu_bar.addMenu("Administracja")
+            users_action = administration_menu.addAction("Użytkownicy")
+            users_action.triggered.connect(self.open_users_window)
+            layout.setMenuBar(menu_bar)
 
         if self.selection_mode:
             selection_hint = QLabel(
@@ -554,7 +570,7 @@ class PlanPracyApp(QWidget):
             return
 
         dlg = QDialog(self)
-        dlg.setWindowTitle(f"KOMPAS — {day_date.isoformat()} {DNI_TYG[day_date.weekday()]}, godz. {slot}")
+        dlg.setWindowTitle(f"{APP_NAME} — {day_date.isoformat()} {DNI_TYG[day_date.weekday()]}, godz. {slot}")
         dlg.resize(560, 360)
         layout = QVBoxLayout(dlg)
         title = QLabel(f"{day_date.isoformat()} ({DNI_TYG[day_date.weekday()]}) — osoby pracujące w przedziale obejmującym {slot}")
@@ -582,6 +598,19 @@ class PlanPracyApp(QWidget):
         layout.addWidget(btn_close)
         dlg.exec()
 
+    def open_users_window(self):
+        try:
+            from app.ui.users_window import UsersWindow
+
+            self.users_window = UsersWindow(self.current_user)
+            self.users_window.show()
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                APP_NAME,
+                f"Nie udało się otworzyć administracji użytkownikami:\n\n{exc}",
+            )
+
     def select_schedule_slot(
         self,
         day_date,
@@ -591,7 +620,7 @@ class PlanPracyApp(QWidget):
         rows,
     ):
         dlg = QDialog(self)
-        dlg.setWindowTitle("KOMPAS — Wybierz termin zadania")
+        dlg.setWindowTitle(f"{APP_NAME} — Wybierz termin zadania")
         dlg.resize(560, 420)
         layout = QVBoxLayout(dlg)
         layout.addWidget(
@@ -656,8 +685,16 @@ class PlanPracyApp(QWidget):
 if __name__ == "__main__":
     try:
         app = QApplication(sys.argv)
-        app.setApplicationName("KOMPAS")
-        win = PlanPracyApp()
+        app.setApplicationName(APP_NAME)
+        app.setApplicationVersion(VERSION)
+        from app.ui.login_dialog import LoginDialog
+
+        login_dialog = LoginDialog()
+        if login_dialog.exec() != QDialog.DialogCode.Accepted:
+            sys.exit(0)
+        win = PlanPracyApp(
+            current_user=login_dialog.authenticated_user,
+        )
         win.show()
         sys.exit(app.exec())
     except Exception:

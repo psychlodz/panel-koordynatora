@@ -1,0 +1,3 @@
+APP_NAME = "KOMPAS"
+VERSION = "0.9.0"
+BUILD = 1

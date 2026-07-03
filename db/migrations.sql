@@ -1,5 +1,32 @@
 -- Idempotent data migrations executed for new and existing databases.
 
+-- T2-E1: local users and roles.
+INSERT OR IGNORE INTO pk_roles(code, name) VALUES
+('ADMIN', 'Administrator'),
+('KOORDYNATOR', 'Koordynator'),
+('KIEROWNIK', 'Kierownik');
+
+INSERT OR IGNORE INTO pk_users(
+    login,
+    full_name,
+    password_hash,
+    must_change_password,
+    is_active
+)
+VALUES (
+    'admin',
+    'Administrator KOMPAS',
+    'pbkdf2_sha256$310000$jxejHRzgRdW5i0h/7ZfGhg==$eLtybSEQwruYGAflhclSFIyeIkjKenHsgXsFIV/BqaU=',
+    1,
+    1
+);
+
+INSERT OR IGNORE INTO pk_user_roles(user_id, role_id)
+SELECT u.user_id, r.role_id
+FROM pk_users u, pk_roles r
+WHERE u.login = 'admin'
+  AND r.code = 'ADMIN';
+
 -- S8-E1: initial task triggers for the ADHD pathway.
 INSERT OR IGNORE INTO pk_wyzwalacze(element_id, trigger_type, opis)
 SELECT e.element_id, 'START_EPIZODU', 'Aktywacja przy rozpoczęciu epizodu.'
