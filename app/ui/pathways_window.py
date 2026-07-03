@@ -242,6 +242,7 @@ class PathwaysWindow(QWidget):
         self.program_id = program_id
         self._elements_by_id = {}
         self.dependencies_window = None
+        self.triggers_window = None
         self.setWindowTitle("KOMPAS — Ścieżki")
         self.resize(1300, 720)
 
@@ -295,9 +296,11 @@ class PathwaysWindow(QWidget):
         self.add_element_button = QPushButton("Dodaj element")
         self.edit_element_button = QPushButton("Edytuj element")
         self.delete_element_button = QPushButton("Usuń element")
+        self.triggers_button = QPushButton("Wyzwalacze")
         element_buttons.addWidget(self.add_element_button)
         element_buttons.addWidget(self.edit_element_button)
         element_buttons.addWidget(self.delete_element_button)
+        element_buttons.addWidget(self.triggers_button)
         elements_layout.addLayout(element_buttons)
         splitter.addWidget(elements_panel)
         splitter.setStretchFactor(0, 1)
@@ -310,6 +313,7 @@ class PathwaysWindow(QWidget):
         self.add_element_button.clicked.connect(self.add_element)
         self.edit_element_button.clicked.connect(self.edit_element)
         self.delete_element_button.clicked.connect(self.delete_element)
+        self.triggers_button.clicked.connect(self.open_triggers)
         self.pathways_table.itemSelectionChanged.connect(
             self.load_selected_pathway_elements
         )
@@ -529,3 +533,22 @@ class PathwaysWindow(QWidget):
             self.dependencies_window.show()
         except Exception as exc:
             self._show_error("Nie udało się otworzyć zależności", exc)
+
+    def open_triggers(self):
+        element_id = self.current_element_id()
+        if element_id is None:
+            QMessageBox.information(
+                self, "KOMPAS", "Wybierz element, aby otworzyć wyzwalacze."
+            )
+            return
+        element = self._elements_by_id.get(element_id)
+        if element is None:
+            self.load_selected_pathway_elements()
+            return
+        try:
+            from app.ui.triggers_window import TriggersWindow
+
+            self.triggers_window = TriggersWindow(element)
+            self.triggers_window.show()
+        except Exception as exc:
+            self._show_error("Nie udało się otworzyć wyzwalaczy", exc)

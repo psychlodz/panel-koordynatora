@@ -86,6 +86,33 @@ CREATE TABLE IF NOT EXISTS pk_sciezka_zaleznosci (
 CREATE INDEX IF NOT EXISTS idx_pk_sciezka_zaleznosci_sciezka
 ON pk_sciezka_zaleznosci(sciezka_id);
 
+CREATE TABLE IF NOT EXISTS pk_wyzwalacze (
+    trigger_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    element_id INTEGER NOT NULL,
+    trigger_type TEXT NOT NULL CHECK (
+        trigger_type IN (
+            'START_EPIZODU',
+            'PO_ZAKONCZENIU',
+            'PO_ZLECENIU',
+            'PO_WYNIKU',
+            'RECZNIE'
+        )
+    ),
+    trigger_element_id INTEGER,
+    opis TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    FOREIGN KEY(element_id) REFERENCES pk_sciezka_elementy(element_id),
+    FOREIGN KEY(trigger_element_id) REFERENCES pk_sciezka_elementy(element_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_pk_wyzwalacze_element
+ON pk_wyzwalacze(element_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pk_wyzwalacze_start_epizodu
+ON pk_wyzwalacze(element_id)
+WHERE trigger_type = 'START_EPIZODU';
+
 CREATE TABLE IF NOT EXISTS pk_epizody (
     epizod_id INTEGER PRIMARY KEY AUTOINCREMENT,
     pacjent_id TEXT NOT NULL,

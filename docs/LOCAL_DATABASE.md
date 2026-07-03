@@ -69,6 +69,20 @@ Klucze obce:
 
 Schemat zabrania relacji elementu do samego siebie oraz duplikatu tej samej pary. Repozytorium dodatkowo zapobiega cyklom.
 
+### `pk_wyzwalacze`
+
+Wyzwalacze aktywujące element ścieżki. Pole `element_id` wskazuje element aktywowany, a opcjonalne `trigger_element_id` element źródłowy.
+
+Dozwolone typy:
+
+- `START_EPIZODU`;
+- `PO_ZAKONCZENIU`;
+- `PO_ZLECENIU`;
+- `PO_WYNIKU`;
+- `RECZNIE`.
+
+Częściowy indeks unikalny pozwala przypisać tylko jeden wyzwalacz `START_EPIZODU` do danego elementu. Repozytorium sprawdza również, czy wskazany element źródłowy należy do tej samej ścieżki.
+
 ### `pk_epizody`
 
 Epizody pacjentów przypisane opcjonalnie do programu i ścieżki, ze statusem, koordynatorem i datami realizacji.
