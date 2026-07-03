@@ -32,6 +32,23 @@ Minimalny kontrakt kolumn:
 Widok może udostępniać dodatkowe informacje, np. identyfikator wizyty,
 status, jednostkę organizacyjną, personel i rodzaj świadczenia.
 
+### `ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE`
+
+Widok udostępnia wizyty kwalifikacyjne PKK wraz z podstawowymi danymi
+pacjenta. Bazuje na `V_KOMPAS_WIZYTY` i `V_KOMPAS_PACJENCI`.
+
+Filtr znajduje się w CTE `qualification_filter` w pliku SQL i może
+uwzględniać:
+
+- typ wizyty,
+- procedurę,
+- poradnię,
+- opis wizyty.
+
+Domyślna konfiguracja wyszukuje oznaczenia `PKK` w poradni albo
+`KWALIF` w opisie. Sekcja `TODO` musi zostać dopasowana do rzeczywistego
+oznaczenia procedury kwalifikacyjnej w danej instalacji Eskulapa.
+
 ### `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`
 
 Minimalny kontrakt kolumn:
@@ -55,7 +72,7 @@ Widok nie korzysta z ogólnego źródła e-skierowań.
 ## Zasady dostępu
 
 Konto skonfigurowane w `config.ini` powinno mieć wyłącznie uprawnienie
-`SELECT` do czterech widoków. Repozytorium:
+`SELECT` do pięciu widoków. Repozytorium:
 
 - wykonuje tylko instrukcje `SELECT`,
 - używa parametrów wiązanych dla danych użytkownika,

@@ -48,6 +48,64 @@ LEFT JOIN RI_OWNER.RI_PRACOWNICY pr
     ON pr.prac_pracownik_id = wp.wp_l_lekarz_id;
 /
 
+CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE AS
+WITH qualification_filter AS (
+    SELECT
+        CAST(NULL AS VARCHAR2(100)) AS typ_wizyty,
+        CAST(NULL AS VARCHAR2(100)) AS procedura,
+        CAST('PKK' AS VARCHAR2(100)) AS poradnia,
+        CAST('KWALIF' AS VARCHAR2(100)) AS opis
+    FROM dual
+)
+SELECT
+    w.wizyta_id,
+    w.pacjent_id,
+    p.pesel,
+    p.nazwisko,
+    p.imie,
+    w.data_wizyty,
+    w.poradnia_id,
+    w.poradnia_symbol,
+    w.poradnia_nazwa AS poradnia,
+    w.pracownik_id,
+    w.pracownik,
+    w.typ_wizyty,
+    w.decyzja AS status_wizyty,
+    w.opis
+FROM ESK_RAPORTY.V_KOMPAS_WIZYTY w
+JOIN ESK_RAPORTY.V_KOMPAS_PACJENCI p
+    ON p.pacjent_id = w.pacjent_id
+CROSS JOIN qualification_filter f
+WHERE
+    (
+        f.typ_wizyty IS NOT NULL
+        AND UPPER(NVL(w.typ_wizyty, '')) LIKE
+            '%' || UPPER(f.typ_wizyty) || '%'
+    )
+    OR (
+        f.poradnia IS NOT NULL
+        AND (
+            UPPER(NVL(w.poradnia_symbol, '')) LIKE
+                '%' || UPPER(f.poradnia) || '%'
+            OR UPPER(NVL(w.poradnia_nazwa, '')) LIKE
+                '%' || UPPER(f.poradnia) || '%'
+        )
+    )
+    OR (
+        f.procedura IS NOT NULL
+        AND UPPER(NVL(w.program_leczenia, '')) LIKE
+            '%' || UPPER(f.procedura) || '%'
+    )
+    OR (
+        f.opis IS NOT NULL
+        AND UPPER(NVL(w.opis, '')) LIKE '%' || UPPER(f.opis) || '%'
+    )
+    -- TODO: dopasować filtry do rzeczywistego oznaczenia wizyty
+    -- kwalifikacyjnej PKK w Eskulapie. Pole program_leczenia jest obecnie
+    -- tymczasowym odpowiednikiem filtra procedury.
+;
+/
+
 CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_KONSULTACJE AS
 SELECT
     k.kon_konsultacja_id AS konsultacja_id,

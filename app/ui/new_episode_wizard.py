@@ -1,3 +1,5 @@
+"""DEPRECATED: epizody są obecnie zakładane z wizyt kwalifikacyjnych PKK."""
+
 from PySide6.QtCore import QDate
 from PySide6.QtWidgets import (
     QComboBox,

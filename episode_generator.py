@@ -117,6 +117,9 @@ def create_episode_with_tasks(
     data_start,
     koordynator_id=None,
     uwagi=None,
+    source_system=None,
+    source_type=None,
+    source_id=None,
 ) -> int:
     initialize_local_db()
     with closing(create_local_connection()) as connection:
@@ -136,9 +139,12 @@ def create_episode_with_tasks(
                     data_start,
                     status,
                     koordynator_id,
-                    uwagi
+                    uwagi,
+                    source_system,
+                    source_type,
+                    source_id
                 )
-                VALUES (?, ?, ?, ?, 'NOWY', ?, ?)
+                VALUES (?, ?, ?, ?, 'NOWY', ?, ?, ?, ?, ?)
                 """,
                 (
                     str(pacjent_id).strip(),
@@ -147,6 +153,9 @@ def create_episode_with_tasks(
                     data_start,
                     koordynator_id,
                     uwagi,
+                    source_system,
+                    source_type,
+                    str(source_id) if source_id is not None else None,
                 ),
             )
             epizod_id = int(cursor.lastrowid)

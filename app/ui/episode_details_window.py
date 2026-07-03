@@ -189,6 +189,18 @@ class EpisodeDetailsDialog(QDialog):
             "Data zakończenia:",
             QLabel(_text(self.episode["data_zakonczenia"])),
         )
+        form.addRow(
+            "System źródłowy:",
+            QLabel(_text(self.episode["source_system"])),
+        )
+        form.addRow(
+            "Typ źródła:",
+            QLabel(_text(self.episode["source_type"])),
+        )
+        form.addRow(
+            "ID źródła:",
+            QLabel(_text(self.episode["source_id"])),
+        )
         form.addRow("Uwagi:", QLabel(_text(self.episode["uwagi"])))
         layout.addLayout(form)
         layout.addStretch(1)

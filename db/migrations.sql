@@ -27,6 +27,15 @@ FROM pk_users u, pk_roles r
 WHERE u.login = 'admin'
   AND r.code = 'ADMIN';
 
+-- CORE-1: qualification visit block for existing databases.
+INSERT OR IGNORE INTO pk_klocki(kod, nazwa, typ, opis)
+VALUES (
+    'WIZYTA_KWALIFIKACYJNA_PKK',
+    'Wizyta kwalifikacyjna w PKK',
+    'PKK',
+    'Wizyta kwalifikująca pacjenta do programu KOMPAS w punkcie PKK.'
+);
+
 -- S8-E1: initial task triggers for the ADHD pathway.
 INSERT OR IGNORE INTO pk_wyzwalacze(element_id, trigger_type, opis)
 SELECT e.element_id, 'START_EPIZODU', 'Aktywacja przy rozpoczęciu epizodu.'

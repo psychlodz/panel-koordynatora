@@ -38,6 +38,7 @@ INSERT OR IGNORE INTO pk_typy_elementow(kod, nazwa) VALUES
 
 INSERT OR IGNORE INTO pk_klocki(kod, nazwa, typ, opis) VALUES
 ('KWALIFIKACJA', 'Kwalifikacja', 'PKK', 'Kwalifikacja pacjenta do programu.'),
+('WIZYTA_KWALIFIKACYJNA_PKK', 'Wizyta kwalifikacyjna w PKK', 'PKK', 'Wizyta kwalifikująca pacjenta do programu KOMPAS w punkcie PKK.'),
 ('PKK', 'Punkt konsultacyjno-koordynacyjny', 'PKK', 'Obsługa pacjenta w punkcie konsultacyjno-koordynacyjnym.'),
 ('WIZYTA_PSYCHIATRYCZNA', 'Wizyta psychiatryczna', 'WIZYTA', 'Wizyta diagnostyczna lub kontrolna u psychiatry.'),
 ('DIAGNOSTYKA_PSYCHOLOGICZNA', 'Diagnostyka psychologiczna', 'WIZYTA', 'Proces diagnostyki psychologicznej.'),

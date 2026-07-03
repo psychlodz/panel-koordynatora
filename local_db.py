@@ -45,11 +45,52 @@ def _database_is_empty(connection: sqlite3.Connection) -> bool:
     return row[0] == 0
 
 
+def _ensure_episode_source_columns(connection: sqlite3.Connection) -> None:
+    rows = connection.execute("PRAGMA table_info(pk_epizody)").fetchall()
+    columns = {row["name"] for row in rows}
+    additions = {
+        "source_system": "TEXT",
+        "source_type": "TEXT",
+        "source_id": "TEXT",
+    }
+    with connection:
+        for column_name, column_type in additions.items():
+            if column_name not in columns:
+                connection.execute(
+                    f"""
+                    ALTER TABLE pk_epizody
+                    ADD COLUMN {column_name} {column_type}
+                    """
+                )
+        connection.execute(
+            """
+            CREATE UNIQUE INDEX IF NOT EXISTS
+            uq_pk_epizody_source
+            ON pk_epizody(source_system, source_type, source_id)
+            WHERE source_system IS NOT NULL
+              AND source_type IS NOT NULL
+              AND source_id IS NOT NULL
+            """
+        )
+
+
 def initialize_local_db() -> Path:
     connection = create_local_connection()
     try:
         database_was_empty = _database_is_empty(connection)
-        scripts = [_read_sql_script("schema.sql")]
+        try:
+            connection.executescript(
+                "BEGIN;\n"
+                + _read_sql_script("schema.sql")
+                + "\nCOMMIT;"
+            )
+        except Exception:
+            connection.rollback()
+            raise
+
+        _ensure_episode_source_columns(connection)
+
+        scripts = []
         if database_was_empty:
             scripts.append(_read_sql_script("seed.sql"))
         scripts.append(_read_sql_script("migrations.sql"))

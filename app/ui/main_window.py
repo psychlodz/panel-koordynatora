@@ -82,8 +82,9 @@ class MainWindow(QMainWindow):
         self.episodes_button = QPushButton(
             "Pacjenci w programach\nEpizody i postęp realizacji"
         )
-        self.new_episode_button = QPushButton(
-            "Nowy epizod\nRozpoczęcie programu pacjenta"
+        self.qualification_button = QPushButton(
+            "Wizyty kwalifikacyjne PKK\n"
+            "Zakładanie epizodów na podstawie Eskulapa"
         )
         self.users_button = QPushButton(
             "Administracja\nUżytkownicy i uprawnienia"
@@ -94,7 +95,7 @@ class MainWindow(QMainWindow):
             self.schedule_button,
             self.programs_button,
             self.episodes_button,
-            self.new_episode_button,
+            self.qualification_button,
             self.users_button,
         ):
             button.setProperty("role", "tile")
@@ -103,7 +104,7 @@ class MainWindow(QMainWindow):
         buttons.addWidget(self.schedule_button, 0, 0)
         buttons.addWidget(self.programs_button, 0, 1)
         buttons.addWidget(self.episodes_button, 1, 0)
-        buttons.addWidget(self.new_episode_button, 1, 1)
+        buttons.addWidget(self.qualification_button, 1, 1)
         buttons.addWidget(self.users_button, 2, 0, 1, 2)
         layout.addLayout(buttons)
         layout.addStretch(1)
@@ -121,7 +122,9 @@ class MainWindow(QMainWindow):
         self.schedule_button.clicked.connect(self.open_schedule)
         self.programs_button.clicked.connect(self.open_programs)
         self.episodes_button.clicked.connect(self.open_episodes)
-        self.new_episode_button.clicked.connect(self.open_new_episode)
+        self.qualification_button.clicked.connect(
+            self.open_qualification_visits
+        )
         self.users_button.clicked.connect(self.open_users)
         self.exit_button.clicked.connect(QApplication.instance().quit)
 
@@ -166,17 +169,15 @@ class MainWindow(QMainWindow):
 
         self._show_window("episodes", factory)
 
-    def open_new_episode(self):
-        try:
-            from app.ui.new_episode_wizard import EpisodeWizard
-        except ImportError:
-            QMessageBox.information(
-                self,
-                APP_NAME,
-                "Moduł w przygotowaniu",
+    def open_qualification_visits(self):
+        def factory():
+            from app.ui.qualification_visits_window import (
+                QualificationVisitsWindow,
             )
-            return
-        self._show_window("new_episode", EpisodeWizard)
+
+            return QualificationVisitsWindow()
+
+        self._show_window("qualification_visits", factory)
 
     def open_users(self):
         if not self.current_user.is_admin:
