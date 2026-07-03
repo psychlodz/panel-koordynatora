@@ -47,10 +47,9 @@ CREATE TABLE IF NOT EXISTS pk_klocki (
 CREATE TABLE IF NOT EXISTS pk_sciezka_elementy (
     element_id INTEGER PRIMARY KEY AUTOINCREMENT,
     sciezka_id INTEGER NOT NULL,
+    klocek_id INTEGER NOT NULL,
     lp INTEGER NOT NULL,
-    nazwa TEXT NOT NULL,
-    typ_id INTEGER NOT NULL,
-    podtyp TEXT,
+    nazwa_w_sciezce TEXT NOT NULL,
     min_liczba INTEGER DEFAULT 0,
     max_liczba INTEGER,
     czy_obowiazkowy INTEGER NOT NULL DEFAULT 0,
@@ -64,7 +63,8 @@ CREATE TABLE IF NOT EXISTS pk_sciezka_elementy (
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT,
     FOREIGN KEY(sciezka_id) REFERENCES pk_sciezki(sciezka_id),
-    FOREIGN KEY(typ_id) REFERENCES pk_typy_elementow(typ_id)
+    FOREIGN KEY(klocek_id) REFERENCES pk_klocki(klocek_id),
+    UNIQUE(sciezka_id, lp)
 );
 
 CREATE TABLE IF NOT EXISTS pk_epizody (

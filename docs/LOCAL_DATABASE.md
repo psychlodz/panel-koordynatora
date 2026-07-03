@@ -44,12 +44,18 @@ Klucz główny: `klocek_id`. Kod klocka jest unikalny.
 
 ### `pk_sciezka_elementy`
 
-Uporządkowane elementy ścieżki wraz z liczebnością, obowiązkowością, terminami, warunkami aktywacji i informacjami organizacyjnymi.
+Elementy ścieżki zbudowane z klocków biblioteki. Każdy rekord wskazuje ścieżkę i klocek, zachowując nazwę używaną w konkretnej ścieżce, kolejność, liczebność, obowiązkowość, terminy, warunek aktywacji i opis organizacyjny.
 
-Klucz główny: `element_id`. Klucze obce:
+Najważniejsze kolumny:
 
-- `sciezka_id -> pk_sciezki.sciezka_id`;
-- `typ_id -> pk_typy_elementow.typ_id`.
+- `element_id` — klucz główny;
+- `sciezka_id` — FK do `pk_sciezki.sciezka_id`;
+- `klocek_id` — FK do `pk_klocki.klocek_id`;
+- `lp` — kolejność elementu, unikalna w obrębie ścieżki;
+- `nazwa_w_sciezce` — nazwa prezentowana w danej ścieżce;
+- `min_liczba`, `max_liczba`, `czy_obowiazkowy`, `czy_wymaga_zlecenia`;
+- `termin_liczba`, `termin_jednostka`, `termin_od`;
+- `warunek_aktywacji`, `opis_organizacyjny`.
 
 ### `pk_epizody`
 

@@ -39,109 +39,109 @@ FROM pk_programy
 WHERE kod = 'ADHD_DZ_ML';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 1, 'Kwalifikacja / PKK', t.typ_id, 'PKK',
+SELECT s.sciezka_id, k.klocek_id, 1, 'Kwalifikacja / PKK',
        1, 1, 1, 0, NULL, NULL, NULL,
        'Początek organizacyjnej obsługi pacjenta w programie.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'PKK';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'KWALIFIKACJA';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 2, 'Porady psychiatryczne diagnostyczne', t.typ_id, 'PSYCHIATRA',
+SELECT s.sciezka_id, k.klocek_id, 2, 'Porady psychiatryczne diagnostyczne',
        1, 3, 1, 0, NULL, NULL, NULL,
        'Do 3 porad psychiatrycznych diagnostycznych w programie.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'WIZYTA';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'WIZYTA_PSYCHIATRYCZNA';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 3, 'Porady psychologiczne diagnostyczne', t.typ_id, 'PSYCHOLOG',
+SELECT s.sciezka_id, k.klocek_id, 3, 'Porady psychologiczne diagnostyczne',
        3, 8, 1, 0, NULL, NULL, NULL,
        'Podstawowo do 3 porad, maksymalnie do 8 porad psychologicznych diagnostycznych.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'WIZYTA';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'DIAGNOSTYKA_PSYCHOLOGICZNA';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 4, 'Konsultacje specjalistyczne', t.typ_id, 'SPECJALISTYCZNA',
+SELECT s.sciezka_id, k.klocek_id, 4, 'Konsultacje specjalistyczne',
        0, NULL, 0, 1, NULL, NULL, NULL,
        'Element warunkowy. Pojawia się po zleceniu przez lekarza w Eskulapie.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'KONSULTACJA';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'KONSULTACJA_SPECJALISTYCZNA';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 5, 'Badania laboratoryjne', t.typ_id, 'LAB',
+SELECT s.sciezka_id, k.klocek_id, 5, 'Badania laboratoryjne',
        0, NULL, 0, 1, NULL, NULL, NULL,
        'Element warunkowy. Pobranie materiału planowane przez koordynatora po zleceniu w Eskulapie.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'LAB';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'BADANIE_LAB';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 6, 'Badania genetyczne', t.typ_id, 'GENETYKA',
+SELECT s.sciezka_id, k.klocek_id, 6, 'Badania genetyczne',
        0, NULL, 0, 1, NULL, NULL, NULL,
        'Element warunkowy. Pobranie materiału w PKK po zleceniu w Eskulapie.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'GENETYKA';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'BADANIE_GENETYCZNE';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 7, 'Badania obrazowe', t.typ_id, 'OBRAZOWE',
+SELECT s.sciezka_id, k.klocek_id, 7, 'Badania obrazowe',
        0, NULL, 0, 1, NULL, NULL, NULL,
        'Element warunkowy, np. EEG, EKG, MRI, TK. Pojawia się po zleceniu w Eskulapie.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'OBRAZOWE';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'BADANIE_OBRAZOWE';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 8, 'Konsylium zespołu', t.typ_id, 'KONSYLIUM',
+SELECT s.sciezka_id, k.klocek_id, 8, 'Konsylium zespołu',
        1, 1, 1, 0, NULL, NULL, NULL,
        'Podsumowanie diagnostyki, zebranie wyników, diagnoza, zalecenia.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'KONSYLIUM';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'KONSYLIUM';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
-    sciezka_id, lp, nazwa, typ_id, podtyp,
+    sciezka_id, klocek_id, lp, nazwa_w_sciezce,
     min_liczba, max_liczba, czy_obowiazkowy,
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, 9, 'Raport końcowy / plan dalszego postępowania', t.typ_id, 'RAPORT',
+SELECT s.sciezka_id, k.klocek_id, 9, 'Raport końcowy / plan dalszego postępowania',
        1, 1, 1, 0, 12, 'TYDZIEN', 'START_PROGRAMU',
        'Zakończenie 12-tygodniowej ścieżki: raport i decyzja o dalszym postępowaniu.'
-FROM pk_sciezki s, pk_typy_elementow t
-WHERE s.kod = 'PODSTAWOWA' AND t.kod = 'RAPORT';
+FROM pk_sciezki s, pk_klocki k
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'RAPORT_KONCOWY';
