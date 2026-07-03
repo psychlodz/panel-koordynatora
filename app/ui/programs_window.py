@@ -92,6 +92,7 @@ class ProgramsWindow(QWidget):
         super().__init__()
         self.setWindowTitle("KOMPAS — Programy")
         self.resize(900, 520)
+        self.pathways_window = None
 
         layout = QVBoxLayout(self)
         title = QLabel("Programy KOMPAS")
@@ -142,7 +143,7 @@ class ProgramsWindow(QWidget):
         self.refresh_button.clicked.connect(self.refresh_programs)
         self.new_button.clicked.connect(self.new_program)
         self.edit_button.clicked.connect(self.edit_program)
-        self.paths_button.clicked.connect(self.show_paths_placeholder)
+        self.paths_button.clicked.connect(self.open_pathways)
 
         self.refresh_programs()
 
@@ -236,7 +237,19 @@ class ProgramsWindow(QWidget):
                 f"Nie udało się zaktualizować programu:\n\n{exc}",
             )
 
-    def show_paths_placeholder(self):
-        QMessageBox.information(
-            self, "KOMPAS", "Moduł ścieżek w przygotowaniu."
-        )
+    def open_pathways(self):
+        program_id = self.selected_program_id()
+        if program_id is None:
+            QMessageBox.information(
+                self, "KOMPAS", "Wybierz program, aby otworzyć jego ścieżki."
+            )
+            return
+        try:
+            from app.ui.pathways_window import PathwaysWindow
+
+            self.pathways_window = PathwaysWindow(program_id)
+            self.pathways_window.show()
+        except Exception as exc:
+            QMessageBox.critical(
+                self, "KOMPAS", f"Nie udało się otworzyć ścieżek: {exc}"
+            )
