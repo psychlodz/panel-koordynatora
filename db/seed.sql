@@ -10,6 +10,21 @@ INSERT OR IGNORE INTO pk_typy_elementow(kod, nazwa) VALUES
 ('RAPORT', 'Raport końcowy'),
 ('ZAMKNIECIE', 'Zamknięcie programu');
 
+INSERT OR IGNORE INTO pk_klocki(kod, nazwa, typ, opis) VALUES
+('KWALIFIKACJA', 'Kwalifikacja', 'PKK', 'Kwalifikacja pacjenta do programu.'),
+('PKK', 'Punkt konsultacyjno-koordynacyjny', 'PKK', 'Obsługa pacjenta w punkcie konsultacyjno-koordynacyjnym.'),
+('WIZYTA_PSYCHIATRYCZNA', 'Wizyta psychiatryczna', 'WIZYTA', 'Wizyta diagnostyczna lub kontrolna u psychiatry.'),
+('DIAGNOSTYKA_PSYCHOLOGICZNA', 'Diagnostyka psychologiczna', 'WIZYTA', 'Proces diagnostyki psychologicznej.'),
+('SESJA_TERAPEUTYCZNA', 'Sesja terapeutyczna', 'SESJA', 'Pojedyncza sesja terapeutyczna.'),
+('PSYCHOTERAPIA', 'Psychoterapia', 'SESJA', 'Cykl psychoterapii.'),
+('KONSULTACJA_SPECJALISTYCZNA', 'Konsultacja specjalistyczna', 'KONSULTACJA', 'Konsultacja u wskazanego specjalisty.'),
+('BADANIE_LAB', 'Badanie laboratoryjne', 'LAB', 'Badanie laboratoryjne zlecone w programie.'),
+('BADANIE_GENETYCZNE', 'Badanie genetyczne', 'GENETYKA', 'Badanie genetyczne zlecone w programie.'),
+('BADANIE_OBRAZOWE', 'Badanie obrazowe', 'OBRAZOWE', 'Badanie obrazowe zlecone w programie.'),
+('KONSYLIUM', 'Konsylium', 'KONSYLIUM', 'Konsylium zespołu prowadzącego program.'),
+('RAPORT_KONCOWY', 'Raport końcowy', 'RAPORT', 'Raport końcowy i plan dalszego postępowania.'),
+('ZAMKNIECIE_PROGRAMU', 'Zamknięcie programu', 'ZAMKNIECIE', 'Formalne zakończenie udziału w programie.');
+
 INSERT OR IGNORE INTO pk_programy(kod, nazwa, wersja, opis)
 VALUES (
     'ADHD_DZ_ML',

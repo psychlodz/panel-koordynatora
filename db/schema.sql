@@ -32,6 +32,18 @@ CREATE TABLE IF NOT EXISTS pk_typy_elementow (
     nazwa TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS pk_klocki (
+    klocek_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kod TEXT NOT NULL UNIQUE,
+    nazwa TEXT NOT NULL,
+    typ TEXT NOT NULL,
+    opis TEXT,
+    ikona TEXT,
+    czy_aktywny INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT
+);
+
 CREATE TABLE IF NOT EXISTS pk_sciezka_elementy (
     element_id INTEGER PRIMARY KEY AUTOINCREMENT,
     sciezka_id INTEGER NOT NULL,

@@ -14,7 +14,7 @@ Moduł `local_db.py` udostępnia:
 - `create_local_connection()` — otwiera połączenie z obsługą kluczy obcych;
 - `initialize_local_db()` — wykonuje `db/schema.sql`, a dla pustej bazy także `db/seed.sql`.
 
-Inicjalizacja jest idempotentna. Seed nie jest wykonywany ponownie dla bazy, która posiada już tabele użytkownika. Obecny `seed.sql` dodaje 10 typów elementów, program ADHD, ścieżkę podstawową oraz 9 elementów tej ścieżki.
+Inicjalizacja jest idempotentna. Seed nie jest wykonywany ponownie dla bazy, która posiada już tabele użytkownika. Obecny `seed.sql` dodaje 10 typów elementów, 13 podstawowych klocków procesu, program ADHD, ścieżkę podstawową oraz 9 elementów tej ścieżki.
 
 ## Struktura tabel
 
@@ -35,6 +35,12 @@ Klucz główny: `sciezka_id`. Klucz obcy: `program_id -> pk_programy.program_id`
 Słownik typów elementów ścieżki.
 
 Klucz główny: `typ_id`. Kod typu jest unikalny.
+
+### `pk_klocki`
+
+Biblioteka klocków procesu używanych do budowania ścieżek. Przechowuje kod, nazwę, typ, opis, opcjonalną ikonę, aktywność i znaczniki czasu.
+
+Klucz główny: `klocek_id`. Kod klocka jest unikalny.
 
 ### `pk_sciezka_elementy`
 
