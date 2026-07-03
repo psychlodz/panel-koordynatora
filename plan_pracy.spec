@@ -23,6 +23,7 @@ a = Analysis(
         ('config.ini', '.'),
         ('db/schema.sql', 'db'),
         ('db/seed.sql', 'db'),
+        ('db/migrations.sql', 'db'),
     ],
     hiddenimports=hidden,
     hookspath=[],

@@ -1,89 +1,11 @@
 from contextlib import closing
 
+from episode_generator import (
+    activate_next_tasks,
+    complete_task,
+    create_episode_with_tasks,
+)
 from local_db import create_local_connection, initialize_local_db
-
-
-def create_episode_with_tasks(
-    pacjent_id,
-    program_id,
-    sciezka_id,
-    data_start,
-    koordynator_id=None,
-    uwagi=None,
-) -> int:
-    if not str(pacjent_id).strip():
-        raise ValueError("pacjent_id jest wymagany")
-
-    initialize_local_db()
-
-    with closing(create_local_connection()) as connection:
-        with connection:
-            pathway = connection.execute(
-                """
-                SELECT sciezka_id
-                FROM pk_sciezki
-                WHERE sciezka_id = ?
-                  AND program_id = ?
-                  AND czy_aktywna = 1
-                """,
-                (sciezka_id, program_id),
-            ).fetchone()
-            if pathway is None:
-                raise ValueError(
-                    "Nie znaleziono aktywnej ścieżki dla wybranego programu"
-                )
-
-            cursor = connection.execute(
-                """
-                INSERT INTO pk_epizody(
-                    pacjent_id,
-                    program_id,
-                    sciezka_id,
-                    data_start,
-                    status,
-                    koordynator_id,
-                    uwagi
-                )
-                VALUES (?, ?, ?, ?, 'NOWY', ?, ?)
-                """,
-                (
-                    pacjent_id,
-                    program_id,
-                    sciezka_id,
-                    data_start,
-                    koordynator_id,
-                    uwagi,
-                ),
-            )
-            epizod_id = cursor.lastrowid
-
-            elements = connection.execute(
-                """
-                SELECT element_id
-                FROM pk_sciezka_elementy
-                WHERE sciezka_id = ?
-                  AND czy_aktywny = 1
-                  AND czy_obowiazkowy = 1
-                  AND czy_wymaga_zlecenia = 0
-                ORDER BY lp
-                """,
-                (sciezka_id,),
-            ).fetchall()
-
-            connection.executemany(
-                """
-                INSERT INTO pk_zadania(
-                    epizod_id,
-                    element_id,
-                    status,
-                    zrodlo
-                )
-                VALUES (?, ?, 'DO_ZAPLANOWANIA', 'PROGRAM')
-                """,
-                [(epizod_id, row["element_id"]) for row in elements],
-            )
-
-    return int(epizod_id)
 
 
 def list_episode_tasks(epizod_id) -> list[dict]:

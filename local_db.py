@@ -52,6 +52,7 @@ def initialize_local_db() -> Path:
         scripts = [_read_sql_script("schema.sql")]
         if database_was_empty:
             scripts.append(_read_sql_script("seed.sql"))
+        scripts.append(_read_sql_script("migrations.sql"))
 
         initialization_script = (
             "BEGIN;\n"
