@@ -38,7 +38,7 @@ CREATE INDEX IF NOT EXISTS idx_pk_epizody_status
 ON pk_epizody(status);
 
 CREATE INDEX IF NOT EXISTS idx_pk_epizody_patient
-ON pk_epizody(pacjent_id);
+ON pk_epizody(pacjent_id_eskulap);
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_pk_epizody_source
 ON pk_epizody(source_system, source_type, source_id)
@@ -56,4 +56,3 @@ CREATE INDEX IF NOT EXISTS idx_pk_zadania_element
 ON pk_zadania(element_id);
 
 COMMIT;
-

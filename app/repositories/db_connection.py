@@ -78,12 +78,6 @@ def _create_postgres_connection(settings):
             "Brak postgres_dsn w sekcji [kompas_database] "
             "lub zmiennej KOMPAS_POSTGRES_DSN"
         )
-    data_key = os.environ.get("KOMPAS_DATA_KEY", "")
-    if not data_key:
-        raise ValueError(
-            "Brak zmiennej środowiskowej KOMPAS_DATA_KEY"
-        )
-
     try:
         import psycopg
     except ImportError as exc:
@@ -91,18 +85,7 @@ def _create_postgres_connection(settings):
             "Obsługa PostgreSQL wymaga pakietu psycopg[binary]"
         ) from exc
 
-    connection = psycopg.connect(settings.postgres_dsn)
-    try:
-        connection.execute(
-            "SELECT set_config('kompas.data_key', %s, false)",
-            (data_key,),
-        )
-        # Utrwal ustawienie sesyjne poza transakcją otwieraną przez psycopg.
-        connection.commit()
-    except Exception:
-        connection.close()
-        raise
-    return connection
+    return psycopg.connect(settings.postgres_dsn)
 
 
 def create_connection(settings=None):

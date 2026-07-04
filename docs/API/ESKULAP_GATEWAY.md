@@ -8,6 +8,11 @@ Gateway nie otwiera połączeń i nie wykonuje SQL. Deleguje operacje do
 istniejących repozytoriów, które korzystają z fabryki połączeń w `db.py`.
 Warstwa nie zapisuje żadnych danych do Oracle.
 
+Gateway odpowiada za pobieranie aktualnych danych pacjenta z Oracle.
+KOMPAS nie utrzymuje własnej kopii danych osobowych. Model `Patient` jest
+wyłącznie DTO przekazywanym w pamięci i nie jest zapisywany w PostgreSQL
+ani SQLite.
+
 ## Zależności
 
 ```mermaid

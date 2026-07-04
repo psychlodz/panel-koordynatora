@@ -1,5 +1,5 @@
 \set ON_ERROR_STOP on
 
--- Rozszerzenie zwykle instaluje administrator PostgreSQL.
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
+-- KOMPAS nie wymaga obecnie żadnych rozszerzeń PostgreSQL.
+-- Plik pozostaje w sekwencji instalacyjnej jako miejsce na przyszłe,
+-- jawnie zatwierdzone rozszerzenia infrastrukturalne.

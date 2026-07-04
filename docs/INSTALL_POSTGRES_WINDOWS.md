@@ -24,10 +24,10 @@ psql -U postgres -d postgres -f db/postgres/001_create_database.sql
 ```
 
 Skrypt utworzy rolę `kompas_app`, bezpiecznie zapyta o jej hasło i utworzy
-bazę `kompas`. Polecenia tworzenia roli, bazy i rozszerzenia wymagają
+bazę `kompas`. Polecenia tworzenia roli i bazy wymagają
 uprawnień administratora PostgreSQL.
 
-## 3. Rozszerzenie, schemat, dane i indeksy
+## 3. Przygotowanie, schemat, dane i indeksy
 
 Wykonuj skrypty w kolejności numerów:
 
@@ -110,27 +110,6 @@ sqlite_path=kompas.db
 
 Brak sekcji `[kompas_database]` również oznacza domyślny tryb SQLite.
 
-Klucz szyfrujący ustaw jako systemową zmienną środowiskową:
-
-```powershell
-[Environment]::SetEnvironmentVariable(
-  "KOMPAS_DATA_KEY",
-  "LOSOWY-DLUGI-SEKRET-CO-NAJMNIEJ-32-ZNAKI",
-  "Machine"
-)
-```
-
-Po ustawieniu zmiennej uruchom ponownie aplikację lub usługę. Nie wpisuj
-klucza do `config.ini`, skryptów, repozytorium ani pliku logów. Utrata
-klucza uniemożliwi odszyfrowanie danych; jego kopię przechowuj w firmowym
-menedżerze sekretów.
-
-Warstwa połączeń wywołuje dla każdej sesji odpowiednik:
-
-```sql
-SELECT set_config('kompas.data_key', '<wartość ze środowiska>', false);
-```
-
 ## 7. Test z serwera i klienta
 
 Na serwerze:
@@ -145,11 +124,9 @@ Na stacji klienckiej:
 psql -U kompas_app -h SERVER -p 5432 -d kompas -c "SELECT now();"
 ```
 
-Można także sprawdzić rozszerzenie i tabele:
+Można także sprawdzić utworzone tabele:
 
 ```powershell
-psql -U kompas_app -h SERVER -d kompas `
-  -c "SELECT extname FROM pg_extension WHERE extname='pgcrypto';"
 psql -U kompas_app -h SERVER -d kompas `
   -c "\dt pk_*"
 ```
@@ -163,8 +140,8 @@ pg_dump -U postgres -h localhost -d kompas -Fc `
   -f D:\Backup\kompas_2026-07-04.dump
 ```
 
-Plik backupu zawiera zaszyfrowane wartości pacjentów, ale nadal wymaga
-ochrony dostępu i bezpiecznej retencji.
+Backup zawiera dane procesowe KOMPAS i nadal wymaga ochrony dostępu oraz
+bezpiecznej retencji.
 
 ## 9. Odtwarzanie
 
@@ -182,5 +159,4 @@ Dla kopii tekstowej SQL:
 psql -U postgres -d kompas_restore -f D:\Backup\kompas.sql
 ```
 
-Po odtworzeniu sprawdź logi, liczbę tabel i przykładowe rekordy. Test
-odszyfrowania wykonuj dopiero po ustawieniu właściwego `KOMPAS_DATA_KEY`.
+Po odtworzeniu sprawdź logi, liczbę tabel i przykładowe rekordy procesowe.

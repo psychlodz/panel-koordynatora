@@ -13,11 +13,30 @@ KOMPAS korzysta z trzech niezależnych źródeł danych:
 Oracle pozostaje dostępny wyłącznie przez `EskulapGateway`. PostgreSQL nie
 zastępuje Oracle i nie służy do modyfikowania danych Eskulapa.
 
+**Dane pacjenta są zawsze pobierane z Oracle przez Eskulap Gateway.**
+
+```mermaid
+flowchart LR
+    O[("Oracle / Eskulap\nźródło prawdy o pacjencie")]
+    G["Eskulap Gateway\nodczyt na żądanie"]
+    D["DTO Patient\nwyłącznie w pamięci"]
+    A["Usługi i UI KOMPAS"]
+    P[("PostgreSQL\ndane procesowe")]
+    S[("SQLite\ndevelopment")]
+
+    O -->|SELECT| G
+    G --> D
+    D --> A
+    A -->|pacjent_id_eskulap + proces| P
+    A -->|lokalny fallback| S
+```
+
 ## PostgreSQL
 
 Centralna baza przechowuje programy, ścieżki, elementy procesu, zależności,
 wyzwalacze, epizody, zadania, konta, role oraz przypisania jednostek.
-Schemat znajduje się w `db/postgres/`.
+Epizod zawiera wyłącznie `pacjent_id_eskulap`, który pozwala pobrać
+aktualne dane pacjenta z Oracle. Schemat znajduje się w `db/postgres/`.
 
 Warstwa `app/repositories/db_connection.py` potrafi utworzyć połączenie
 SQLite lub PostgreSQL na podstawie sekcji `[kompas_database]`. Obecne
@@ -31,44 +50,19 @@ SQLite nadal jest domyślnym silnikiem developerskim. Dotychczasowy
 niezmienione. Dzięki temu aktualna aplikacja działa lokalnie tak jak przed
 dodaniem skryptów PostgreSQL.
 
-## Dane pacjenta i szyfrowanie
+Dotychczasowa kolumna SQLite `pk_epizody.pacjent_id` zawiera techniczny
+identyfikator pacjenta z Eskulapa. Nie zawiera PESEL-u ani lokalnego
+identyfikatora kartoteki KOMPAS. Przy przepięciu repozytoriów w DB-PG-2
+odpowiada kolumnie PostgreSQL `pacjent_id_eskulap`.
 
-Tabela `pk_patient_cache` identyfikuje osobę przez techniczny identyfikator
-Eskulapa. Pola PESEL, imię i nazwisko są typu `bytea` i mają być zapisywane
-wyłącznie poprzez szyfrowanie `pgp_sym_encrypt`.
+## Dane pacjenta
 
-Funkcje:
+PostgreSQL i SQLite nie utrzymują kopii PESEL-u, imienia, nazwiska, adresu,
+telefonu, adresu e-mail ani innych danych identyfikacyjnych pacjenta.
+Nie istnieje lokalny cache danych osobowych.
 
-- `kompas_encrypt_patient_text(text)` — szyfruje wartość algorytmem AES-256,
-- `kompas_decrypt_patient_text(bytea)` — odszyfrowuje wartość.
+Model `Patient` jest obiektem DTO zwracanym przez Gateway i istnieje tylko
+w pamięci procesu na czas obsługi żądania lub prezentacji danych. Nie jest
+modelem trwałym i nie może być zapisywany przez repozytoria KOMPAS.
 
-Funkcje pobierają klucz z ustawienia sesji:
-
-```sql
-current_setting('kompas.data_key')
-```
-
-Aplikacja pobiera sekret ze zmiennej `KOMPAS_DATA_KEY` i ustawia go przez
-`set_config()` natychmiast po połączeniu. Klucz nie jest przechowywany w
-bazie, `config.ini`, kodzie ani repozytorium.
-
-Przykład użycia po ustawieniu klucza sesji:
-
-```sql
-INSERT INTO pk_patient_cache(
-    pacjent_id_eskulap,
-    pesel_enc,
-    imie_enc,
-    nazwisko_enc
-)
-VALUES (
-    '12345',
-    kompas_encrypt_patient_text('00000000000'),
-    kompas_encrypt_patient_text('Jan'),
-    kompas_encrypt_patient_text('Kowalski')
-);
-```
-
-Dostęp do funkcji odszyfrowującej powinien być ograniczony do konta
-aplikacyjnego i kontrolowany przez warstwę usług KOMPAS.
-
+Szczegółowe zasady minimalizacji opisuje `docs/ARCHITECTURE/PRIVACY.md`.
