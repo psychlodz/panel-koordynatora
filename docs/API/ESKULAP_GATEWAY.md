@@ -1,0 +1,85 @@
+# Eskulap Gateway
+
+`EskulapGateway` jest publiczną warstwą odczytu danych medycznych
+z Eskulapa. Ukrywa przed kodem wywołującym repozytoria, SQL oraz nazwy
+widoków Oracle.
+
+Gateway nie otwiera połączeń i nie wykonuje SQL. Deleguje operacje do
+istniejących repozytoriów, które korzystają z fabryki połączeń w `db.py`.
+Warstwa nie zapisuje żadnych danych do Oracle.
+
+## Zależności
+
+```mermaid
+flowchart LR
+    C["Kod aplikacji"] --> G["EskulapGateway"]
+    G --> P["patient_repository"]
+    G --> Q["qualification_repository"]
+    G --> E["event_repository"]
+    P --> D["db.py"]
+    Q --> D
+    E --> P
+    D --> O[("Oracle / Eskulap")]
+    G --> M["Modele dataclass"]
+```
+
+## Metody
+
+### `search_patients(search_text)`
+
+Wyszukuje pacjentów po fragmencie nazwiska lub numeru PESEL. Zwraca
+listę `Patient`.
+
+### `get_patient(patient_id)`
+
+Pobiera jednego pacjenta. Zwraca `Patient` albo `None`.
+
+### `get_patient_visits(patient_id)`
+
+Pobiera wizyty pacjenta. Zwraca listę `Visit`.
+
+### `get_patient_qualification_visits(date_from=None, date_to=None, only_unassigned=True)`
+
+Pobiera wizyty kwalifikacyjne PKK z opcjonalnego okresu. Parametr
+`only_unassigned` ogranicza wynik do wizyt bez epizodu KOMPAS. Zwraca
+listę `QualificationVisit`.
+
+### `get_patient_consultations(patient_id)`
+
+Pobiera konsultacje pacjenta. Zwraca listę `Consultation`.
+
+### `get_patient_laboratory_orders(patient_id)`
+
+Pobiera zlecenia badań laboratoryjnych. Zwraca listę
+`LaboratoryOrder`.
+
+### `get_patient_imaging_orders(patient_id)`
+
+Pobiera zlecenia badań obrazowych. Zwraca listę `ImagingOrder`.
+
+## Użycie
+
+```python
+from app.gateway.eskulap_gateway import EskulapGateway
+
+gateway = EskulapGateway()
+patients = gateway.search_patients("Kowalski")
+
+if patients:
+    patient = gateway.get_patient(patients[0].patient_id)
+    visits = gateway.get_patient_visits(patient.patient_id)
+```
+
+Gateway zwraca dataclassy, a nie `DataFrame` ani surowe wiersze Oracle.
+Pola modeli mają stabilne angielskie nazwy, niezależne od nazw kolumn
+źródłowych, np. `patient_id`, `first_name`, `visit_date`.
+
+## Test ręczny
+
+```text
+python scripts/test_gateway.py Kowalski
+python scripts/test_gateway.py 90010112345 --date-from 2026-01-01
+```
+
+Test wymaga poprawnego `config.ini`, dostępu do Oracle oraz wdrożonych
+widoków `ESK_RAPORTY.V_KOMPAS_*`.

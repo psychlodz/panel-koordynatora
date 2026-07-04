@@ -58,6 +58,10 @@ Minimalny kontrakt kolumn:
 
 Źródłem widoku jest `RI_OWNER.OD_KONSULTACJE`.
 
+Po zmianie definicji SQL administrator musi ręcznie wykonać
+`CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_KONSULTACJE` w Oracle.
+Sama aktualizacja pliku w projekcie nie zmienia widoku w bazie.
+
 ### `ESK_RAPORTY.V_KOMPAS_BADANIA`
 
 Minimalny kontrakt kolumn:

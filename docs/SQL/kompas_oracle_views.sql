@@ -106,6 +106,9 @@ WHERE
 ;
 /
 
+-- Kontrakt KOMPAS wymaga kolumny DATA_KONSULTACJI.
+-- Po zmianie SQL należy ręcznie wykonać poniższe CREATE OR REPLACE VIEW
+-- w Oracle na koncie z uprawnieniami do schematu ESK_RAPORTY.
 CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_KONSULTACJE AS
 SELECT
     k.kon_konsultacja_id AS konsultacja_id,
@@ -114,7 +117,7 @@ SELECT
         k.kon_data_przyjecia,
         k.kon_data_planowanej_kon,
         k.kon_data
-    ) AS data_konsultacji,
+    ) AS DATA_KONSULTACJI,
     k.kon_data AS data_wystawienia,
     k.kon_data_planowanej_kon AS data_planowana,
     k.kon_data_przyjecia AS data_przyjecia,
