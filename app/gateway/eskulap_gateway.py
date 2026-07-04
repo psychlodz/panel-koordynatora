@@ -42,15 +42,25 @@ QUALIFICATION_VISIT_FIELDS = {
     "visit_date": "data_wizyty",
     "clinic_id": "poradnia_id",
     "clinic_code": "poradnia_symbol",
-    "clinic_name": "poradnia",
+    "clinic_name": ("poradnia", "poradnia_nazwa"),
     "employee_id": "pracownik_id",
     "employee_name": "pracownik",
     "visit_type": "typ_wizyty",
-    "visit_status": "status_wizyty",
+    "visit_status": ("status_wizyty", "decyzja"),
     "description": "opis",
     "episode_id": "epizod_id",
     "assignment_status": "assignment_status",
 }
+
+
+def _source_value(row, source_fields):
+    if isinstance(source_fields, str):
+        source_fields = (source_fields,)
+    for source_field in source_fields:
+        value = row.get(source_field)
+        if value is not None:
+            return value
+    return None
 
 
 def _mapping_to_model(model_class, row, field_mapping):
@@ -59,8 +69,8 @@ def _mapping_to_model(model_class, row, field_mapping):
     field_names = {field.name for field in fields(model_class)}
     return model_class(
         **{
-            model_field: row.get(source_field)
-            for model_field, source_field in field_mapping.items()
+            model_field: _source_value(row, source_fields)
+            for model_field, source_fields in field_mapping.items()
             if model_field in field_names
         }
     )

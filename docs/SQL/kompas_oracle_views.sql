@@ -49,60 +49,11 @@ LEFT JOIN RI_OWNER.RI_PRACOWNICY pr
 /
 
 CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE AS
-WITH qualification_filter AS (
-    SELECT
-        CAST(NULL AS VARCHAR2(100)) AS typ_wizyty,
-        CAST(NULL AS VARCHAR2(100)) AS procedura,
-        CAST('PKK' AS VARCHAR2(100)) AS poradnia,
-        CAST('KWALIF' AS VARCHAR2(100)) AS opis
-    FROM dual
-)
-SELECT
-    w.wizyta_id,
-    w.pacjent_id,
-    p.pesel,
-    p.nazwisko,
-    p.imie,
-    w.data_wizyty,
-    w.poradnia_id,
-    w.poradnia_symbol,
-    w.poradnia_nazwa AS poradnia,
-    w.pracownik_id,
-    w.pracownik,
-    w.typ_wizyty,
-    w.decyzja AS status_wizyty,
-    w.opis
-FROM ESK_RAPORTY.V_KOMPAS_WIZYTY w
-JOIN ESK_RAPORTY.V_KOMPAS_PACJENCI p
-    ON p.pacjent_id = w.pacjent_id
-CROSS JOIN qualification_filter f
-WHERE
-    (
-        f.typ_wizyty IS NOT NULL
-        AND UPPER(NVL(w.typ_wizyty, '')) LIKE
-            '%' || UPPER(f.typ_wizyty) || '%'
-    )
-    OR (
-        f.poradnia IS NOT NULL
-        AND (
-            UPPER(NVL(w.poradnia_symbol, '')) LIKE
-                '%' || UPPER(f.poradnia) || '%'
-            OR UPPER(NVL(w.poradnia_nazwa, '')) LIKE
-                '%' || UPPER(f.poradnia) || '%'
-        )
-    )
-    OR (
-        f.procedura IS NOT NULL
-        AND UPPER(NVL(w.program_leczenia, '')) LIKE
-            '%' || UPPER(f.procedura) || '%'
-    )
-    OR (
-        f.opis IS NOT NULL
-        AND UPPER(NVL(w.opis, '')) LIKE '%' || UPPER(f.opis) || '%'
-    )
-    -- TODO: dopasować filtry do rzeczywistego oznaczenia wizyty
-    -- kwalifikacyjnej PKK w Eskulapie. Pole program_leczenia jest obecnie
-    -- tymczasowym odpowiednikiem filtra procedury.
+SELECT *
+FROM ESK_RAPORTY.V_KOMPAS_WIZYTY
+WHERE 1 = 1
+-- TODO: dopasować filtr wizyty kwalifikacyjnej PKK,
+-- np. poradnia_symbol, typ_wizyty, opis, procedura.
 ;
 /
 
@@ -139,33 +90,30 @@ WHERE k.kon_p_pacjent_id IS NOT NULL;
 
 CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_BADANIA AS
 SELECT
-    s.skie_skierowanie_id AS badanie_skierowanie_id,
-    s.skie_p_pacjent_id AS pacjent_id,
-    COALESCE(
-        s.skie_data_wystawienia_skie,
-        s.skie_ins_date
-    ) AS data_skierowania,
-    s.skie_data_wystawienia AS data_proponowana,
-    s.skie_plan_data_wyk AS data_planowana,
-    s.skie_data_realizacji AS data_realizacji,
-    s.skie_data_pobrania AS data_pobrania,
-    s.skie_type AS typ,
-    s.skie_stan_skierowania AS status,
-    s.skie_pilne AS pilne,
-    s.skie_tresc AS opis,
-    s.skie_uwagi AS uwagi,
-    s.skie_wam_wizyta_id AS wizyta_id,
-    s.skie_pno_pobyt_id AS pobyt_id,
-    s.skie_jo_jedn_wyst_id AS jednostka_wystawiajaca_id,
-    s.skie_jo_jednostka_id AS jednostka_realizujaca_id,
-    s.skie_prac_wystawil_id AS pracownik_wystawil_id,
-    s.skie_prac_pracownik_id AS pracownik_realizujacy_id,
-    s.skie_hist_bd_badanie_id AS badanie_id,
+    skie.skie_skierowanie_id AS badanie_skierowanie_id,
+    skie.skie_p_pacjent_id AS pacjent_id,
+    skie.skie_data_wystawienia AS DATA_SKIEROWANIA,
+    skie.skie_plan_data_wyk AS data_planowana_wykonania,
+    skie.skie_plan_data_wyk AS data_zaplanowana,
+    skie.skie_data_pobrania AS data_pobrania,
+    skie.skie_data_realizacji AS data_realizacji,
+    skie.skie_type AS typ,
+    skie.skie_stan_skierowania AS status,
+    skie.skie_pilne AS pilne,
+    skie.skie_tresc AS opis,
+    skie.skie_uwagi AS uwagi,
+    skie.skie_wam_wizyta_id AS wizyta_id,
+    skie.skie_pno_pobyt_id AS pobyt_id,
+    skie.skie_jo_jedn_wyst_id AS jednostka_wystawiajaca_id,
+    skie.skie_jo_jednostka_id AS jednostka_realizujaca_id,
+    skie.skie_prac_wystawil_id AS pracownik_wystawil_id,
+    skie.skie_prac_pracownik_id AS pracownik_realizujacy_id,
+    skie.skie_hist_bd_badanie_id AS badanie_id,
     b.bad_symbol AS badanie_symbol,
-    COALESCE(b.bad_nazwa, s.skie_tresc) AS badanie_nazwa,
+    COALESCE(b.bad_nazwa, skie.skie_tresc) AS badanie_nazwa,
     b.bad_kod AS badanie_kod
-FROM RI_OWNER.OD_SKIEROWANIA_NA_BADANIA s
+FROM RI_OWNER.OD_SKIEROWANIA_NA_BADANIA skie
 LEFT JOIN LAB_OWNER.L_BADANIA b
-    ON b.bad_badanie_id = s.skie_hist_bd_badanie_id
-WHERE s.skie_p_pacjent_id IS NOT NULL;
+    ON b.bad_badanie_id = skie.skie_hist_bd_badanie_id
+WHERE skie.skie_p_pacjent_id IS NOT NULL;
 /

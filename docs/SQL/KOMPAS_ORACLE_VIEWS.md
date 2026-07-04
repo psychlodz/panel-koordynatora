@@ -35,19 +35,9 @@ status, jednostkę organizacyjną, personel i rodzaj świadczenia.
 ### `ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE`
 
 Widok udostępnia wizyty kwalifikacyjne PKK wraz z podstawowymi danymi
-pacjenta. Bazuje na `V_KOMPAS_WIZYTY` i `V_KOMPAS_PACJENCI`.
-
-Filtr znajduje się w CTE `qualification_filter` w pliku SQL i może
-uwzględniać:
-
-- typ wizyty,
-- procedurę,
-- poradnię,
-- opis wizyty.
-
-Domyślna konfiguracja wyszukuje oznaczenia `PKK` w poradni albo
-`KWALIF` w opisie. Sekcja `TODO` musi zostać dopasowana do rzeczywistego
-oznaczenia procedury kwalifikacyjnej w danej instalacji Eskulapa.
+wizyty. Wersja startowa kopiuje kolumny z `V_KOMPAS_WIZYTY`.
+Warunek oznaczony `TODO` należy dopasować do rzeczywistego oznaczenia
+kwalifikacji PKK, np. poradni, typu wizyty, opisu albo procedury.
 
 ### `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`
 
@@ -67,7 +57,11 @@ Sama aktualizacja pliku w projekcie nie zmienia widoku w bazie.
 Minimalny kontrakt kolumn:
 
 - `PACJENT_ID`,
-- `DATA_SKIEROWANIA`.
+- `DATA_SKIEROWANIA`,
+- `DATA_PLANOWANA_WYKONANIA`,
+- `DATA_ZAPLANOWANA`,
+- `DATA_POBRANIA`,
+- `DATA_REALIZACJI`.
 
 Źródłem widoku jest `RI_OWNER.OD_SKIEROWANIA_NA_BADANIA`. Nazwa, symbol
 i kod badania mogą zostać uzupełnione ze słownika `LAB_OWNER.L_BADANIA`.

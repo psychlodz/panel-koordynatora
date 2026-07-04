@@ -132,7 +132,11 @@ def _exam_event(row, event_type) -> Event:
         EXAMS_VIEW,
         "badanie_skierowanie_id",
         row.get("data_skierowania"),
-        planned_date=row.get("data_planowana"),
+        planned_date=(
+            row.get("data_zaplanowana")
+            or row.get("data_planowana_wykonania")
+            or row.get("data_planowana")
+        ),
         description=_description(
             row,
             "badanie_nazwa",

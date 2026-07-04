@@ -74,6 +74,23 @@ Gateway zwraca dataclassy, a nie `DataFrame` ani surowe wiersze Oracle.
 Pola modeli mają stabilne angielskie nazwy, niezależne od nazw kolumn
 źródłowych, np. `patient_id`, `first_name`, `visit_date`.
 
+## Wymagane widoki Oracle
+
+Gateway wymaga widoków:
+
+- `ESK_RAPORTY.V_KOMPAS_PACJENCI`,
+- `ESK_RAPORTY.V_KOMPAS_WIZYTY`,
+- `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`,
+- `ESK_RAPORTY.V_KOMPAS_BADANIA`,
+- `ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE`.
+
+Badania laboratoryjne i obrazowe korzystają ze wspólnego widoku
+`V_KOMPAS_BADANIA` i są rozdzielane według typu badania.
+
+Po każdej zmianie pliku `docs/SQL/kompas_oracle_views.sql` administrator
+musi ręcznie wykonać odpowiednie instrukcje `CREATE OR REPLACE VIEW`
+w Oracle. Aktualizacja pliku w projekcie nie modyfikuje bazy Oracle.
+
 ## Test ręczny
 
 ```text

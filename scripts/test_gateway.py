@@ -9,6 +9,8 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.gateway.eskulap_gateway import EskulapGateway
+from app.repositories.event_repository import EXAMS_VIEW
+from app.repositories.qualification_repository import QUALIFICATION_VIEW
 
 
 def _print_collection(label, items):
@@ -17,7 +19,9 @@ def _print_collection(label, items):
         print(asdict(item))
 
 
-def _test_collection(label, loader):
+def _test_collection(label, loader, source_view=None):
+    if source_view:
+        print(f"\nWidok Oracle: {source_view}")
     try:
         items = loader()
     except Exception as exc:
@@ -63,10 +67,12 @@ def main():
     _test_collection(
         "Zlecenia laboratoryjne",
         lambda: gateway.get_patient_laboratory_orders(patient_id),
+        EXAMS_VIEW,
     )
     _test_collection(
         "Zlecenia obrazowe",
         lambda: gateway.get_patient_imaging_orders(patient_id),
+        EXAMS_VIEW,
     )
     _test_collection(
         "Wizyty kwalifikacyjne",
@@ -74,6 +80,7 @@ def main():
             date_from=args.date_from,
             date_to=args.date_to,
         ),
+        QUALIFICATION_VIEW,
     )
 
 
