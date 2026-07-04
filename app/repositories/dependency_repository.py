@@ -1,6 +1,9 @@
 from contextlib import closing
 
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection as create_local_connection,
+    initialize_database as initialize_local_db,
+)
 
 
 DEPENDENCY_TYPES = {"KOLEJNOSC", "WARUNEK"}

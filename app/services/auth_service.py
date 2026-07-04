@@ -5,7 +5,10 @@ import secrets
 from contextlib import closing
 from dataclasses import dataclass
 
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection as create_local_connection,
+    initialize_database as initialize_local_db,
+)
 
 
 PASSWORD_SCHEME = "pbkdf2_sha256"

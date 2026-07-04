@@ -43,19 +43,18 @@ PostgreSQL jest centralną bazą danych procesowych KOMPAS i przechowuje:
 Nie zawiera kartoteki pacjentów ani kopii danych osobowych.
 
 ```mermaid
-flowchart LR
-    O[("Oracle / Eskulap\nźródło prawdy o pacjencie")]
-    G["Eskulap Gateway\nodczyt na żądanie"]
-    D["DTO Patient\nwyłącznie w pamięci"]
-    A["Usługi i UI KOMPAS"]
+flowchart TB
+    O[("Oracle / Eskulap\nSystem of Record")]
+    G["Eskulap Gateway\nwyłącznie SELECT"]
+    UI["UI KOMPAS"]
     P[("PostgreSQL\ndane procesowe")]
     S[("SQLite\ndevelopment")]
 
-    O -->|SELECT| G
-    G --> D
-    D --> A
-    A -->|pacjent_id_eskulap + proces| P
-    A -->|lokalny fallback| S
+    O --> G
+    G -->|"aktualne dane pacjenta"| UI
+    P -->|"programy, epizody, zadania"| UI
+    UI -->|"zapis danych procesowych"| P
+    S <-.->|"tryb developerski"| UI
 ```
 
 ## PostgreSQL
@@ -67,8 +66,51 @@ aktualne dane pacjenta z Oracle. Schemat znajduje się w `db/postgres/`.
 
 Warstwa `app/repositories/db_connection.py` potrafi utworzyć połączenie
 SQLite lub PostgreSQL na podstawie sekcji `[kompas_database]`. Obecne
-repozytoria nie zostały jeszcze przepięte na tę warstwę; nastąpi to w
-osobnym etapie migracji.
+repozytoria danych KOMPAS korzystają wyłącznie z tej warstwy. Szczegóły
+sterowników, placeholderów parametrów, zwracanych identyfikatorów i
+różnic dialektu SQL nie przenikają do UI.
+
+Repozytoria Oracle pozostają oddzielone od tego mechanizmu i nadal
+korzystają z `db.py` poprzez Eskulap Gateway.
+
+## Wybór silnika KOMPAS
+
+Silnik jest wybierany w prywatnym `config.ini`.
+
+SQLite:
+
+```ini
+[kompas_database]
+engine=sqlite
+sqlite_path=kompas.db
+```
+
+PostgreSQL:
+
+```ini
+[kompas_database]
+engine=postgres
+postgres_dsn=host=SERVER port=5432 dbname=kompas user=kompas_app password=HASLO
+```
+
+Zmienna `KOMPAS_POSTGRES_DSN` ma pierwszeństwo przed DSN zapisanym w
+pliku. Przed pierwszym uruchomieniem PostgreSQL należy wykonać skrypty
+`db/postgres/001-005` zgodnie z instrukcją instalacji.
+
+Test warstwy SQLite:
+
+```text
+python scripts/test_db_sqlite.py
+```
+
+Test zgodności oraz opcjonalny test serwera PostgreSQL:
+
+```text
+python scripts/test_db_postgres.py
+```
+
+Test integracyjny serwera uruchamia się po ustawieniu
+`KOMPAS_TEST_POSTGRES_DSN`.
 
 ## SQLite
 

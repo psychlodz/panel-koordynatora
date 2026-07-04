@@ -1,7 +1,11 @@
 from contextlib import closing
 from datetime import date, datetime
 
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection as create_local_connection,
+    initialize_database as initialize_local_db,
+    patient_id_column,
+)
 
 
 TERMINAL_STATUSES = ("ZAKONCZONE", "ZREALIZOWANE", "ANULOWANE")
@@ -31,7 +35,7 @@ def list_active_tasks() -> list[dict]:
                 z.eskulap_id,
                 z.uwagi,
                 z.created_at,
-                ep.pacjent_id,
+                {patient_id_column("ep")} AS pacjent_id,
                 ep.data_start,
                 ep.koordynator_id,
                 ep.program_id,

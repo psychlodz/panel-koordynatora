@@ -1,28 +1,33 @@
 from contextlib import closing
 
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection as create_local_connection,
+    initialize_database as initialize_local_db,
+    patient_id_column,
+)
 
 
-EPISODE_COLUMNS = """
-    e.epizod_id,
-    e.pacjent_id,
-    e.program_id,
-    e.sciezka_id,
-    e.data_start,
-    e.data_zakonczenia,
-    e.status,
-    e.koordynator_id,
-    e.uwagi,
-    e.source_system,
-    e.source_type,
-    e.source_id,
-    e.created_at,
-    e.updated_at,
-    p.kod AS program_kod,
-    p.nazwa AS program_nazwa,
-    s.kod AS sciezka_kod,
-    s.nazwa AS sciezka_nazwa
-"""
+def _episode_columns():
+    return f"""
+        e.epizod_id,
+        {patient_id_column("e")} AS pacjent_id,
+        e.program_id,
+        e.sciezka_id,
+        e.data_start,
+        e.data_zakonczenia,
+        e.status,
+        e.koordynator_id,
+        e.uwagi,
+        e.source_system,
+        e.source_type,
+        e.source_id,
+        e.created_at,
+        e.updated_at,
+        p.kod AS program_kod,
+        p.nazwa AS program_nazwa,
+        s.kod AS sciezka_kod,
+        s.nazwa AS sciezka_nazwa
+    """
 
 
 def list_episodes() -> list[dict]:
@@ -31,7 +36,7 @@ def list_episodes() -> list[dict]:
         rows = connection.execute(
             f"""
             SELECT
-                {EPISODE_COLUMNS},
+                {_episode_columns()},
                 COALESCE(t.liczba_zadan, 0) AS liczba_zadan,
                 COALESCE(
                     t.liczba_zrealizowanych_zadan, 0
@@ -76,7 +81,7 @@ def list_active_episodes() -> list[dict]:
     with closing(create_local_connection()) as connection:
         rows = connection.execute(
             f"""
-            SELECT {EPISODE_COLUMNS}
+            SELECT {_episode_columns()}
             FROM pk_epizody e
             LEFT JOIN pk_programy p ON p.program_id = e.program_id
             LEFT JOIN pk_sciezki s ON s.sciezka_id = e.sciezka_id
@@ -92,7 +97,7 @@ def get_episode(epizod_id):
     with closing(create_local_connection()) as connection:
         row = connection.execute(
             f"""
-            SELECT {EPISODE_COLUMNS}
+            SELECT {_episode_columns()}
             FROM pk_epizody e
             LEFT JOIN pk_programy p ON p.program_id = e.program_id
             LEFT JOIN pk_sciezki s ON s.sciezka_id = e.sciezka_id

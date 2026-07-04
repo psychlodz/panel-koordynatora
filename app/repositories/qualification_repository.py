@@ -1,11 +1,14 @@
-import sqlite3
 from contextlib import closing
 from datetime import date, datetime, timedelta
 
 from config import load_config
 from db import create_connection
 from episode_generator import create_episode_with_tasks
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection as create_local_connection,
+    initialize_database as initialize_local_db,
+    is_integrity_error,
+)
 from app.repositories.patient_repository import PATIENTS_VIEW, VISITS_VIEW
 
 
@@ -223,7 +226,9 @@ def create_episode_from_qualification_visit(
             source_type=SOURCE_TYPE,
             source_id=str(wizyta_id),
         )
-    except sqlite3.IntegrityError as exc:
+    except Exception as exc:
+        if not is_integrity_error(exc):
+            raise
         raise ValueError(
             "Wizyta kwalifikacyjna została już przypisana do epizodu"
         ) from exc
