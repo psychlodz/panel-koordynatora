@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QFormLayout,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
     QLabel,
     QLineEdit,
     QMessageBox,
@@ -16,23 +17,29 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QTextEdit,
     QVBoxLayout,
     QWidget,
 )
 
 from app.repositories.pathway_repository import (
-    add_element_to_pathway,
+    add_element_at_position,
+    can_delete_element,
+    can_insert_before,
     create_pathway,
-    delete_pathway_element,
+    delete_element_safe,
+    get_element_link_counts,
     get_pathway,
     list_blocks,
     list_pathway_elements,
     list_pathways,
+    reorder_elements,
     update_pathway,
     update_pathway_element,
 )
 from app.repositories.program_repository import get_program
+from app.ui.widgets.pathway_tiles_widget import PathwayTilesWidget
 from app.ui.ui_helpers import (
     ask_confirmation,
     create_help_button,
@@ -263,8 +270,8 @@ class PathwaysWindow(QWidget):
             self,
             "Ścieżki programu",
             "To okno służy do budowania ścieżek wybranego programu.\n\n"
-            "Możesz dodawać i edytować ścieżki, elementy, zależności oraz "
-            "wyzwalacze.\n\n"
+            "Możesz przeciągać kafelki, dodawać i edytować elementy, "
+            "zależności oraz wyzwalacze.\n\n"
             "Nie usuwaj elementów używanych przez aktywne epizody bez "
             "wcześniejszego sprawdzenia skutków.",
         )
@@ -311,6 +318,11 @@ class PathwaysWindow(QWidget):
         elements_layout = QVBoxLayout(elements_panel)
         self.elements_label = QLabel("Elementy ścieżki")
         elements_layout.addWidget(self.elements_label)
+
+        self.elements_tabs = QTabWidget()
+        self.tiles_widget = PathwayTilesWidget()
+        self.elements_tabs.addTab(self.tiles_widget, "Kafelki")
+
         self.elements_table = QTableWidget(0, 8)
         self.elements_table.setHorizontalHeaderLabels(
             [
@@ -328,14 +340,15 @@ class PathwaysWindow(QWidget):
         self.elements_table.horizontalHeader().setSectionResizeMode(
             2, QHeaderView.ResizeMode.Stretch
         )
-        elements_layout.addWidget(self.elements_table, 1)
+        self.elements_tabs.addTab(self.elements_table, "Tabela")
+        elements_layout.addWidget(self.elements_tabs, 1)
         element_buttons = QHBoxLayout()
         self.add_element_button = QPushButton("Dodaj element")
         self.edit_element_button = QPushButton("Edytuj element")
         self.delete_element_button = QPushButton("Usuń element")
         self.triggers_button = QPushButton("Wyzwalacze")
         self.add_element_button.setToolTip(
-            "Dodaj element z biblioteki do zaznaczonej ścieżki."
+            "Dodaj element na końcu albo przed zaznaczonym kafelkiem."
         )
         self.edit_element_button.setToolTip(
             "Edytuj zaznaczony element ścieżki."
@@ -366,6 +379,16 @@ class PathwaysWindow(QWidget):
         self.pathways_table.itemSelectionChanged.connect(
             self.load_selected_pathway_elements
         )
+        self.elements_table.itemSelectionChanged.connect(
+            self._sync_tiles_from_table
+        )
+        self.tiles_widget.elementSelected.connect(
+            self._sync_table_from_tiles
+        )
+        self.tiles_widget.elementDoubleClicked.connect(
+            self._edit_tile_element
+        )
+        self.tiles_widget.orderChanged.connect(self._tiles_reordered)
 
         self.refresh_pathways()
 
@@ -387,9 +410,61 @@ class PathwaysWindow(QWidget):
         return item.data(Qt.ItemDataRole.UserRole) if item else None
 
     def current_element_id(self):
+        if self.elements_tabs.currentWidget() is self.tiles_widget:
+            return self.tiles_widget.selected_element_id()
         row = self.elements_table.currentRow()
         item = self.elements_table.item(row, 0) if row >= 0 else None
         return item.data(Qt.ItemDataRole.UserRole) if item else None
+
+    def _sync_table_from_tiles(self, element_id):
+        self.elements_table.blockSignals(True)
+        try:
+            self.elements_table.clearSelection()
+            if element_id is None:
+                self.elements_table.setCurrentCell(-1, -1)
+                return
+            for row in range(self.elements_table.rowCount()):
+                item = self.elements_table.item(row, 0)
+                if (
+                    item is not None
+                    and int(item.data(Qt.ItemDataRole.UserRole))
+                    == int(element_id)
+                ):
+                    self.elements_table.selectRow(row)
+                    break
+        finally:
+            self.elements_table.blockSignals(False)
+
+    def _sync_tiles_from_table(self):
+        row = self.elements_table.currentRow()
+        item = self.elements_table.item(row, 0) if row >= 0 else None
+        element_id = (
+            item.data(Qt.ItemDataRole.UserRole)
+            if item is not None
+            else None
+        )
+        self.tiles_widget.blockSignals(True)
+        try:
+            self.tiles_widget.select_element(element_id)
+        finally:
+            self.tiles_widget.blockSignals(False)
+
+    def _edit_tile_element(self, element_id):
+        self.tiles_widget.select_element(element_id)
+        self._sync_table_from_tiles(element_id)
+        self.edit_element()
+
+    def _tiles_reordered(self, ordered_element_ids):
+        pathway_id = self.current_pathway_id()
+        if pathway_id is None:
+            return
+        selected_element_id = self.tiles_widget.selected_element_id()
+        try:
+            reorder_elements(pathway_id, ordered_element_ids)
+            self.load_selected_pathway_elements(selected_element_id)
+        except Exception as exc:
+            self._show_error("Nie udało się zmienić kolejności elementów", exc)
+            self.load_selected_pathway_elements(selected_element_id)
 
     def refresh_pathways(self, select_id=None):
         try:
@@ -428,14 +503,17 @@ class PathwaysWindow(QWidget):
         except Exception as exc:
             self._show_error("Nie udało się pobrać ścieżek", exc)
 
-    def load_selected_pathway_elements(self):
+    def load_selected_pathway_elements(self, selected_element_id=None):
         pathway_id = self.current_pathway_id()
         if pathway_id is None:
             self.elements_table.setRowCount(0)
+            self.tiles_widget.set_elements([])
             self._elements_by_id = {}
             self.elements_label.setText("Elementy ścieżki")
             return
         try:
+            if selected_element_id is None:
+                selected_element_id = self.current_element_id()
             pathway = get_pathway(pathway_id)
             elements = list_pathway_elements(pathway_id)
             self._elements_by_id = {
@@ -444,6 +522,11 @@ class PathwaysWindow(QWidget):
             self.elements_label.setText(
                 f"Elementy ścieżki: {pathway['nazwa']}"
             )
+            self.tiles_widget.set_elements(
+                elements,
+                selected_element_id,
+            )
+            self.elements_table.blockSignals(True)
             self.elements_table.setRowCount(len(elements))
             for row_index, element in enumerate(elements):
                 if element["termin_liczba"] is None:
@@ -471,7 +554,11 @@ class PathwaysWindow(QWidget):
                             Qt.ItemDataRole.UserRole, element["element_id"]
                         )
                     self.elements_table.setItem(row_index, column_index, item)
+                if element["element_id"] == selected_element_id:
+                    self.elements_table.selectRow(row_index)
+            self.elements_table.blockSignals(False)
         except Exception as exc:
+            self.elements_table.blockSignals(False)
             self._show_error("Nie udało się pobrać elementów", exc)
 
     def new_pathway(self):
@@ -519,16 +606,75 @@ class PathwaysWindow(QWidget):
         if pathway_id is None:
             QMessageBox.information(self, "KOMPAS", "Wybierz ścieżkę.")
             return
-        default_lp = max(
-            [element["lp"] for element in self._elements_by_id.values()],
-            default=0,
-        ) + 1
+
+        position, accepted = QInputDialog.getItem(
+            self,
+            "KOMPAS — Miejsce elementu",
+            "Gdzie wstawić nowy element?",
+            ["Na końcu", "Przed zaznaczonym elementem"],
+            0,
+            False,
+        )
+        if not accepted:
+            return
+
+        before_element_id = None
+        if position == "Przed zaznaczonym elementem":
+            before_element_id = self.current_element_id()
+            if before_element_id is None:
+                QMessageBox.information(
+                    self,
+                    "KOMPAS",
+                    "Zaznacz element, przed którym ma zostać wstawiony "
+                    "nowy kafelek.",
+                )
+                return
+            try:
+                insert_allowed = can_insert_before(before_element_id)
+            except Exception as exc:
+                self._show_error(
+                    "Nie udało się sprawdzić możliwości wstawienia elementu",
+                    exc,
+                )
+                return
+            if not insert_allowed:
+                QMessageBox.warning(
+                    self,
+                    "KOMPAS — Operacja zablokowana",
+                    "Nie można dodać nowego elementu przed zaznaczonym "
+                    "elementem, ponieważ ma on zadanie o statusie "
+                    "ZREALIZOWANO.",
+                )
+                return
+
+        default_lp = (
+            self._elements_by_id[before_element_id]["lp"]
+            if before_element_id is not None
+            else max(
+                [
+                    element["lp"]
+                    for element in self._elements_by_id.values()
+                ],
+                default=0,
+            )
+            + 1
+        )
         try:
             dialog = PathwayElementDialog(default_lp=default_lp, parent=self)
+            dialog.position_spin.setEnabled(False)
+            dialog.position_spin.setToolTip(
+                "Pozycja zostanie wyliczona automatycznie."
+            )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
-            add_element_to_pathway(pathway_id, **dialog.values())
-            self.load_selected_pathway_elements()
+            values = dialog.values()
+            values.pop("lp", None)
+            element_id = add_element_at_position(
+                pathway_id,
+                before_element_id=before_element_id,
+                **values,
+            )
+            self.load_selected_pathway_elements(element_id)
         except Exception as exc:
             self._show_error("Nie udało się dodać elementu", exc)
 
@@ -555,13 +701,46 @@ class PathwaysWindow(QWidget):
         if element_id is None:
             QMessageBox.information(self, "KOMPAS", "Wybierz element do usunięcia.")
             return
+
+        try:
+            delete_allowed = can_delete_element(element_id)
+            links = (
+                get_element_link_counts(element_id)
+                if delete_allowed
+                else {"dependencies": 0, "triggers": 0}
+            )
+        except Exception as exc:
+            self._show_error(
+                "Nie udało się sprawdzić możliwości usunięcia elementu",
+                exc,
+            )
+            return
+
+        if not delete_allowed:
+            QMessageBox.warning(
+                self,
+                "KOMPAS — Operacja zablokowana",
+                "Nie można usunąć elementu, ponieważ istnieje powiązane "
+                "zadanie o statusie ZREALIZOWANO.",
+            )
+            return
+
+        warning = ""
+        if links["dependencies"] or links["triggers"]:
+            warning = (
+                "\n\nElement jest używany przez "
+                f"{links['dependencies']} zależności i "
+                f"{links['triggers']} wyzwalacze. "
+                "Kontynuowanie usunie również te powiązania."
+            )
         if not ask_confirmation(
             self,
-            "Czy na pewno usunąć wybrany element ścieżki?",
+            "Czy na pewno usunąć wybrany element ścieżki?"
+            + warning,
         ):
             return
         try:
-            delete_pathway_element(element_id)
+            delete_element_safe(element_id)
             self.load_selected_pathway_elements()
         except Exception as exc:
             self._show_error("Nie udało się usunąć elementu", exc)
