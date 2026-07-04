@@ -1,5 +1,13 @@
 PlanPracy - aplikacja Windows
 
+Architektura KOMPAS:
+- Oracle / Eskulap = System of Record.
+  Przechowuje dane pacjenta i dane medyczne.
+- KOMPAS = System of Coordination.
+  Zarzadza programami, sciezkami, epizodami i zadaniami.
+- KOMPAS nie utrzymuje lokalnej kopii danych osobowych pacjenta.
+  Aktualne dane sa pobierane z Oracle przez Eskulap Gateway.
+
 1. Edytuj config.ini:
    - user
    - password

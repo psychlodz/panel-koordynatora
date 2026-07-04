@@ -15,6 +15,33 @@ zastępuje Oracle i nie służy do modyfikowania danych Eskulapa.
 
 **Dane pacjenta są zawsze pobierane z Oracle przez Eskulap Gateway.**
 
+### Oracle / Eskulap
+
+Oracle jest systemem źródłowym i przechowuje:
+
+- dane pacjenta,
+- dane medyczne,
+- wizyty,
+- konsultacje,
+- badania.
+
+KOMPAS korzysta z tych danych wyłącznie do odczytu przez Eskulap Gateway.
+
+### PostgreSQL
+
+PostgreSQL jest centralną bazą danych procesowych KOMPAS i przechowuje:
+
+- programy,
+- ścieżki,
+- epizody,
+- zadania,
+- użytkowników,
+- role,
+- przypisania jednostek organizacyjnych,
+- konfigurację procesów KOMPAS.
+
+Nie zawiera kartoteki pacjentów ani kopii danych osobowych.
+
 ```mermaid
 flowchart LR
     O[("Oracle / Eskulap\nźródło prawdy o pacjencie")]
