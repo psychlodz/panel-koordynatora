@@ -17,6 +17,7 @@ from app.repositories.pathway_repository import list_pathways
 from app.repositories.program_repository import list_programs
 from episode_generator import create_episode_with_tasks
 from pathway_service import list_episode_tasks
+from app.ui.widgets.busy_indicator import busy_operation
 
 
 class EpisodeWizard(QWizard):
@@ -190,16 +191,22 @@ class EpisodeWizard(QWizard):
 
     def accept(self):
         try:
-            epizod_id = create_episode_with_tasks(
-                pacjent_id=self.patient_edit.text().strip(),
-                program_id=self.program_combo.currentData(),
-                sciezka_id=self.pathway_combo.currentData(),
-                data_start=self.start_date_edit.date().toString("yyyy-MM-dd"),
-                koordynator_id=(
-                    self.coordinator_edit.text().strip() or None
-                ),
-            )
-            task_count = len(list_episode_tasks(epizod_id))
+            with busy_operation(
+                self,
+                "Trwa tworzenie epizodu i generowanie zadań...",
+            ):
+                epizod_id = create_episode_with_tasks(
+                    pacjent_id=self.patient_edit.text().strip(),
+                    program_id=self.program_combo.currentData(),
+                    sciezka_id=self.pathway_combo.currentData(),
+                    data_start=self.start_date_edit.date().toString(
+                        "yyyy-MM-dd"
+                    ),
+                    koordynator_id=(
+                        self.coordinator_edit.text().strip() or None
+                    ),
+                )
+                task_count = len(list_episode_tasks(epizod_id))
         except Exception as exc:
             QMessageBox.critical(
                 self,

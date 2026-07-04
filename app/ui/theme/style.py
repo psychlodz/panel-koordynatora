@@ -1,26 +1,28 @@
 from PySide6.QtGui import QFont
 
 
-ACCENT = "#245A8D"
-ACCENT_HOVER = "#1D4C79"
-ACCENT_PRESSED = "#173D62"
+ACCENT = "#145A8D"
+ACCENT_HOVER = "#0E4771"
+ACCENT_PRESSED = "#093653"
+NAVY = "#123B5D"
+TEXT = "#111827"
 
 
 STYLE_SHEET = f"""
 QWidget {{
-    background-color: #F3F6FA;
-    color: #1F2937;
+    background-color: #E9EFF5;
+    color: {TEXT};
     font-family: "Segoe UI";
     font-size: 10pt;
 }}
 
 QMainWindow, QDialog {{
-    background-color: #F3F6FA;
+    background-color: #E9EFF5;
 }}
 
 QFrame[card="true"] {{
     background-color: #FFFFFF;
-    border: 1px solid #DDE5EE;
+    border: 2px solid #B7C5D1;
     border-radius: 14px;
 }}
 
@@ -29,13 +31,13 @@ QLabel {{
 }}
 
 QLabel#appTitle {{
-    color: #173D62;
+    color: {NAVY};
     font-size: 30pt;
     font-weight: 700;
 }}
 
 QLabel#appSubtitle {{
-    color: #536579;
+    color: #34495E;
     font-size: 12pt;
 }}
 
@@ -55,10 +57,12 @@ QLabel#userLabel {{
 }}
 
 QLabel#sectionTitle {{
-    color: #26394D;
+    color: #FFFFFF;
+    background-color: {NAVY};
+    border-radius: 6px;
     font-size: 13pt;
-    font-weight: 600;
-    padding-top: 4px;
+    font-weight: 700;
+    padding: 8px 12px;
 }}
 
 QPushButton {{
@@ -66,7 +70,7 @@ QPushButton {{
     padding: 7px 16px;
     color: #FFFFFF;
     background-color: {ACCENT};
-    border: 1px solid {ACCENT};
+    border: 2px solid {ACCENT};
     border-radius: 7px;
     font-weight: 600;
 }}
@@ -88,11 +92,11 @@ QPushButton:disabled {{
 }}
 
 QPushButton[role="tile"] {{
-    min-height: 92px;
+    min-height: 88px;
     padding: 18px 22px;
-    color: #20364C;
+    color: #17324A;
     background-color: #FFFFFF;
-    border: 1px solid #D5E0EB;
+    border: 2px solid #A9BAC8;
     border-radius: 12px;
     text-align: left;
     font-size: 14pt;
@@ -100,9 +104,9 @@ QPushButton[role="tile"] {{
 }}
 
 QPushButton[role="tile"]:hover {{
-    color: {ACCENT};
-    background-color: #F8FBFE;
-    border: 2px solid #7FA8CB;
+    color: #0B426B;
+    background-color: #EDF6FC;
+    border: 3px solid {ACCENT};
 }}
 
 QPushButton[role="tile"]:pressed {{
@@ -111,9 +115,9 @@ QPushButton[role="tile"]:pressed {{
 }}
 
 QPushButton[role="secondary"] {{
-    color: #334155;
+    color: #1F3347;
     background-color: #FFFFFF;
-    border: 1px solid #CBD5E1;
+    border: 2px solid #8799A8;
 }}
 
 QPushButton[role="secondary"]:hover {{
@@ -126,9 +130,9 @@ QLineEdit, QTextEdit, QPlainTextEdit, QComboBox,
 QSpinBox, QDoubleSpinBox, QDateEdit, QDateTimeEdit {{
     min-height: 32px;
     padding: 4px 8px;
-    color: #1F2937;
+    color: {TEXT};
     background-color: #FFFFFF;
-    border: 1px solid #CBD5E1;
+    border: 2px solid #A5B4C0;
     border-radius: 6px;
     selection-background-color: #AFCBE2;
 }}
@@ -144,26 +148,38 @@ QComboBox::drop-down {{
     border: none;
 }}
 
-QTableView {{
-    color: #263442;
+QTableView, QTableWidget {{
+    color: #111827;
     background-color: #FFFFFF;
-    alternate-background-color: #F5F8FB;
-    border: 1px solid #D8E1EA;
+    alternate-background-color: #EAF1F7;
+    border: 2px solid #8FA2B2;
     border-radius: 7px;
-    gridline-color: #E5EBF1;
-    selection-color: #17324B;
-    selection-background-color: #CFE1F0;
+    gridline-color: #C3CFD9;
+    selection-color: #FFFFFF;
+    selection-background-color: #1769A0;
     qproperty-alternatingRowColors: true;
 }}
 
+QTableView::item, QTableWidget::item {{
+    min-height: 32px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #D4DDE5;
+}}
+
+QTableView::item:selected, QTableWidget::item:selected {{
+    color: #FFFFFF;
+    background-color: #1769A0;
+}}
+
 QHeaderView::section {{
+    min-height: 28px;
     padding: 9px 8px;
-    color: #32485D;
-    background-color: #EAF0F6;
+    color: #FFFFFF;
+    background-color: {NAVY};
     border: none;
-    border-right: 1px solid #D6E0E9;
-    border-bottom: 1px solid #CCD8E3;
-    font-weight: 600;
+    border-right: 1px solid #6F879A;
+    border-bottom: 2px solid #082D48;
+    font-weight: 700;
 }}
 
 QTabWidget::pane {{
@@ -214,7 +230,7 @@ QMenu::item {{
 QGroupBox {{
     margin-top: 12px;
     padding-top: 12px;
-    border: 1px solid #D8E1EA;
+    border: 2px solid #A5B4C0;
     border-radius: 7px;
     font-weight: 600;
 }}
@@ -230,6 +246,36 @@ QToolTip {{
     background-color: #26394D;
     border: 1px solid #172A3C;
     padding: 5px;
+}}
+
+QWidget#busyOverlay {{
+    background-color: rgba(14, 30, 45, 150);
+}}
+
+QFrame#busyPanel {{
+    background-color: #FFFFFF;
+    border: 2px solid {ACCENT};
+    border-radius: 12px;
+}}
+
+QLabel#busyMessage {{
+    color: {NAVY};
+    background-color: transparent;
+    font-size: 12pt;
+    font-weight: 700;
+}}
+
+QProgressBar#busyProgress {{
+    min-height: 14px;
+    max-height: 14px;
+    background-color: #D8E3EC;
+    border: 1px solid #8298AA;
+    border-radius: 7px;
+}}
+
+QProgressBar#busyProgress::chunk {{
+    background-color: {ACCENT};
+    border-radius: 6px;
 }}
 """
 

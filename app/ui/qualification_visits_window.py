@@ -25,6 +25,7 @@ from app.repositories.qualification_repository import (
     list_qualification_visits,
 )
 from app.ui.episode_details_window import EpisodeDetailsDialog
+from app.ui.widgets.busy_indicator import busy_operation
 from version import APP_NAME
 
 
@@ -182,11 +183,15 @@ class QualificationVisitsWindow(QWidget):
 
     def refresh_visits(self):
         try:
-            visits = list_qualification_visits(
-                self.date_from.date().toString("yyyy-MM-dd"),
-                self.date_to.date().toString("yyyy-MM-dd"),
-                only_unassigned=False,
-            )
+            with busy_operation(
+                self,
+                "Trwa pobieranie wizyt kwalifikacyjnych z Oracle...",
+            ):
+                visits = list_qualification_visits(
+                    self.date_from.date().toString("yyyy-MM-dd"),
+                    self.date_to.date().toString("yyyy-MM-dd"),
+                    only_unassigned=False,
+                )
             self._visits = {
                 str(visit["wizyta_id"]): visit for visit in visits
             }
@@ -237,10 +242,14 @@ class QualificationVisitsWindow(QWidget):
             dialog = QualificationAssignmentDialog(self)
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
-            episode_id = create_episode_from_qualification_visit(
-                visit["wizyta_id"],
-                **dialog.values(),
-            )
+            with busy_operation(
+                self,
+                "Trwa tworzenie epizodu i generowanie zadań...",
+            ):
+                episode_id = create_episode_from_qualification_visit(
+                    visit["wizyta_id"],
+                    **dialog.values(),
+                )
             self.refresh_visits()
             QMessageBox.information(
                 self,
@@ -266,7 +275,14 @@ class QualificationVisitsWindow(QWidget):
             )
             return
         try:
-            dialog = EpisodeDetailsDialog(visit["epizod_id"], parent=self)
+            with busy_operation(
+                self,
+                "Trwa pobieranie szczegółów epizodu z Oracle...",
+            ):
+                dialog = EpisodeDetailsDialog(
+                    visit["epizod_id"],
+                    parent=self,
+                )
             dialog.exec()
         except Exception as exc:
             QMessageBox.critical(

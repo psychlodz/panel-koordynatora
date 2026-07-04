@@ -24,6 +24,7 @@ from app.repositories.program_repository import (
     list_programs,
     update_program,
 )
+from app.ui.widgets.busy_indicator import busy_operation
 
 
 class ProgramDialog(QDialog):
@@ -149,7 +150,8 @@ class ProgramsWindow(QWidget):
 
     def refresh_programs(self):
         try:
-            programs = list_programs()
+            with busy_operation(self, "Trwa pobieranie listy programów..."):
+                programs = list_programs()
             self.table.setRowCount(len(programs))
             for row_index, program in enumerate(programs):
                 values = [

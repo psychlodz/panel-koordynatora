@@ -20,6 +20,7 @@ from app.repositories.task_repository import (
     list_active_tasks,
     schedule_task,
 )
+from app.ui.widgets.busy_indicator import busy_operation
 from episode_generator import complete_task
 from services.synchronization_service import synchronize_tasks
 
@@ -165,26 +166,30 @@ class TasksWindow(QWidget):
 
     def refresh_tasks(self):
         try:
-            self._tasks = list_active_tasks()
-            self._tasks_by_id = {
-                task["zadanie_id"]: task for task in self._tasks
-            }
-            self._patients = {}
-            oracle_error = None
-            for task in self._tasks:
-                patient_key = str(task["pacjent_id"])
-                if patient_key in self._patients:
-                    continue
-                if oracle_error is not None:
-                    self._patients[patient_key] = None
-                    continue
-                try:
-                    self._patients[patient_key] = get_patient(
-                        task["pacjent_id"]
-                    )
-                except Exception as exc:
-                    oracle_error = exc
-                    self._patients[patient_key] = None
+            with busy_operation(
+                self,
+                "Trwa pobieranie zadań i danych pacjentów...",
+            ):
+                self._tasks = list_active_tasks()
+                self._tasks_by_id = {
+                    task["zadanie_id"]: task for task in self._tasks
+                }
+                self._patients = {}
+                oracle_error = None
+                for task in self._tasks:
+                    patient_key = str(task["pacjent_id"])
+                    if patient_key in self._patients:
+                        continue
+                    if oracle_error is not None:
+                        self._patients[patient_key] = None
+                        continue
+                    try:
+                        self._patients[patient_key] = get_patient(
+                            task["pacjent_id"]
+                        )
+                    except Exception as exc:
+                        oracle_error = exc
+                        self._patients[patient_key] = None
             self._refresh_filters()
             self.apply_filters()
             if oracle_error:
@@ -363,7 +368,11 @@ class TasksWindow(QWidget):
         self.synchronize_action.setEnabled(False)
         self.info_label.setText("Synchronizacja z Eskulapem...")
         try:
-            result = synchronize_tasks()
+            with busy_operation(
+                self,
+                "Trwa synchronizacja danych z Eskulapem...",
+            ):
+                result = synchronize_tasks()
             self.refresh_tasks()
             message = (
                 f"Sprawdzeni pacjenci: {result.patients_checked}\n"

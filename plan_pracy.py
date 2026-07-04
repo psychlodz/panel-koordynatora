@@ -15,6 +15,7 @@ from calendar_logic import (
 from config import app_dir, load_config
 from db import create_connection
 from excel_export import export_table_to_excel
+from app.ui.widgets.busy_indicator import busy_operation
 from version import APP_NAME, VERSION
 from PySide6.QtCore import QDate, Qt, QRect, Signal
 from PySide6.QtGui import QColor, QBrush, QPainter
@@ -295,8 +296,11 @@ class PlanPracyApp(QWidget):
     def odswiez_jednostki(self, show_errors: bool = True):
         try:
             self.info.setText("Pobieranie listy jednostek...")
-            QApplication.processEvents()
-            df = self.pobierz_jednostki()
+            with busy_operation(
+                self,
+                "Trwa pobieranie listy jednostek z Oracle...",
+            ):
+                df = self.pobierz_jednostki()
             current = str(self.current_jo_id())
             self.jednostka_combo.blockSignals(True)
             self.jednostka_combo.clear()
@@ -355,16 +359,22 @@ class PlanPracyApp(QWidget):
             end = pd.Timestamp(start) + pd.DateOffset(months=months) - pd.DateOffset(days=1)
 
             self.info.setText("Pobieranie danych...")
-            QApplication.processEvents()
-
-            df = self.pobierz_plan(jo_id, start.strftime("%Y-%m-%d"), end.strftime("%Y-%m-%d"))
-            self.df_last = prepare_df(df)
-            self.df_view = self.df_last.copy()
-            self.current_start = start
-            self.current_end = end
-            self.update_person_colors(self.df_last)
-            self.populate_person_panel(self.df_last)
-            self.rysuj_tabele(self.df_view, start, end)
+            with busy_operation(
+                self,
+                "Trwa pobieranie i przygotowywanie harmonogramu...",
+            ):
+                df = self.pobierz_plan(
+                    jo_id,
+                    start.strftime("%Y-%m-%d"),
+                    end.strftime("%Y-%m-%d"),
+                )
+                self.df_last = prepare_df(df)
+                self.df_view = self.df_last.copy()
+                self.current_start = start
+                self.current_end = end
+                self.update_person_colors(self.df_last)
+                self.populate_person_panel(self.df_last)
+                self.rysuj_tabele(self.df_view, start, end)
             self.info.setText(f"Wczytano {len(df)} pozycji planu.")
         except Exception as exc:
             logging.exception("Błąd podczas ładowania danych")

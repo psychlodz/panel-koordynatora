@@ -18,6 +18,7 @@ from app.repositories.episode_repository import (
     list_episodes,
 )
 from app.ui.episode_details_window import EpisodeDetailsDialog
+from app.ui.widgets.busy_indicator import busy_operation
 
 
 class EpisodesWindow(QWidget):
@@ -136,7 +137,8 @@ class EpisodesWindow(QWidget):
 
     def refresh_episodes(self):
         try:
-            self._episodes = list_episodes()
+            with busy_operation(self, "Trwa pobieranie listy epizodów..."):
+                self._episodes = list_episodes()
             self._refresh_filters()
             self.apply_filters()
             self.info_label.setText(f"Epizody: {len(self._episodes)}")
@@ -192,10 +194,14 @@ class EpisodesWindow(QWidget):
         if epizod_id is None:
             return
         try:
-            episode = get_episode(epizod_id)
-            if episode is None:
-                raise ValueError("Wybrany epizod nie istnieje")
-            dialog = EpisodeDetailsDialog(epizod_id, parent=self)
+            with busy_operation(
+                self,
+                "Trwa pobieranie szczegółów epizodu z Oracle...",
+            ):
+                episode = get_episode(epizod_id)
+                if episode is None:
+                    raise ValueError("Wybrany epizod nie istnieje")
+                dialog = EpisodeDetailsDialog(epizod_id, parent=self)
             dialog.exec()
         except Exception as exc:
             QMessageBox.critical(

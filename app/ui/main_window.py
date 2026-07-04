@@ -8,10 +8,13 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
+    QScrollArea,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
 
+from app.ui.widgets.busy_indicator import busy_operation
 from version import APP_NAME, VERSION
 
 
@@ -22,14 +25,18 @@ class MainWindow(QMainWindow):
         self._windows = {}
         self.setWindowTitle(f"{APP_NAME} {VERSION}")
         self.resize(920, 680)
-        self.setMinimumSize(760, 580)
+        self.setMinimumSize(720, 540)
 
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
+        self.setCentralWidget(scroll_area)
         central_widget = QWidget()
         central_widget.setObjectName("launcherRoot")
-        self.setCentralWidget(central_widget)
+        scroll_area.setWidget(central_widget)
         layout = QVBoxLayout(central_widget)
-        layout.setContentsMargins(44, 34, 44, 30)
-        layout.setSpacing(20)
+        layout.setContentsMargins(32, 26, 32, 24)
+        layout.setSpacing(16)
 
         header = QFrame()
         header.setProperty("card", True)
@@ -71,8 +78,10 @@ class MainWindow(QMainWindow):
         layout.addWidget(section_title)
 
         buttons = QGridLayout()
-        buttons.setHorizontalSpacing(18)
-        buttons.setVerticalSpacing(18)
+        buttons.setHorizontalSpacing(16)
+        buttons.setVerticalSpacing(16)
+        buttons.setColumnStretch(0, 1)
+        buttons.setColumnStretch(1, 1)
         self.schedule_button = QPushButton(
             "Harmonogram pracy\nDostępność zespołu i plan pracy"
         )
@@ -100,14 +109,21 @@ class MainWindow(QMainWindow):
         ):
             button.setProperty("role", "tile")
             button.setCursor(Qt.CursorShape.PointingHandCursor)
+            button.setSizePolicy(
+                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Expanding,
+            )
+            button.setMinimumSize(280, 96)
 
         buttons.addWidget(self.schedule_button, 0, 0)
         buttons.addWidget(self.programs_button, 0, 1)
         buttons.addWidget(self.episodes_button, 1, 0)
         buttons.addWidget(self.qualification_button, 1, 1)
-        buttons.addWidget(self.users_button, 2, 0, 1, 2)
-        layout.addLayout(buttons)
-        layout.addStretch(1)
+        buttons.addWidget(self.users_button, 2, 0)
+        buttons.setRowStretch(0, 1)
+        buttons.setRowStretch(1, 1)
+        buttons.setRowStretch(2, 1 if current_user.is_admin else 0)
+        layout.addLayout(buttons, 1)
 
         self.users_button.setVisible(bool(current_user.is_admin))
 
@@ -128,14 +144,15 @@ class MainWindow(QMainWindow):
         self.users_button.clicked.connect(self.open_users)
         self.exit_button.clicked.connect(QApplication.instance().quit)
 
-    def _show_window(self, key, factory):
+    def _show_window(self, key, factory, busy_message):
         existing = self._windows.get(key)
         if existing is not None and existing.isVisible():
             existing.raise_()
             existing.activateWindow()
             return
         try:
-            window = factory()
+            with busy_operation(self, busy_message):
+                window = factory()
             self._windows[key] = window
             window.show()
         except Exception as exc:
@@ -151,7 +168,11 @@ class MainWindow(QMainWindow):
 
             return PlanPracyApp(current_user=self.current_user)
 
-        self._show_window("schedule", factory)
+        self._show_window(
+            "schedule",
+            factory,
+            "Trwa uruchamianie harmonogramu...",
+        )
 
     def open_programs(self):
         def factory():
@@ -159,7 +180,11 @@ class MainWindow(QMainWindow):
 
             return ProgramsWindow()
 
-        self._show_window("programs", factory)
+        self._show_window(
+            "programs",
+            factory,
+            "Trwa otwieranie listy programów...",
+        )
 
     def open_episodes(self):
         def factory():
@@ -167,7 +192,11 @@ class MainWindow(QMainWindow):
 
             return EpisodesWindow()
 
-        self._show_window("episodes", factory)
+        self._show_window(
+            "episodes",
+            factory,
+            "Trwa otwieranie listy epizodów...",
+        )
 
     def open_qualification_visits(self):
         def factory():
@@ -177,7 +206,11 @@ class MainWindow(QMainWindow):
 
             return QualificationVisitsWindow()
 
-        self._show_window("qualification_visits", factory)
+        self._show_window(
+            "qualification_visits",
+            factory,
+            "Trwa pobieranie wizyt kwalifikacyjnych...",
+        )
 
     def open_users(self):
         if not self.current_user.is_admin:
@@ -188,4 +221,8 @@ class MainWindow(QMainWindow):
 
             return UsersWindow(self.current_user)
 
-        self._show_window("users", factory)
+        self._show_window(
+            "users",
+            factory,
+            "Trwa otwieranie administracji...",
+        )

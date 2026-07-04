@@ -5,6 +5,8 @@ from datetime import datetime
 import pandas as pd
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
+from app.ui.widgets.busy_indicator import busy_operation
+
 
 def export_table_to_excel(parent, table, export_dir: str):
     try:
@@ -17,18 +19,25 @@ def export_table_to_excel(parent, table, export_dir: str):
         if not path:
             return
 
-        rows = [table.verticalHeaderItem(r).text() for r in range(table.rowCount())]
-        cols = [table.horizontalHeaderItem(c).text().replace("\n", " ") for c in range(table.columnCount())]
-        data = []
-        for r in range(table.rowCount()):
-            row = []
-            for c in range(table.columnCount()):
-                item = table.item(r, c)
-                row.append(item.text() if item else "")
-            data.append(row)
+        with busy_operation(parent, "Trwa eksportowanie danych do Excel..."):
+            rows = [
+                table.verticalHeaderItem(r).text()
+                for r in range(table.rowCount())
+            ]
+            cols = [
+                table.horizontalHeaderItem(c).text().replace("\n", " ")
+                for c in range(table.columnCount())
+            ]
+            data = []
+            for r in range(table.rowCount()):
+                row = []
+                for c in range(table.columnCount()):
+                    item = table.item(r, c)
+                    row.append(item.text() if item else "")
+                data.append(row)
 
-        out = pd.DataFrame(data, index=rows, columns=cols)
-        out.to_excel(path)
+            out = pd.DataFrame(data, index=rows, columns=cols)
+            out.to_excel(path)
         QMessageBox.information(parent, "Eksport", "Plik Excel został utworzony.")
     except Exception as exc:
         logging.exception("Błąd eksportu Excel")
