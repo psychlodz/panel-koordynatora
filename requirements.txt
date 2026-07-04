@@ -4,3 +4,4 @@ PySide6
 pyinstaller
 openpyxl
 cryptography
+psycopg[binary]
