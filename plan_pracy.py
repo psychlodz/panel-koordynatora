@@ -16,8 +16,9 @@ from config import app_dir, load_config
 from db import create_connection
 from excel_export import export_table_to_excel
 from app.ui.widgets.busy_indicator import busy_operation
+from app.services.work_context import initialize_work_context, work_context
 from version import APP_NAME, VERSION
-from PySide6.QtCore import QDate, Qt, QRect, Signal
+from PySide6.QtCore import QDate, QTimer, Qt, QRect, Signal
 from PySide6.QtGui import QColor, QBrush, QPainter
 from PySide6.QtWidgets import (
     QApplication,
@@ -151,8 +152,12 @@ class PlanPracyApp(QWidget):
         )
         self.resize(1500, 900)
 
-        self.default_jo_id = self.cfg.default_jo_id
-        self.default_months = self.cfg.default_months
+        self.default_jo_id = (
+            work_context.current_unit.jo_id
+            if work_context.current_unit is not None
+            else self.cfg.default_jo_id
+        )
+        self.default_months = 1
         # Widok zbiorczy: 7:00-22:00, pięć stałych przedziałów po 3 godziny.
         self.slot_minutes = self.cfg.slot_minutes
         self.hour_start = self.cfg.hour_start
@@ -188,7 +193,10 @@ class PlanPracyApp(QWidget):
         self.btn_units.clicked.connect(self.odswiez_jednostki)
 
         self.data_od = QDateEdit()
-        self.data_od.setDate(QDate.currentDate())
+        current_date = QDate.currentDate()
+        self.data_od.setDate(
+            QDate(current_date.year(), current_date.month(), 1)
+        )
         self.data_od.setCalendarPopup(True)
 
         self.miesiace = QSpinBox()
@@ -269,6 +277,8 @@ class PlanPracyApp(QWidget):
             self.odswiez_jednostki(show_errors=False)
         except Exception:
             logging.exception("Nie udało się pobrać listy jednostek przy starcie")
+        if not self.selection_mode:
+            QTimer.singleShot(0, self.zaladuj)
 
 
     def current_jo_id(self):
@@ -702,6 +712,7 @@ if __name__ == "__main__":
         login_dialog = LoginDialog()
         if login_dialog.exec() != QDialog.DialogCode.Accepted:
             sys.exit(0)
+        initialize_work_context(login_dialog.authenticated_user)
         win = PlanPracyApp(
             current_user=login_dialog.authenticated_user,
         )

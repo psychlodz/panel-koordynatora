@@ -30,6 +30,22 @@ CREATE TABLE IF NOT EXISTS pk_user_roles (
     FOREIGN KEY(role_id) REFERENCES pk_roles(role_id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS pk_user_units (
+    user_id INTEGER NOT NULL,
+    jo_id TEXT NOT NULL,
+    jo_symbol TEXT,
+    jo_nazwa TEXT,
+    is_default INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(user_id, jo_id),
+    FOREIGN KEY(user_id) REFERENCES pk_users(user_id) ON DELETE CASCADE,
+    CHECK (is_default IN (0, 1))
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pk_user_units_default
+ON pk_user_units(user_id)
+WHERE is_default = 1;
+
 CREATE TABLE IF NOT EXISTS pk_programy (
     program_id INTEGER PRIMARY KEY AUTOINCREMENT,
     kod TEXT NOT NULL UNIQUE,
@@ -43,6 +59,17 @@ CREATE TABLE IF NOT EXISTS pk_programy (
     updated_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS pk_program_units (
+    program_id INTEGER NOT NULL,
+    jo_id TEXT NOT NULL,
+    jo_symbol TEXT,
+    jo_nazwa TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(program_id, jo_id),
+    FOREIGN KEY(program_id)
+        REFERENCES pk_programy(program_id) ON DELETE CASCADE
+);
+
 CREATE TABLE IF NOT EXISTS pk_sciezki (
     sciezka_id INTEGER PRIMARY KEY AUTOINCREMENT,
     program_id INTEGER NOT NULL,
@@ -54,6 +81,17 @@ CREATE TABLE IF NOT EXISTS pk_sciezki (
     updated_at TEXT,
     UNIQUE(program_id, kod),
     FOREIGN KEY(program_id) REFERENCES pk_programy(program_id)
+);
+
+CREATE TABLE IF NOT EXISTS pk_pathway_units (
+    sciezka_id INTEGER NOT NULL,
+    jo_id TEXT NOT NULL,
+    jo_symbol TEXT,
+    jo_nazwa TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(sciezka_id, jo_id),
+    FOREIGN KEY(sciezka_id)
+        REFERENCES pk_sciezki(sciezka_id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS pk_typy_elementow (

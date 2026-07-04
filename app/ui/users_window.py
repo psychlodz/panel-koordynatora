@@ -219,6 +219,7 @@ class UsersWindow(QWidget):
         self.reset_button = QPushButton("Resetuj hasło")
         self.block_button = QPushButton("Zablokuj / odblokuj")
         self.roles_button = QPushButton("Przypisz role")
+        self.units_button = QPushButton("Jednostki")
         self.refresh_button = QPushButton("Odśwież")
         self.help_button = create_help_button(
             self,
@@ -239,6 +240,9 @@ class UsersWindow(QWidget):
         self.roles_button.setToolTip(
             "Przypisz role zaznaczonemu użytkownikowi."
         )
+        self.units_button.setToolTip(
+            "Przypisz jednostki organizacyjne zaznaczonemu użytkownikowi."
+        )
         self.refresh_button.setToolTip(
             "Pobierz ponownie listę użytkowników."
         )
@@ -247,6 +251,7 @@ class UsersWindow(QWidget):
             self.reset_button,
             self.block_button,
             self.roles_button,
+            self.units_button,
             self.refresh_button,
             self.help_button,
         ):
@@ -258,6 +263,7 @@ class UsersWindow(QWidget):
         self.reset_button.clicked.connect(self.reset_user_password)
         self.block_button.clicked.connect(self.toggle_user_block)
         self.roles_button.clicked.connect(self.assign_roles)
+        self.units_button.clicked.connect(self.assign_units)
         self.refresh_button.clicked.connect(self.refresh_users)
         self.refresh_users()
 
@@ -376,4 +382,24 @@ class UsersWindow(QWidget):
         except Exception as exc:
             QMessageBox.critical(
                 self, APP_NAME, f"Nie udało się przypisać ról:\n\n{exc}"
+            )
+
+    def assign_units(self):
+        user = self.selected_user()
+        if user is None:
+            return
+        try:
+            from app.ui.unit_assignments_dialog import UnitAssignmentsDialog
+
+            dialog = UnitAssignmentsDialog(
+                "user",
+                user["user_id"],
+                self,
+            )
+            dialog.exec()
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                APP_NAME,
+                f"Nie udało się otworzyć jednostek użytkownika:\n\n{exc}",
             )

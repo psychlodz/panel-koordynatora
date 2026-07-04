@@ -4,11 +4,13 @@ from app.models.consultation import Consultation
 from app.models.event import Event
 from app.models.imaging_order import ImagingOrder
 from app.models.laboratory_order import LaboratoryOrder
+from app.models.organizational_unit import OrganizationalUnit
 from app.models.patient import Patient
 from app.models.qualification_visit import QualificationVisit
 from app.models.visit import Visit
 from app.repositories import (
     event_repository,
+    organizational_unit_repository,
     patient_repository,
     qualification_repository,
 )
@@ -93,12 +95,14 @@ class EskulapGateway:
         patients=patient_repository,
         qualifications=qualification_repository,
         events=event_repository,
+        units=organizational_unit_repository,
     ):
         # Repozytoria korzystają z fabryki połączeń z db.py. Gateway nie
         # otwiera połączeń i nie zna SQL ani nazw widoków Oracle.
         self._patients = patients
         self._qualifications = qualifications
         self._events = events
+        self._units = units
 
     def search_patients(self, search_text) -> list[Patient]:
         rows = self._patients.search_patients(search_text)
@@ -166,4 +170,18 @@ class EskulapGateway:
         return [
             _event_to_model(ImagingOrder, event)
             for event in events
+        ]
+
+    def list_organizational_units(
+        self,
+        search_text=None,
+    ) -> list[OrganizationalUnit]:
+        rows = self._units.list_organizational_units(search_text)
+        return [
+            OrganizationalUnit(
+                jo_id=str(row["jo_id"]),
+                jo_symbol=_source_value(row, "jo_symbol"),
+                jo_nazwa=_source_value(row, "jo_nazwa"),
+            )
+            for row in rows
         ]

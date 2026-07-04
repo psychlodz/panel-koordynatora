@@ -303,14 +303,19 @@ class PathwaysWindow(QWidget):
         self.new_pathway_button = QPushButton("Nowa ścieżka")
         self.edit_pathway_button = QPushButton("Edytuj ścieżkę")
         self.dependencies_button = QPushButton("Zależności")
+        self.pathway_units_button = QPushButton("Jednostki")
         self.new_pathway_button.setToolTip("Dodaj nową ścieżkę programu.")
         self.edit_pathway_button.setToolTip("Edytuj zaznaczoną ścieżkę.")
         self.dependencies_button.setToolTip(
             "Otwórz zależności pomiędzy elementami zaznaczonej ścieżki."
         )
+        self.pathway_units_button.setToolTip(
+            "Przypisz jednostki organizacyjne do zaznaczonej ścieżki."
+        )
         pathway_buttons.addWidget(self.new_pathway_button)
         pathway_buttons.addWidget(self.edit_pathway_button)
         pathway_buttons.addWidget(self.dependencies_button)
+        pathway_buttons.addWidget(self.pathway_units_button)
         pathways_layout.addLayout(pathway_buttons)
         splitter.addWidget(pathways_panel)
 
@@ -372,6 +377,7 @@ class PathwaysWindow(QWidget):
         self.new_pathway_button.clicked.connect(self.new_pathway)
         self.edit_pathway_button.clicked.connect(self.edit_pathway)
         self.dependencies_button.clicked.connect(self.open_dependencies)
+        self.pathway_units_button.clicked.connect(self.open_pathway_units)
         self.add_element_button.clicked.connect(self.add_element)
         self.edit_element_button.clicked.connect(self.edit_element)
         self.delete_element_button.clicked.connect(self.delete_element)
@@ -759,6 +765,23 @@ class PathwaysWindow(QWidget):
             self.dependencies_window.show()
         except Exception as exc:
             self._show_error("Nie udało się otworzyć zależności", exc)
+
+    def open_pathway_units(self):
+        pathway_id = self.current_pathway_id()
+        if pathway_id is None:
+            QMessageBox.information(
+                self,
+                "KOMPAS",
+                "Wybierz ścieżkę, aby przypisać jednostki.",
+            )
+            return
+        try:
+            from app.ui.unit_assignments_dialog import UnitAssignmentsDialog
+
+            dialog = UnitAssignmentsDialog("pathway", pathway_id, self)
+            dialog.exec()
+        except Exception as exc:
+            self._show_error("Nie udało się otworzyć jednostek ścieżki", exc)
 
     def open_triggers(self):
         element_id = self.current_element_id()

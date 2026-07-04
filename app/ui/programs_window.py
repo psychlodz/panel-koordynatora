@@ -136,6 +136,7 @@ class ProgramsWindow(QWidget):
         self.new_button = QPushButton("Nowy")
         self.edit_button = QPushButton("Edytuj")
         self.paths_button = QPushButton("Ścieżki")
+        self.units_button = QPushButton("Jednostki")
         self.help_button = create_help_button(
             self,
             "Programy",
@@ -150,10 +151,14 @@ class ProgramsWindow(QWidget):
         self.paths_button.setToolTip(
             "Otwórz ścieżki należące do zaznaczonego programu."
         )
+        self.units_button.setToolTip(
+            "Przypisz jednostki organizacyjne do zaznaczonego programu."
+        )
         buttons.addWidget(self.refresh_button)
         buttons.addWidget(self.new_button)
         buttons.addWidget(self.edit_button)
         buttons.addWidget(self.paths_button)
+        buttons.addWidget(self.units_button)
         buttons.addWidget(self.help_button)
         buttons.addStretch(1)
         layout.addLayout(buttons)
@@ -162,6 +167,7 @@ class ProgramsWindow(QWidget):
         self.new_button.clicked.connect(self.new_program)
         self.edit_button.clicked.connect(self.edit_program)
         self.paths_button.clicked.connect(self.open_pathways)
+        self.units_button.clicked.connect(self.open_units)
 
         self.refresh_programs()
 
@@ -271,4 +277,25 @@ class ProgramsWindow(QWidget):
         except Exception as exc:
             QMessageBox.critical(
                 self, "KOMPAS", f"Nie udało się otworzyć ścieżek: {exc}"
+            )
+
+    def open_units(self):
+        program_id = self.selected_program_id()
+        if program_id is None:
+            QMessageBox.information(
+                self,
+                "KOMPAS",
+                "Wybierz program, aby przypisać jednostki.",
+            )
+            return
+        try:
+            from app.ui.unit_assignments_dialog import UnitAssignmentsDialog
+
+            dialog = UnitAssignmentsDialog("program", program_id, self)
+            dialog.exec()
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "KOMPAS",
+                f"Nie udało się otworzyć jednostek programu:\n\n{exc}",
             )

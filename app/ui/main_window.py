@@ -1,6 +1,7 @@
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QFrame,
     QGridLayout,
     QHBoxLayout,
@@ -17,6 +18,7 @@ from PySide6.QtWidgets import (
 from app.ui.widgets.busy_indicator import busy_operation
 from app.ui.ui_helpers import create_help_button
 from version import APP_NAME, VERSION
+from app.services.work_context import work_context
 
 
 class MainWindow(QMainWindow):
@@ -72,6 +74,29 @@ class MainWindow(QMainWindow):
         user_label.setObjectName("userLabel")
         user_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         header_layout.addWidget(user_label)
+
+        unit_row = QHBoxLayout()
+        unit_row.addStretch(1)
+        unit_row.addWidget(QLabel("Aktualna jednostka:"))
+        self.unit_combo = QComboBox()
+        self.unit_combo.setMinimumWidth(420)
+        self.unit_combo.setToolTip(
+            "Wybierz jednostkę używaną w tej sesji aplikacji."
+        )
+        for unit in work_context.user_units:
+            self.unit_combo.addItem(unit.display_name, unit)
+        if work_context.current_unit is not None:
+            for index in range(self.unit_combo.count()):
+                unit = self.unit_combo.itemData(index)
+                if unit.jo_id == work_context.current_unit.jo_id:
+                    self.unit_combo.setCurrentIndex(index)
+                    break
+        if self.unit_combo.count() == 0:
+            self.unit_combo.addItem("Brak przypisanej jednostki", None)
+            self.unit_combo.setEnabled(False)
+        unit_row.addWidget(self.unit_combo)
+        unit_row.addStretch(1)
+        header_layout.addLayout(unit_row)
         layout.addWidget(header)
 
         section_title = QLabel("Moduły")
@@ -170,6 +195,14 @@ class MainWindow(QMainWindow):
         )
         self.users_button.clicked.connect(self.open_users)
         self.exit_button.clicked.connect(QApplication.instance().quit)
+        self.unit_combo.currentIndexChanged.connect(
+            self._current_unit_changed
+        )
+
+    def _current_unit_changed(self, _index):
+        unit = self.unit_combo.currentData()
+        if unit is not None:
+            work_context.set_current_unit(unit)
 
     def _show_window(self, key, factory, busy_message):
         existing = self._windows.get(key)

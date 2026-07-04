@@ -5,6 +5,7 @@ from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 from app.ui.login_dialog import LoginDialog
 from app.ui.main_window import MainWindow
 from app.ui.theme import apply_theme
+from app.services.work_context import initialize_work_context
 from version import APP_NAME, VERSION
 
 
@@ -17,6 +18,17 @@ def main():
     login_dialog = LoginDialog()
     if login_dialog.exec() != QDialog.DialogCode.Accepted:
         return 0
+
+    current_unit = initialize_work_context(
+        login_dialog.authenticated_user
+    )
+    if current_unit is None:
+        QMessageBox.warning(
+            None,
+            APP_NAME,
+            "Użytkownik nie ma przypisanej jednostki organizacyjnej. "
+            "Skontaktuj się z administratorem.",
+        )
 
     window = MainWindow(login_dialog.authenticated_user)
     window.show()

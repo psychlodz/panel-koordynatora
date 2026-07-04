@@ -57,6 +57,14 @@ Pobiera zlecenia badań laboratoryjnych. Zwraca listę
 
 Pobiera zlecenia badań obrazowych. Zwraca listę `ImagingOrder`.
 
+### `list_organizational_units(search_text=None)`
+
+Pobiera jednostki organizacyjne ze źródła harmonogramu wskazanego przez
+`application.view_name` w `config.ini`. Opcjonalnie filtruje po
+identyfikatorze, symbolu lub nazwie. Zwraca listę `OrganizationalUnit`
+z polami `jo_id`, `jo_symbol` i `jo_nazwa`. Operacja korzysta wyłącznie
+z instrukcji `SELECT`.
+
 ## Użycie
 
 ```python
