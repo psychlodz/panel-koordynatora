@@ -9,8 +9,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from app.gateway.eskulap_gateway import EskulapGateway
-from app.repositories.event_repository import EXAMS_VIEW
-from app.repositories.qualification_repository import QUALIFICATION_VIEW
+from app.repositories.patient_repository import EXAMS_VIEW, VISITS_VIEW
 
 
 def _print_collection(label, items):
@@ -80,7 +79,7 @@ def main():
             date_from=args.date_from,
             date_to=args.date_to,
         ),
-        QUALIFICATION_VIEW,
+        VISITS_VIEW,
     )
 
 

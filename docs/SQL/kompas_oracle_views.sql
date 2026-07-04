@@ -48,15 +48,6 @@ LEFT JOIN RI_OWNER.RI_PRACOWNICY pr
     ON pr.prac_pracownik_id = wp.wp_l_lekarz_id;
 /
 
-CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE AS
-SELECT *
-FROM ESK_RAPORTY.V_KOMPAS_WIZYTY
-WHERE 1 = 1
--- TODO: dopasować filtr wizyty kwalifikacyjnej PKK,
--- np. poradnia_symbol, typ_wizyty, opis, procedura.
-;
-/
-
 -- Kontrakt KOMPAS wymaga kolumny DATA_KONSULTACJI.
 -- Po zmianie SQL należy ręcznie wykonać poniższe CREATE OR REPLACE VIEW
 -- w Oracle na koncie z uprawnieniami do schematu ESK_RAPORTY.
@@ -92,7 +83,7 @@ CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_BADANIA AS
 SELECT
     skie.skie_skierowanie_id AS badanie_skierowanie_id,
     skie.skie_p_pacjent_id AS pacjent_id,
-    skie.skie_data_wystawienia AS DATA_SKIEROWANIA,
+    skie.skie_data_wystawienia AS data_skierowania,
     skie.skie_plan_data_wyk AS data_planowana_wykonania,
     skie.skie_plan_data_wyk AS data_zaplanowana,
     skie.skie_data_pobrania AS data_pobrania,

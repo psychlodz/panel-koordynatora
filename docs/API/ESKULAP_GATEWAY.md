@@ -81,11 +81,16 @@ Gateway wymaga widoków:
 - `ESK_RAPORTY.V_KOMPAS_PACJENCI`,
 - `ESK_RAPORTY.V_KOMPAS_WIZYTY`,
 - `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`,
-- `ESK_RAPORTY.V_KOMPAS_BADANIA`,
-- `ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE`.
+- `ESK_RAPORTY.V_KOMPAS_BADANIA`.
 
 Badania laboratoryjne i obrazowe korzystają ze wspólnego widoku
 `V_KOMPAS_BADANIA` i są rozdzielane według typu badania.
+
+Wizyty kwalifikacyjne nie mają osobnego widoku. Gateway pobiera je
+z `V_KOMPAS_WIZYTY`, filtrując pola `TYP_WIZYTY`, `PORADNIA_SYMBOL`,
+`PORADNIA_NAZWA` i `OPIS`. Początkowe wartości filtra
+(`kwalifikacja`, `PKK`, `kwalifikacyjna`) są konfigurowane w
+`qualification_repository.py`.
 
 Po każdej zmianie pliku `docs/SQL/kompas_oracle_views.sql` administrator
 musi ręcznie wykonać odpowiednie instrukcje `CREATE OR REPLACE VIEW`

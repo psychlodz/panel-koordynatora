@@ -6,11 +6,16 @@ from config import load_config
 from db import create_connection
 from episode_generator import create_episode_with_tasks
 from local_db import create_local_connection, initialize_local_db
+from app.repositories.patient_repository import PATIENTS_VIEW, VISITS_VIEW
 
 
-QUALIFICATION_VIEW = "ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE"
 SOURCE_SYSTEM = "ESKULAP"
 SOURCE_TYPE = "WIZYTA_KWALIFIKACYJNA_PKK"
+QUALIFICATION_FILTER = {
+    "typ_wizyty": "kwalifikacja",
+    "poradnia": "PKK",
+    "opis": "kwalifikacyjna",
+}
 
 
 def _date_value(value, field_name):
@@ -80,6 +85,33 @@ def _with_assignment(visit, assignments):
     return result
 
 
+def _qualification_condition(alias="w"):
+    return f"""
+        (
+            UPPER(NVL({alias}.TYP_WIZYTY, '')) LIKE
+                UPPER(:qualification_visit_type)
+            OR UPPER(NVL({alias}.PORADNIA_SYMBOL, '')) LIKE
+                UPPER(:qualification_clinic)
+            OR UPPER(NVL({alias}.PORADNIA_NAZWA, '')) LIKE
+                UPPER(:qualification_clinic)
+            OR UPPER(NVL({alias}.OPIS, '')) LIKE
+                UPPER(:qualification_description)
+        )
+    """
+
+
+def _qualification_parameters():
+    return {
+        "qualification_visit_type": (
+            f"%{QUALIFICATION_FILTER['typ_wizyty']}%"
+        ),
+        "qualification_clinic": f"%{QUALIFICATION_FILTER['poradnia']}%",
+        "qualification_description": (
+            f"%{QUALIFICATION_FILTER['opis']}%"
+        ),
+    }
+
+
 def list_qualification_visits(
     date_from=None,
     date_to=None,
@@ -90,26 +122,30 @@ def list_qualification_visits(
     if date_from and date_to and date_from > date_to:
         raise ValueError("date_from nie może być późniejsza niż date_to")
 
-    conditions = []
-    parameters = {}
+    conditions = [_qualification_condition("w")]
+    parameters = _qualification_parameters()
     if date_from:
-        conditions.append("q.DATA_WIZYTY >= :date_from")
+        conditions.append("w.DATA_WIZYTY >= :date_from")
         parameters["date_from"] = date_from
     if date_to:
-        conditions.append("q.DATA_WIZYTY < :date_to_exclusive")
+        conditions.append("w.DATA_WIZYTY < :date_to_exclusive")
         parameters["date_to_exclusive"] = date_to + timedelta(days=1)
-    where_clause = (
-        "WHERE " + " AND ".join(conditions)
-        if conditions
-        else ""
-    )
+    where_clause = "WHERE " + " AND ".join(conditions)
 
     visits = _oracle_query(
         f"""
-        SELECT q.*
-        FROM {QUALIFICATION_VIEW} q
+        SELECT
+            w.*,
+            p.PESEL,
+            p.NAZWISKO,
+            p.IMIE,
+            w.PORADNIA_NAZWA AS PORADNIA,
+            w.DECYZJA AS STATUS_WIZYTY
+        FROM {VISITS_VIEW} w
+        LEFT JOIN {PATIENTS_VIEW} p
+            ON p.PACJENT_ID = w.PACJENT_ID
         {where_clause}
-        ORDER BY q.DATA_WIZYTY DESC, q.WIZYTA_ID DESC
+        ORDER BY w.DATA_WIZYTY DESC, w.WIZYTA_ID DESC
         """,
         parameters,
     )
@@ -125,14 +161,25 @@ def list_qualification_visits(
 
 
 def get_qualification_visit(wizyta_id):
+    parameters = _qualification_parameters()
+    parameters["wizyta_id"] = wizyta_id
     visit = _oracle_query(
         f"""
-        SELECT q.*
-        FROM {QUALIFICATION_VIEW} q
-        WHERE q.WIZYTA_ID = :wizyta_id
+        SELECT
+            w.*,
+            p.PESEL,
+            p.NAZWISKO,
+            p.IMIE,
+            w.PORADNIA_NAZWA AS PORADNIA,
+            w.DECYZJA AS STATUS_WIZYTY
+        FROM {VISITS_VIEW} w
+        LEFT JOIN {PATIENTS_VIEW} p
+            ON p.PACJENT_ID = w.PACJENT_ID
+        WHERE w.WIZYTA_ID = :wizyta_id
+          AND {_qualification_condition("w")}
           AND ROWNUM = 1
         """,
-        {"wizyta_id": wizyta_id},
+        parameters,
         fetch_one=True,
     )
     return _with_assignment(visit, _episode_assignments())

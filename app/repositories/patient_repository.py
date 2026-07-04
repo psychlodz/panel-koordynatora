@@ -173,10 +173,10 @@ def get_patient_exams(
     conditions = ["b.PACJENT_ID = :pacjent_id"]
     parameters = {"pacjent_id": pacjent_id}
     if date_from:
-        conditions.append("b.DATA_SKIEROWANIA >= :date_from")
+        conditions.append("b.data_skierowania >= :date_from")
         parameters["date_from"] = date_from
     if date_to:
-        conditions.append("b.DATA_SKIEROWANIA < :date_to_exclusive")
+        conditions.append("b.data_skierowania < :date_to_exclusive")
         parameters["date_to_exclusive"] = date_to + timedelta(days=1)
 
     return _query(
@@ -184,7 +184,7 @@ def get_patient_exams(
         SELECT b.*
         FROM {EXAMS_VIEW} b
         WHERE {" AND ".join(conditions)}
-        ORDER BY b.DATA_SKIEROWANIA DESC
+        ORDER BY b.data_skierowania DESC
         """,
         parameters,
     )

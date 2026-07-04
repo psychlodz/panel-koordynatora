@@ -32,12 +32,9 @@ Minimalny kontrakt kolumn:
 Widok może udostępniać dodatkowe informacje, np. identyfikator wizyty,
 status, jednostkę organizacyjną, personel i rodzaj świadczenia.
 
-### `ESK_RAPORTY.V_KOMPAS_WIZYTY_KWALIFIKACYJNE`
-
-Widok udostępnia wizyty kwalifikacyjne PKK wraz z podstawowymi danymi
-wizyty. Wersja startowa kopiuje kolumny z `V_KOMPAS_WIZYTY`.
-Warunek oznaczony `TODO` należy dopasować do rzeczywistego oznaczenia
-kwalifikacji PKK, np. poradni, typu wizyty, opisu albo procedury.
+Wizyty kwalifikacyjne PKK są pobierane z `V_KOMPAS_WIZYTY`. Aplikacja
+filtruje je po typie wizyty, symbolu lub nazwie poradni oraz opisie.
+Nie wymagają osobnego widoku Oracle.
 
 ### `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`
 
@@ -70,7 +67,7 @@ Widok nie korzysta z ogólnego źródła e-skierowań.
 ## Zasady dostępu
 
 Konto skonfigurowane w `config.ini` powinno mieć wyłącznie uprawnienie
-`SELECT` do pięciu widoków. Repozytorium:
+`SELECT` do czterech widoków. Repozytorium:
 
 - wykonuje tylko instrukcje `SELECT`,
 - używa parametrów wiązanych dla danych użytkownika,
