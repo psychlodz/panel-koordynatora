@@ -33,6 +33,11 @@ from app.repositories.pathway_repository import (
     update_pathway_element,
 )
 from app.repositories.program_repository import get_program
+from app.ui.ui_helpers import (
+    ask_confirmation,
+    create_help_button,
+    polish_dialog_buttons,
+)
 
 
 class PathwayDialog(QDialog):
@@ -63,6 +68,7 @@ class PathwayDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -158,6 +164,7 @@ class PathwayElementDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -252,7 +259,23 @@ class PathwaysWindow(QWidget):
         layout.addWidget(self.program_label)
 
         self.refresh_button = QPushButton("Odśwież")
-        layout.addWidget(self.refresh_button, alignment=Qt.AlignmentFlag.AlignLeft)
+        self.help_button = create_help_button(
+            self,
+            "Ścieżki programu",
+            "To okno służy do budowania ścieżek wybranego programu.\n\n"
+            "Możesz dodawać i edytować ścieżki, elementy, zależności oraz "
+            "wyzwalacze.\n\n"
+            "Nie usuwaj elementów używanych przez aktywne epizody bez "
+            "wcześniejszego sprawdzenia skutków.",
+        )
+        self.refresh_button.setToolTip(
+            "Pobierz ponownie ścieżki i elementy programu."
+        )
+        top_actions = QHBoxLayout()
+        top_actions.addWidget(self.refresh_button)
+        top_actions.addWidget(self.help_button)
+        top_actions.addStretch(1)
+        layout.addLayout(top_actions)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(splitter, 1)
@@ -273,6 +296,11 @@ class PathwaysWindow(QWidget):
         self.new_pathway_button = QPushButton("Nowa ścieżka")
         self.edit_pathway_button = QPushButton("Edytuj ścieżkę")
         self.dependencies_button = QPushButton("Zależności")
+        self.new_pathway_button.setToolTip("Dodaj nową ścieżkę programu.")
+        self.edit_pathway_button.setToolTip("Edytuj zaznaczoną ścieżkę.")
+        self.dependencies_button.setToolTip(
+            "Otwórz zależności pomiędzy elementami zaznaczonej ścieżki."
+        )
         pathway_buttons.addWidget(self.new_pathway_button)
         pathway_buttons.addWidget(self.edit_pathway_button)
         pathway_buttons.addWidget(self.dependencies_button)
@@ -285,7 +313,16 @@ class PathwaysWindow(QWidget):
         elements_layout.addWidget(self.elements_label)
         self.elements_table = QTableWidget(0, 8)
         self.elements_table.setHorizontalHeaderLabels(
-            ["Lp", "Klocek", "Nazwa w ścieżce", "Min", "Max", "Obow.", "Zlecenie", "Termin"]
+            [
+                "Lp.",
+                "Klocek",
+                "Nazwa w ścieżce",
+                "Min.",
+                "Maks.",
+                "Obowiązkowy",
+                "Wymaga zlecenia",
+                "Termin",
+            ]
         )
         self._configure_table(self.elements_table)
         self.elements_table.horizontalHeader().setSectionResizeMode(
@@ -297,6 +334,18 @@ class PathwaysWindow(QWidget):
         self.edit_element_button = QPushButton("Edytuj element")
         self.delete_element_button = QPushButton("Usuń element")
         self.triggers_button = QPushButton("Wyzwalacze")
+        self.add_element_button.setToolTip(
+            "Dodaj element z biblioteki do zaznaczonej ścieżki."
+        )
+        self.edit_element_button.setToolTip(
+            "Edytuj zaznaczony element ścieżki."
+        )
+        self.delete_element_button.setToolTip(
+            "Usuń zaznaczony element ze ścieżki."
+        )
+        self.triggers_button.setToolTip(
+            "Otwórz wyzwalacze zaznaczonego elementu."
+        )
         element_buttons.addWidget(self.add_element_button)
         element_buttons.addWidget(self.edit_element_button)
         element_buttons.addWidget(self.delete_element_button)
@@ -506,12 +555,10 @@ class PathwaysWindow(QWidget):
         if element_id is None:
             QMessageBox.information(self, "KOMPAS", "Wybierz element do usunięcia.")
             return
-        answer = QMessageBox.question(
+        if not ask_confirmation(
             self,
-            "KOMPAS",
             "Czy na pewno usunąć wybrany element ścieżki?",
-        )
-        if answer != QMessageBox.StandardButton.Yes:
+        ):
             return
         try:
             delete_pathway_element(element_id)

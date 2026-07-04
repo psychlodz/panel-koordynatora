@@ -25,6 +25,7 @@ from app.repositories.qualification_repository import (
     list_qualification_visits,
 )
 from app.ui.episode_details_window import EpisodeDetailsDialog
+from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 from app.ui.widgets.busy_indicator import busy_operation
 from version import APP_NAME
 
@@ -52,6 +53,7 @@ class QualificationAssignmentDialog(QDialog):
             QDialogButtonBox.StandardButton.Ok
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.button(QDialogButtonBox.StandardButton.Ok).setText(
             "Utwórz epizod"
         )
@@ -130,7 +132,7 @@ class QualificationVisitsWindow(QWidget):
         self.table.setHorizontalHeaderLabels(
             [
                 "Data wizyty",
-                "Pacjent ID",
+                "ID pacjenta",
                 "PESEL",
                 "Nazwisko",
                 "Imię",
@@ -159,9 +161,28 @@ class QualificationVisitsWindow(QWidget):
         self.refresh_button = QPushButton("Odśwież")
         self.assign_button = QPushButton("Przypisz program/ścieżkę")
         self.show_episode_button = QPushButton("Pokaż epizod")
+        self.help_button = create_help_button(
+            self,
+            "Wizyty kwalifikacyjne PKK",
+            "To okno pokazuje wizyty mogące rozpocząć program KOMPAS.\n\n"
+            "Możesz odświeżyć listę, przypisać program i ścieżkę albo "
+            "otworzyć utworzony epizod.\n\n"
+            "Nie przypisuj wizyty, dopóki nie potwierdzisz właściwego "
+            "pacjenta i programu.",
+        )
+        self.refresh_button.setToolTip(
+            "Pobierz ponownie wizyty kwalifikacyjne z Eskulapa."
+        )
+        self.assign_button.setToolTip(
+            "Przypisz program, ścieżkę i koordynatora do zaznaczonej wizyty."
+        )
+        self.show_episode_button.setToolTip(
+            "Otwórz epizod utworzony z zaznaczonej wizyty."
+        )
         actions.addWidget(self.refresh_button)
         actions.addWidget(self.assign_button)
         actions.addWidget(self.show_episode_button)
+        actions.addWidget(self.help_button)
         actions.addStretch(1)
         layout.addLayout(actions)
 

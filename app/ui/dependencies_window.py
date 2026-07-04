@@ -27,6 +27,17 @@ from app.repositories.pathway_repository import (
     get_pathway,
     list_pathway_elements,
 )
+from app.ui.ui_helpers import (
+    ask_confirmation,
+    create_help_button,
+    polish_dialog_buttons,
+)
+
+
+DEPENDENCY_TYPE_LABELS = {
+    "KOLEJNOSC": "Kolejność",
+    "WARUNEK": "Warunek",
+}
 
 
 class DependencyDialog(QDialog):
@@ -44,7 +55,8 @@ class DependencyDialog(QDialog):
         self.previous_combo = QComboBox()
         self.next_combo = QComboBox()
         self.type_combo = QComboBox()
-        self.type_combo.addItems(["KOLEJNOSC", "WARUNEK"])
+        for code, label in DEPENDENCY_TYPE_LABELS.items():
+            self.type_combo.addItem(label, code)
         self.description_edit = QTextEdit()
 
         elements = list_pathway_elements(sciezka_id)
@@ -65,6 +77,7 @@ class DependencyDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -78,7 +91,9 @@ class DependencyDialog(QDialog):
                 self.previous_combo.setCurrentIndex(previous_index)
             if next_index >= 0:
                 self.next_combo.setCurrentIndex(next_index)
-            self.type_combo.setCurrentText(dependency["typ"])
+            type_index = self.type_combo.findData(dependency["typ"])
+            if type_index >= 0:
+                self.type_combo.setCurrentIndex(type_index)
             self.description_edit.setPlainText(dependency["opis"] or "")
         elif self.next_combo.count() > 1:
             self.next_combo.setCurrentIndex(1)
@@ -97,7 +112,7 @@ class DependencyDialog(QDialog):
         return {
             "element_od_id": self.previous_combo.currentData(),
             "element_do_id": self.next_combo.currentData(),
-            "typ": self.type_combo.currentText(),
+            "typ": self.type_combo.currentData(),
             "opis": self.description_edit.toPlainText().strip() or None,
         }
 
@@ -146,10 +161,24 @@ class DependenciesWindow(QWidget):
         self.edit_button = QPushButton("Edytuj")
         self.delete_button = QPushButton("Usuń")
         self.refresh_button = QPushButton("Odśwież")
+        self.help_button = create_help_button(
+            self,
+            "Zależności",
+            "To okno definiuje kolejność i warunki pomiędzy elementami "
+            "ścieżki.\n\n"
+            "Możesz dodawać, edytować i usuwać zależności.\n\n"
+            "Nie twórz zależności sprzecznych z przebiegiem procesu; cykle "
+            "są niedozwolone.",
+        )
+        self.add_button.setToolTip("Dodaj nową zależność elementów.")
+        self.edit_button.setToolTip("Edytuj zaznaczoną zależność.")
+        self.delete_button.setToolTip("Usuń zaznaczoną zależność.")
+        self.refresh_button.setToolTip("Pobierz ponownie listę zależności.")
         buttons.addWidget(self.add_button)
         buttons.addWidget(self.edit_button)
         buttons.addWidget(self.delete_button)
         buttons.addWidget(self.refresh_button)
+        buttons.addWidget(self.help_button)
         buttons.addStretch(1)
         layout.addLayout(buttons)
 
@@ -194,7 +223,10 @@ class DependenciesWindow(QWidget):
                 values = [
                     previous,
                     following,
-                    dependency["typ"],
+                    DEPENDENCY_TYPE_LABELS.get(
+                        dependency["typ"],
+                        dependency["typ"],
+                    ),
                     dependency["opis"] or "",
                 ]
                 for column_index, value in enumerate(values):
@@ -247,10 +279,10 @@ class DependenciesWindow(QWidget):
                 self, "KOMPAS", "Wybierz zależność do usunięcia."
             )
             return
-        answer = QMessageBox.question(
-            self, "KOMPAS", "Czy na pewno usunąć wybraną zależność?"
-        )
-        if answer != QMessageBox.StandardButton.Yes:
+        if not ask_confirmation(
+            self,
+            "Czy na pewno usunąć wybraną zależność?",
+        ):
             return
         try:
             remove_dependency(dependency_id)

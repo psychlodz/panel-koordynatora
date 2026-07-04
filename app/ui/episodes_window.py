@@ -19,6 +19,7 @@ from app.repositories.episode_repository import (
 )
 from app.ui.episode_details_window import EpisodeDetailsDialog
 from app.ui.widgets.busy_indicator import busy_operation
+from app.ui.ui_helpers import create_help_button
 
 
 class EpisodesWindow(QWidget):
@@ -38,6 +39,17 @@ class EpisodesWindow(QWidget):
         self.coordinator_filter = QComboBox()
         self.status_filter = QComboBox()
         self.refresh_button = QPushButton("Odśwież")
+        self.help_button = create_help_button(
+            self,
+            "Pacjenci w programach",
+            "To okno pokazuje epizody pacjentów i postęp realizacji "
+            "programów.\n\n"
+            "Możesz filtrować listę, odświeżyć dane i otworzyć szczegóły "
+            "epizodu dwukrotnym kliknięciem.\n\n"
+            "Nie edytuj danych pacjenta w tym widoku — pochodzą one z "
+            "Eskulapa.",
+        )
+        self.refresh_button.setToolTip("Pobierz ponownie listę epizodów.")
         filters.addWidget(QLabel("Program:"))
         filters.addWidget(self.program_filter, 1)
         filters.addWidget(QLabel("Koordynator:"))
@@ -45,6 +57,7 @@ class EpisodesWindow(QWidget):
         filters.addWidget(QLabel("Status:"))
         filters.addWidget(self.status_filter, 1)
         filters.addWidget(self.refresh_button)
+        filters.addWidget(self.help_button)
         layout.addLayout(filters)
 
         self.info_label = QLabel()
@@ -54,7 +67,7 @@ class EpisodesWindow(QWidget):
         self.table.setHorizontalHeaderLabels(
             [
                 "ID",
-                "Pacjent ID",
+                "ID pacjenta",
                 "Program",
                 "Ścieżka",
                 "Status",

@@ -25,6 +25,7 @@ from app.repositories.program_repository import (
     update_program,
 )
 from app.ui.widgets.busy_indicator import busy_operation
+from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 
 
 class ProgramDialog(QDialog):
@@ -58,6 +59,7 @@ class ProgramDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -134,10 +136,25 @@ class ProgramsWindow(QWidget):
         self.new_button = QPushButton("Nowy")
         self.edit_button = QPushButton("Edytuj")
         self.paths_button = QPushButton("Ścieżki")
+        self.help_button = create_help_button(
+            self,
+            "Programy",
+            "To okno służy do zarządzania programami KOMPAS.\n\n"
+            "Możesz dodać lub edytować program oraz otworzyć jego ścieżki.\n\n"
+            "Nie zmieniaj kodu programu bez uzgodnienia, jeśli jest już "
+            "używany przez epizody.",
+        )
+        self.refresh_button.setToolTip("Pobierz ponownie listę programów.")
+        self.new_button.setToolTip("Dodaj nowy program KOMPAS.")
+        self.edit_button.setToolTip("Edytuj zaznaczony program.")
+        self.paths_button.setToolTip(
+            "Otwórz ścieżki należące do zaznaczonego programu."
+        )
         buttons.addWidget(self.refresh_button)
         buttons.addWidget(self.new_button)
         buttons.addWidget(self.edit_button)
         buttons.addWidget(self.paths_button)
+        buttons.addWidget(self.help_button)
         buttons.addStretch(1)
         layout.addLayout(buttons)
 

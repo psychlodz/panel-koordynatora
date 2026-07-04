@@ -26,6 +26,7 @@ from app.services.auth_service import (
     set_user_roles,
     unblock_user,
 )
+from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 from version import APP_NAME
 
 
@@ -46,6 +47,7 @@ class PasswordDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -110,6 +112,7 @@ class AddUserDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -156,6 +159,7 @@ class RoleDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -216,12 +220,35 @@ class UsersWindow(QWidget):
         self.block_button = QPushButton("Zablokuj / odblokuj")
         self.roles_button = QPushButton("Przypisz role")
         self.refresh_button = QPushButton("Odśwież")
+        self.help_button = create_help_button(
+            self,
+            "Użytkownicy",
+            "To okno służy administratorowi do zarządzania kontami KOMPAS.\n\n"
+            "Możesz dodawać użytkowników, resetować hasła, blokować konta "
+            "i przypisywać role.\n\n"
+            "Nie udostępniaj haseł ani uprawnień administracyjnych osobom "
+            "nieupoważnionym.",
+        )
+        self.add_button.setToolTip("Dodaj nowe konto użytkownika.")
+        self.reset_button.setToolTip(
+            "Ustaw nowe hasło dla zaznaczonego użytkownika."
+        )
+        self.block_button.setToolTip(
+            "Zablokuj albo odblokuj zaznaczone konto."
+        )
+        self.roles_button.setToolTip(
+            "Przypisz role zaznaczonemu użytkownikowi."
+        )
+        self.refresh_button.setToolTip(
+            "Pobierz ponownie listę użytkowników."
+        )
         for button in (
             self.add_button,
             self.reset_button,
             self.block_button,
             self.roles_button,
             self.refresh_button,
+            self.help_button,
         ):
             actions.addWidget(button)
         actions.addStretch(1)

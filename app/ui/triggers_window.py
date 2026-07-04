@@ -24,15 +24,20 @@ from app.repositories.trigger_repository import (
     list_triggers,
     update_trigger,
 )
+from app.ui.ui_helpers import (
+    ask_confirmation,
+    create_help_button,
+    polish_dialog_buttons,
+)
 
 
-TRIGGER_TYPES = [
-    "START_EPIZODU",
-    "PO_ZAKONCZENIU",
-    "PO_ZLECENIU",
-    "PO_WYNIKU",
-    "RECZNIE",
-]
+TRIGGER_TYPE_LABELS = {
+    "START_EPIZODU": "Start epizodu",
+    "PO_ZAKONCZENIU": "Po zakończeniu elementu",
+    "PO_ZLECENIU": "Po zleceniu",
+    "PO_WYNIKU": "Po otrzymaniu wyniku",
+    "RECZNIE": "Ręcznie",
+}
 
 
 class TriggerDialog(QDialog):
@@ -48,7 +53,8 @@ class TriggerDialog(QDialog):
         layout = QVBoxLayout(self)
         form = QFormLayout()
         self.type_combo = QComboBox()
-        self.type_combo.addItems(TRIGGER_TYPES)
+        for code, label in TRIGGER_TYPE_LABELS.items():
+            self.type_combo.addItem(label, code)
         self.source_combo = QComboBox()
         self.source_combo.addItem("Brak elementu źródłowego", None)
         self.description_edit = QTextEdit()
@@ -67,12 +73,15 @@ class TriggerDialog(QDialog):
             QDialogButtonBox.StandardButton.Save
             | QDialogButtonBox.StandardButton.Cancel
         )
+        polish_dialog_buttons(buttons)
         buttons.accepted.connect(self.accept)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
         if trigger is not None:
-            self.type_combo.setCurrentText(trigger["trigger_type"])
+            type_index = self.type_combo.findData(trigger["trigger_type"])
+            if type_index >= 0:
+                self.type_combo.setCurrentIndex(type_index)
             source_index = self.source_combo.findData(
                 trigger["trigger_element_id"]
             )
@@ -84,14 +93,14 @@ class TriggerDialog(QDialog):
         self.update_source_state()
 
     def update_source_state(self, _value=None):
-        is_episode_start = self.type_combo.currentText() == "START_EPIZODU"
+        is_episode_start = self.type_combo.currentData() == "START_EPIZODU"
         if is_episode_start:
             self.source_combo.setCurrentIndex(0)
         self.source_combo.setEnabled(not is_episode_start)
 
     def values(self) -> dict:
         return {
-            "trigger_type": self.type_combo.currentText(),
+            "trigger_type": self.type_combo.currentData(),
             "trigger_element_id": self.source_combo.currentData(),
             "opis": self.description_edit.toPlainText().strip() or None,
         }
@@ -141,10 +150,23 @@ class TriggersWindow(QWidget):
         self.edit_button = QPushButton("Edytuj")
         self.delete_button = QPushButton("Usuń")
         self.refresh_button = QPushButton("Odśwież")
+        self.help_button = create_help_button(
+            self,
+            "Wyzwalacze",
+            "To okno określa, kiedy element ścieżki zostaje aktywowany.\n\n"
+            "Możesz dodawać, edytować i usuwać wyzwalacze elementu.\n\n"
+            "Nie dodawaj kilku wyzwalaczy START_EPIZODU dla tego samego "
+            "elementu.",
+        )
+        self.add_button.setToolTip("Dodaj nowy wyzwalacz elementu.")
+        self.edit_button.setToolTip("Edytuj zaznaczony wyzwalacz.")
+        self.delete_button.setToolTip("Usuń zaznaczony wyzwalacz.")
+        self.refresh_button.setToolTip("Pobierz ponownie listę wyzwalaczy.")
         buttons.addWidget(self.add_button)
         buttons.addWidget(self.edit_button)
         buttons.addWidget(self.delete_button)
         buttons.addWidget(self.refresh_button)
+        buttons.addWidget(self.help_button)
         buttons.addStretch(1)
         layout.addLayout(buttons)
 
@@ -179,7 +201,10 @@ class TriggersWindow(QWidget):
                         f"{trigger['trigger_element_nazwa']}"
                     )
                 values = [
-                    trigger["trigger_type"],
+                    TRIGGER_TYPE_LABELS.get(
+                        trigger["trigger_type"],
+                        trigger["trigger_type"],
+                    ),
                     source,
                     trigger["opis"] or "",
                 ]
@@ -230,10 +255,10 @@ class TriggersWindow(QWidget):
                 self, "KOMPAS", "Wybierz wyzwalacz do usunięcia."
             )
             return
-        answer = QMessageBox.question(
-            self, "KOMPAS", "Czy na pewno usunąć wybrany wyzwalacz?"
-        )
-        if answer != QMessageBox.StandardButton.Yes:
+        if not ask_confirmation(
+            self,
+            "Czy na pewno usunąć wybrany wyzwalacz?",
+        ):
             return
         try:
             remove_trigger(trigger_id)

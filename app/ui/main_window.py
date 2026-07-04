@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
 )
 
 from app.ui.widgets.busy_indicator import busy_operation
+from app.ui.ui_helpers import create_help_button
 from version import APP_NAME, VERSION
 
 
@@ -99,6 +100,31 @@ class MainWindow(QMainWindow):
             "Administracja\nUżytkownicy i uprawnienia"
         )
         self.exit_button = QPushButton("Zakończ")
+        self.help_button = create_help_button(
+            self,
+            "Pulpit główny",
+            "To okno służy do uruchamiania modułów KOMPAS.\n\n"
+            "Możesz otworzyć harmonogram, programy, epizody, wizyty "
+            "kwalifikacyjne oraz — jako administrator — użytkowników.\n\n"
+            "Nie uruchamiaj ponownie modułu, który jest już otwarty.",
+        )
+
+        self.schedule_button.setToolTip(
+            "Otwórz harmonogram dostępności i planu pracy zespołu."
+        )
+        self.programs_button.setToolTip(
+            "Otwórz listę i konfigurację programów KOMPAS."
+        )
+        self.episodes_button.setToolTip(
+            "Otwórz listę pacjentów uczestniczących w programach."
+        )
+        self.qualification_button.setToolTip(
+            "Pobierz wizyty kwalifikacyjne PKK i przypisz program."
+        )
+        self.users_button.setToolTip(
+            "Otwórz administrację użytkownikami i rolami."
+        )
+        self.exit_button.setToolTip("Zamknij aplikację KOMPAS.")
 
         for button in (
             self.schedule_button,
@@ -128,6 +154,7 @@ class MainWindow(QMainWindow):
         self.users_button.setVisible(bool(current_user.is_admin))
 
         footer = QHBoxLayout()
+        footer.addWidget(self.help_button)
         footer.addStretch(1)
         self.exit_button.setProperty("role", "secondary")
         self.exit_button.setMinimumWidth(140)

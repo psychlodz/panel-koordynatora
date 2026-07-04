@@ -28,6 +28,7 @@ from app.repositories.event_repository import (
     get_patient_visits,
 )
 from app.repositories.patient_repository import get_patient
+from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 
 
 WAITING_STATUS = "OCZEKUJE NA AKTYWACJĘ"
@@ -134,6 +135,23 @@ class EpisodeDetailsDialog(QDialog):
             layout.addWidget(warning)
 
         buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
+        polish_dialog_buttons(buttons)
+        close_button = buttons.button(QDialogButtonBox.StandardButton.Close)
+        close_button.setToolTip("Zamknij szczegóły epizodu.")
+        self.help_button = create_help_button(
+            self,
+            "Szczegóły epizodu",
+            "To okno przedstawia dane epizodu, zadania i zdarzenia "
+            "medyczne z Eskulapa.\n\n"
+            "Możesz przeglądać proces, konsultacje, badania, wizyty i "
+            "historię.\n\n"
+            "Nie traktuj tego widoku jako miejsca do edycji danych "
+            "źródłowych — jest przeznaczony wyłącznie do odczytu.",
+        )
+        buttons.addButton(
+            self.help_button,
+            QDialogButtonBox.ButtonRole.HelpRole,
+        )
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
 
