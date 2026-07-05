@@ -390,7 +390,3 @@ class MainWindow(QMainWindow):
             factory,
             "Trwa otwieranie Ustawień systemu...",
         )
-
-    def open_users(self):
-        """Zgodność ze starszym wywołaniem modułu administracji."""
-        self.open_system_settings()
