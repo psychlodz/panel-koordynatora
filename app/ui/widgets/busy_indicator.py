@@ -1,11 +1,12 @@
+import math
 from contextlib import contextmanager
 
-from PySide6.QtCore import QEvent, QEventLoop, Qt
+from PySide6.QtCore import QEvent, QEventLoop, QPointF, QTimer, Qt
+from PySide6.QtGui import QColor, QPainter
 from PySide6.QtWidgets import (
     QApplication,
     QFrame,
     QLabel,
-    QProgressBar,
     QVBoxLayout,
     QWidget,
 )
@@ -13,6 +14,53 @@ from PySide6.QtWidgets import (
 
 DEFAULT_MESSAGE = "Trwa pobieranie danych..."
 INDICATOR_ATTRIBUTE = "_kompas_busy_indicator"
+
+
+class SpinnerWidget(QWidget):
+    """Animowany wskaźnik zajętości bez sugerowania procentu postępu."""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._step = 0
+        self.setFixedSize(58, 58)
+        self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+        self.timer = QTimer(self)
+        self.timer.setInterval(80)
+        self.timer.timeout.connect(self._advance)
+
+    def start(self):
+        self._step = 0
+        self.timer.start()
+        self.show()
+        self.update()
+
+    def stop(self):
+        self.timer.stop()
+        self.hide()
+
+    def _advance(self):
+        self._step = (self._step + 1) % 12
+        self.update()
+
+    def paintEvent(self, _event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        center = QPointF(self.width() / 2, self.height() / 2)
+        radius = 20
+        dot_radius = 4
+
+        for index in range(12):
+            distance = (index - self._step) % 12
+            color = QColor("#145A8D")
+            color.setAlpha(max(38, 255 - distance * 18))
+            angle = math.radians(index * 30 - 90)
+            point = QPointF(
+                center.x() + math.cos(angle) * radius,
+                center.y() + math.sin(angle) * radius,
+            )
+            painter.setPen(Qt.PenStyle.NoPen)
+            painter.setBrush(color)
+            painter.drawEllipse(point, dot_radius, dot_radius)
 
 
 class BusyIndicator(QWidget):
@@ -41,11 +89,12 @@ class BusyIndicator(QWidget):
         self.message_label.setWordWrap(True)
         panel_layout.addWidget(self.message_label)
 
-        self.progress = QProgressBar()
-        self.progress.setObjectName("busyProgress")
-        self.progress.setRange(0, 0)
-        self.progress.setTextVisible(False)
-        panel_layout.addWidget(self.progress)
+        self.spinner = SpinnerWidget()
+        panel_layout.addWidget(
+            self.spinner,
+            0,
+            Qt.AlignmentFlag.AlignCenter,
+        )
 
         layout.addWidget(panel)
         parent.installEventFilter(self)
@@ -65,6 +114,7 @@ class BusyIndicator(QWidget):
         self.setGeometry(self.parentWidget().rect())
         self.show()
         self.raise_()
+        self.spinner.start()
         self.setFocus(Qt.FocusReason.OtherFocusReason)
         QApplication.setOverrideCursor(Qt.CursorShape.WaitCursor)
         QApplication.processEvents(
@@ -77,6 +127,7 @@ class BusyIndicator(QWidget):
         self._depth -= 1
         QApplication.restoreOverrideCursor()
         if self._depth == 0:
+            self.spinner.stop()
             self.hide()
             QApplication.processEvents(
                 QEventLoop.ProcessEventsFlag.ExcludeUserInputEvents

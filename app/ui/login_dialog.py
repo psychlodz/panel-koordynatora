@@ -1,5 +1,7 @@
 from dataclasses import replace
 
+from PySide6.QtCore import QRectF, Qt
+from PySide6.QtGui import QAction, QColor, QIcon, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -12,6 +14,50 @@ from PySide6.QtWidgets import (
 
 from app.services.auth_service import change_password, login
 from version import APP_NAME
+
+
+def _eye_icon(slashed=False):
+    pixmap = QPixmap(24, 24)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(QPen(QColor("#425466"), 1.8))
+    painter.setBrush(Qt.BrushStyle.NoBrush)
+    painter.drawEllipse(QRectF(3.0, 7.0, 18.0, 10.0))
+    painter.setBrush(QColor("#425466"))
+    painter.drawEllipse(QRectF(10.0, 10.0, 4.0, 4.0))
+    if slashed:
+        painter.setBrush(Qt.BrushStyle.NoBrush)
+        painter.drawLine(4, 4, 20, 20)
+    painter.end()
+    return QIcon(pixmap)
+
+
+def _add_password_toggle(password_edit):
+    action = QAction(_eye_icon(), "Pokaż hasło", password_edit)
+    action.setToolTip("Pokaż hasło")
+    password_edit.addAction(
+        action,
+        QLineEdit.ActionPosition.TrailingPosition,
+    )
+
+    def toggle_password():
+        is_hidden = (
+            password_edit.echoMode() == QLineEdit.EchoMode.Password
+        )
+        password_edit.setEchoMode(
+            QLineEdit.EchoMode.Normal
+            if is_hidden
+            else QLineEdit.EchoMode.Password
+        )
+        action.setIcon(_eye_icon(slashed=is_hidden))
+        action.setText("Ukryj hasło" if is_hidden else "Pokaż hasło")
+        action.setToolTip(
+            "Ukryj hasło" if is_hidden else "Pokaż hasło"
+        )
+
+    action.triggered.connect(toggle_password)
+    return action
 
 
 class MandatoryPasswordChangeDialog(QDialog):
@@ -32,6 +78,8 @@ class MandatoryPasswordChangeDialog(QDialog):
         self.confirm_edit = QLineEdit()
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
         self.confirm_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_toggle = _add_password_toggle(self.password_edit)
+        self.confirm_toggle = _add_password_toggle(self.confirm_edit)
         form.addRow("Nowe hasło:", self.password_edit)
         form.addRow("Powtórz hasło:", self.confirm_edit)
         layout.addLayout(form)
@@ -77,6 +125,7 @@ class LoginDialog(QDialog):
         self.login_edit = QLineEdit()
         self.password_edit = QLineEdit()
         self.password_edit.setEchoMode(QLineEdit.EchoMode.Password)
+        self.password_toggle = _add_password_toggle(self.password_edit)
         form.addRow("Login:", self.login_edit)
         form.addRow("Hasło:", self.password_edit)
         layout.addLayout(form)

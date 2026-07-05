@@ -1,4 +1,5 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QRect, Qt
+from PySide6.QtGui import QColor, QFont, QPainter
 from PySide6.QtWidgets import (
     QApplication,
     QComboBox,
@@ -11,6 +12,8 @@ from PySide6.QtWidgets import (
     QPushButton,
     QScrollArea,
     QSizePolicy,
+    QStyle,
+    QStyleOptionButton,
     QVBoxLayout,
     QWidget,
 )
@@ -19,6 +22,96 @@ from app.ui.widgets.busy_indicator import busy_operation
 from app.ui.ui_helpers import create_help_button
 from version import APP_NAME, VERSION
 from app.services.work_context import work_context
+
+
+class ModuleTileButton(QPushButton):
+    def __init__(self, title, description, parent=None):
+        super().__init__("", parent)
+        self.tile_title = title
+        self.tile_description = description
+        self.setAccessibleName(title)
+        self.setAccessibleDescription(description)
+
+    def paintEvent(self, _event):
+        option = QStyleOptionButton()
+        self.initStyleOption(option)
+        option.text = ""
+
+        painter = QPainter(self)
+        self.style().drawControl(
+            QStyle.ControlElement.CE_PushButton,
+            option,
+            painter,
+            self,
+        )
+
+        content = self.rect().adjusted(22, 12, -22, -12)
+        title_font = QFont(self.font())
+        title_font.setPointSizeF(13.5)
+        title_font.setBold(True)
+        description_font = QFont(self.font())
+        description_font.setPointSizeF(9.5)
+        description_font.setBold(False)
+        description_font.setItalic(True)
+
+        painter.setFont(title_font)
+        title_metrics = painter.fontMetrics()
+        painter.setFont(description_font)
+        description_metrics = painter.fontMetrics()
+        spacing = 7
+        total_height = (
+            title_metrics.height()
+            + spacing
+            + description_metrics.height()
+        )
+        top = content.top() + max(
+            0,
+            (content.height() - total_height) // 2,
+        )
+
+        if not self.isEnabled():
+            color = QColor("#94A3B8")
+        elif option.state & QStyle.StateFlag.State_MouseOver:
+            color = QColor("#0B426B")
+        else:
+            color = QColor("#17324A")
+        painter.setPen(color)
+
+        painter.setFont(title_font)
+        title = title_metrics.elidedText(
+            self.tile_title,
+            Qt.TextElideMode.ElideRight,
+            content.width(),
+        )
+        painter.drawText(
+            QRect(
+                content.left(),
+                top,
+                content.width(),
+                title_metrics.height(),
+            ),
+            Qt.AlignmentFlag.AlignLeft
+            | Qt.AlignmentFlag.AlignVCenter,
+            title,
+        )
+
+        painter.setFont(description_font)
+        description = description_metrics.elidedText(
+            self.tile_description,
+            Qt.TextElideMode.ElideRight,
+            content.width(),
+        )
+        painter.drawText(
+            QRect(
+                content.left(),
+                top + title_metrics.height() + spacing,
+                content.width(),
+                description_metrics.height(),
+            ),
+            Qt.AlignmentFlag.AlignLeft
+            | Qt.AlignmentFlag.AlignVCenter,
+            description,
+        )
 
 
 class MainWindow(QMainWindow):
@@ -108,21 +201,25 @@ class MainWindow(QMainWindow):
         buttons.setVerticalSpacing(16)
         buttons.setColumnStretch(0, 1)
         buttons.setColumnStretch(1, 1)
-        self.schedule_button = QPushButton(
-            "Harmonogram pracy\nDostępność zespołu i plan pracy"
+        self.schedule_button = ModuleTileButton(
+            "Harmonogram pracy",
+            "Dostępność zespołu i plan pracy",
         )
-        self.programs_button = QPushButton(
-            "Programy\nKonfiguracja programów KOMPAS"
+        self.programs_button = ModuleTileButton(
+            "Programy",
+            "Konfiguracja programów KOMPAS",
         )
-        self.episodes_button = QPushButton(
-            "Pacjenci w programach\nEpizody i postęp realizacji"
+        self.episodes_button = ModuleTileButton(
+            "Pacjenci w programach",
+            "Epizody i postęp realizacji",
         )
-        self.qualification_button = QPushButton(
-            "Wizyty kwalifikacyjne PKK\n"
-            "Zakładanie epizodów na podstawie Eskulapa"
+        self.qualification_button = ModuleTileButton(
+            "Wizyty kwalifikacyjne PKK",
+            "Zakładanie epizodów na podstawie Eskulapa",
         )
-        self.users_button = QPushButton(
-            "Administracja\nUżytkownicy i uprawnienia"
+        self.users_button = ModuleTileButton(
+            "Administracja",
+            "Użytkownicy i uprawnienia",
         )
         self.exit_button = QPushButton("Zakończ")
         self.help_button = create_help_button(
@@ -164,7 +261,7 @@ class MainWindow(QMainWindow):
                 QSizePolicy.Policy.Expanding,
                 QSizePolicy.Policy.Expanding,
             )
-            button.setMinimumSize(280, 96)
+            button.setMinimumSize(280, 104)
 
         buttons.addWidget(self.schedule_button, 0, 0)
         buttons.addWidget(self.programs_button, 0, 1)

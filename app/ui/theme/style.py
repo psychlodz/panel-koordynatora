@@ -265,18 +265,6 @@ QLabel#busyMessage {{
     font-weight: 700;
 }}
 
-QProgressBar#busyProgress {{
-    min-height: 14px;
-    max-height: 14px;
-    background-color: #D8E3EC;
-    border: 1px solid #8298AA;
-    border-radius: 7px;
-}}
-
-QProgressBar#busyProgress::chunk {{
-    background-color: {ACCENT};
-    border-radius: 6px;
-}}
 """
 
 

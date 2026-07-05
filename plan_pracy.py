@@ -146,9 +146,9 @@ class PlanPracyApp(QWidget):
         self.person_color_map: dict[str, str] = {}
 
         self.setWindowTitle(
-            f"{APP_NAME} — Harmonogram — wybór terminu"
+            f"{APP_NAME} - Harmonogram pracy - wybór terminu"
             if self.selection_mode
-            else APP_NAME
+            else f"{APP_NAME} - Harmonogram pracy"
         )
         self.resize(1500, 900)
 
@@ -210,15 +210,33 @@ class PlanPracyApp(QWidget):
         self.btn_export = QPushButton("Eksport do Excel")
         self.btn_export.clicked.connect(self.eksportuj_excel)
 
-        panel.addWidget(QLabel("Jednostka:"))
+        self.btn_close = QPushButton("Zamknij")
+        self.btn_close.clicked.connect(self.close)
+
+        unit_label = QLabel("Jednostka:")
+        date_label = QLabel("Od:")
+        months_label = QLabel("Miesięcy:")
+        date_label.setMinimumWidth(72)
+        months_label.setMinimumWidth(72)
+        date_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight
+            | Qt.AlignmentFlag.AlignVCenter
+        )
+        months_label.setAlignment(
+            Qt.AlignmentFlag.AlignRight
+            | Qt.AlignmentFlag.AlignVCenter
+        )
+
+        panel.addWidget(unit_label)
         panel.addWidget(self.jednostka_combo)
         panel.addWidget(self.btn_units)
-        panel.addWidget(QLabel("Od:"))
+        panel.addWidget(date_label)
         panel.addWidget(self.data_od)
-        panel.addWidget(QLabel("Miesięcy:"))
+        panel.addWidget(months_label)
         panel.addWidget(self.miesiace)
         panel.addWidget(self.btn_load)
         panel.addWidget(self.btn_export)
+        panel.addWidget(self.btn_close)
         layout.addLayout(panel)
 
         self.info = QLabel("Gotowy")
