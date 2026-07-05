@@ -82,6 +82,38 @@ class PathwayTile(QFrame):
         content.addWidget(details)
         layout.addLayout(content, 1)
 
+        base_color = QColor(str(element.get("klocek_kolor") or ""))
+        text_color = QColor(
+            str(element.get("klocek_kolor_tekstu") or "")
+        )
+        if base_color.isValid():
+            if not text_color.isValid():
+                text_color = QColor("#FFFFFF")
+            base = base_color.name()
+            foreground = text_color.name()
+            self.setStyleSheet(
+                f"""
+                QFrame#pathwayTile {{
+                    background-color: {base};
+                    border: 2px solid {base_color.darker(135).name()};
+                    border-radius: 10px;
+                }}
+                QFrame#pathwayTile[selected="true"] {{
+                    border: 4px solid #0A2239;
+                }}
+                """
+            )
+            for label in (title, block, details):
+                label.setStyleSheet(f"color: {foreground};")
+            type_label.setStyleSheet(
+                f"color: {base}; background-color: {foreground}; "
+                "border-radius: 5px; padding: 3px; font-weight: 700;"
+            )
+            position.setStyleSheet(
+                f"color: {base}; background-color: {foreground}; "
+                "border-radius: 6px; font-weight: 700;"
+            )
+
         self.setToolTip(
             "Kliknij, aby zaznaczyć. Przeciągnij kafelek, aby zmienić "
             "kolejność elementów."

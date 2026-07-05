@@ -199,7 +199,8 @@ def list_pathway_elements(sciezka_id) -> list[dict]:
                 grupa.kod AS klocek_grupa,
                 grupa.nazwa AS klocek_grupa_nazwa,
                 k.ikona AS klocek_ikona,
-                k.kolor AS klocek_kolor
+                k.kolor AS klocek_kolor,
+                k.kolor_tekstu AS klocek_kolor_tekstu
             FROM pk_sciezka_elementy e
             JOIN pk_klocki k ON k.klocek_id = e.klocek_id
             JOIN pk_typy_elementow typ
@@ -230,6 +231,7 @@ def list_blocks() -> list[dict]:
                 k.opis,
                 k.ikona,
                 k.kolor,
+                k.kolor_tekstu,
                 k.czy_wymaga_zlecenia,
                 k.czy_obowiazkowy,
                 k.czy_aktywny,

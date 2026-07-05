@@ -25,17 +25,14 @@ from app.repositories.system_settings_repository import (
     get_business_dictionaries,
 )
 from app.repositories.trigger_repository import TRIGGER_TYPES
-from app.repositories.qualification_repository import (
-    PKK_KWAL_PARAMETR_KOD,
-)
 from app.ui.ui_helpers import create_help_button
 from app.ui.users_window import UsersWindow
+from app.ui.visit_mappings_widget import VisitMappingsWidget
 from config import app_dir, load_config
 from version import APP_NAME, BUILD, VERSION
 
 
 MIGRATION_PENDING = "Słownik zaprojektowany, oczekuje na migrację bazy."
-PREPARATION_MESSAGE = "W przygotowaniu"
 LOGS_DIRNAME = "logs"
 
 TAB_DEFINITIONS = (
@@ -424,13 +421,15 @@ class SystemSettingsWindow(QWidget):
             self._readonly_value("WP_PARAMETR / PARAMETR_KOD"),
         )
         qualification_form.addRow(
-            "Rodzaj wizyty:",
-            self._readonly_value(PKK_KWAL_PARAMETR_KOD),
+            "Mechanizm:",
+            self._readonly_value(
+                "Mapowanie WP_PARAMETR → klocek procesu"
+            ),
         )
         qualification_form.addRow(
-            "Znaczenie:",
+            "Klocek kwalifikacji:",
             self._readonly_value(
-                "F18 — wizyta kwalifikacyjna w PKK"
+                "PKK_KWAL (domyślnie mapowany na F18 w seedzie)"
             ),
         )
         page._settings_layout.addWidget(qualification_group)
@@ -460,15 +459,17 @@ class SystemSettingsWindow(QWidget):
             views_layout.addWidget(self._readonly_value(view_name))
         page._settings_layout.addWidget(views_group)
 
-        mappings_group = QGroupBox("Mapowania")
-        mappings_layout = QFormLayout(mappings_group)
-        for label in ("Mapowania badań:", "Mapowania konsultacji:"):
-            mappings_layout.addRow(
-                label,
-                self._readonly_value(PREPARATION_MESSAGE),
-            )
+        mappings_group = QGroupBox("Mapowanie rodzajów wizyt")
+        mappings_layout = QVBoxLayout(mappings_group)
+        mappings_description = QLabel(
+            "Wybierz klocek po lewej i rodzaje wizyt Eskulapa po prawej. "
+            "Dane Oracle są tylko do odczytu; w PostgreSQL zapisywane są "
+            "wyłącznie przypisania kodów."
+        )
+        mappings_description.setWordWrap(True)
+        mappings_layout.addWidget(mappings_description)
+        mappings_layout.addWidget(VisitMappingsWidget(mappings_group), 1)
         page._settings_layout.addWidget(mappings_group)
-        page._settings_layout.addStretch(1)
         self._add_footer(page)
         return page
 

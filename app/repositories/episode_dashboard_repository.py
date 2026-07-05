@@ -180,7 +180,9 @@ def _load_dashboard_episodes(current_user=None, current_unit=None):
                     el.nazwa_w_sciezce,
                     el.czy_wymaga_zlecenia,
                     el.czy_aktywny,
-                    k.nazwa AS klocek_nazwa
+                    k.nazwa AS klocek_nazwa,
+                    k.kolor AS klocek_kolor,
+                    k.kolor_tekstu AS klocek_kolor_tekstu
                 FROM pk_zadania z
                 LEFT JOIN pk_sciezka_elementy el
                     ON el.element_id = z.element_id
@@ -311,6 +313,14 @@ def _load_dashboard_episodes(current_user=None, current_unit=None):
                 ),
                 "next_task_status": (
                     next_task["status"] if next_task else None
+                ),
+                "next_task_color": (
+                    next_task["klocek_kolor"] if next_task else None
+                ),
+                "next_task_text_color": (
+                    next_task["klocek_kolor_tekstu"]
+                    if next_task
+                    else None
                 ),
                 "unit_ids": unit_ids,
                 "unit_symbols": [

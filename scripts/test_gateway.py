@@ -11,7 +11,13 @@ if str(PROJECT_ROOT) not in sys.path:
 from app.gateway.eskulap_gateway import EskulapGateway
 from app.repositories.patient_repository import EXAMS_VIEW, VISITS_VIEW
 from app.repositories.qualification_repository import (
-    PKK_KWAL_PARAMETR_KOD,
+    PKK_KWAL_BLOCK_CODE,
+)
+from app.repositories.visit_mapping_repository import (
+    get_active_parameter_codes_for_block,
+)
+from app.repositories.visit_parameter_repository import (
+    VISIT_PARAMETERS_VIEW,
 )
 
 
@@ -47,6 +53,11 @@ def main():
     args = parser.parse_args()
 
     gateway = EskulapGateway()
+    _test_collection(
+        "Rodzaje wizyt Eskulapa",
+        lambda: gateway.list_visit_parameters(only_active=True),
+        VISIT_PARAMETERS_VIEW,
+    )
     patients = gateway.search_patients(args.search_text)
     _print_collection("Pacjenci", patients)
     if not patients:
@@ -94,20 +105,24 @@ def main():
         VISITS_VIEW,
     )
     if qualification_visits is not None:
+        qualification_codes = set(
+            get_active_parameter_codes_for_block(PKK_KWAL_BLOCK_CODE)
+        )
         invalid_codes = {
             visit.parametr_kod
             for visit in qualification_visits
-            if visit.parametr_kod != PKK_KWAL_PARAMETR_KOD
+            if str(visit.parametr_kod or "").upper()
+            not in qualification_codes
         }
         if invalid_codes:
             raise AssertionError(
                 "Wynik wizyt kwalifikacyjnych zawiera kody inne niż "
-                f"{PKK_KWAL_PARAMETR_KOD}: "
+                f"mapowania {PKK_KWAL_BLOCK_CODE}: "
                 f"{sorted(map(str, invalid_codes))}"
             )
         print(
             "Filtr wizyt kwalifikacyjnych: "
-            f"parametr_kod = {PKK_KWAL_PARAMETR_KOD} (OK)"
+            f"parametr_kod IN {sorted(qualification_codes)} (OK)"
         )
 
 

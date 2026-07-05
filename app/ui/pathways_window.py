@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QCheckBox,
@@ -175,11 +176,22 @@ class PathwayElementDialog(QDialog):
             int(block["klocek_id"]): block for block in blocks
         }
         for block in blocks:
+            icon = str(block.get("ikona") or "").strip()
+            prefix = f"{icon} • " if icon else ""
             self.block_combo.addItem(
-                f"{block['nazwa']} "
+                f"{prefix}{block['nazwa']} "
                 f"({block['typ_nazwa']} • {block['grupa_nazwa']})",
                 block["klocek_id"],
             )
+            item = self.block_combo.model().item(
+                self.block_combo.count() - 1
+            )
+            background = QColor(str(block.get("kolor") or ""))
+            foreground = QColor(str(block.get("kolor_tekstu") or ""))
+            if item is not None and background.isValid():
+                item.setBackground(background)
+            if item is not None and foreground.isValid():
+                item.setForeground(foreground)
 
         form.addRow("Klocek:", self.block_combo)
         form.addRow("Nazwa w ścieżce:", self.name_edit)

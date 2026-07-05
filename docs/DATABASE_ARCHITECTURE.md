@@ -37,6 +37,7 @@ PostgreSQL przechowuje:
 - słowniki KOMPAS;
 - epizody i zadania;
 - zależności i wyzwalacze;
+- mapowania kodów referencyjnych Eskulapa na klocki procesu;
 - użytkowników, role i przypisania jednostek;
 - konfigurację procesów.
 

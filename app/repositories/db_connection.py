@@ -27,6 +27,7 @@ INSERT_IDS = {
     "pk_grupy_klockow": "grupa_id",
     "pk_jednostki_czasu": "jednostka_czasu_id",
     "pk_klocki": "klocek_id",
+    "pk_mapowanie_wizyt": "mapowanie_id",
     "pk_sciezka_elementy": "element_id",
     "pk_sciezka_zaleznosci": "zaleznosc_id",
     "pk_wyzwalacze": "trigger_id",

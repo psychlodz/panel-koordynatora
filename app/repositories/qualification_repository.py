@@ -3,7 +3,7 @@ from contextlib import closing
 from datetime import date, datetime, timedelta
 
 from config import load_config
-from db import create_connection
+from db import create_connection as create_oracle_connection
 from episode_generator import create_episode_with_tasks
 from app.repositories.db_connection import (
     create_connection,
@@ -11,12 +11,14 @@ from app.repositories.db_connection import (
     is_integrity_error,
 )
 from app.repositories.patient_repository import PATIENTS_VIEW, VISITS_VIEW
+from app.repositories.visit_mapping_repository import (
+    get_active_parameter_codes_for_block,
+)
 
 
 SOURCE_SYSTEM = "ESKULAP"
 SOURCE_TYPE = "WIZYTA_KWALIFIKACYJNA_PKK"
-# F18 = rodzaj wizyty kwalifikacyjnej PKK zapisany w WP_PARAMETR.
-PKK_KWAL_PARAMETR_KOD = "F18"
+PKK_KWAL_BLOCK_CODE = "PKK_KWAL"
 logger = logging.getLogger(__name__)
 
 
@@ -38,7 +40,7 @@ def _date_value(value, field_name):
 def _oracle_query(sql, parameters=None, fetch_one=False):
     config = load_config()
     with closing(
-        create_connection(
+        create_oracle_connection(
             config.database_user,
             config.database_password,
             config.database_dsn,
@@ -87,17 +89,23 @@ def _with_assignment(visit, assignments):
     return result
 
 
-def _qualification_condition(alias="w"):
-    return f"""
-        UPPER(TRIM(NVL({alias}.PARAMETR_KOD, ''))) =
-            UPPER(:pkk_kwal_parametr_kod)
-    """
-
-
-def _qualification_parameters():
-    return {
-        "pkk_kwal_parametr_kod": PKK_KWAL_PARAMETR_KOD,
+def _qualification_filter(alias="w"):
+    codes = get_active_parameter_codes_for_block(PKK_KWAL_BLOCK_CODE)
+    if not codes:
+        return "1 = 0", {}
+    parameters = {
+        f"pkk_kwal_code_{index}": code
+        for index, code in enumerate(codes)
     }
+    placeholders = ", ".join(
+        f":{name}"
+        for name in parameters
+    )
+    return (
+        f"UPPER(TRIM(NVL({alias}.PARAMETR_KOD, ''))) "
+        f"IN ({placeholders})",
+        parameters,
+    )
 
 
 def list_qualification_visits(
@@ -110,8 +118,8 @@ def list_qualification_visits(
     if date_from and date_to and date_from > date_to:
         raise ValueError("date_from nie może być późniejsza niż date_to")
 
-    conditions = [_qualification_condition("w")]
-    parameters = _qualification_parameters()
+    qualification_condition, parameters = _qualification_filter("w")
+    conditions = [qualification_condition]
     if date_from:
         conditions.append("w.DATA_WIZYTY >= :date_from")
         parameters["date_from"] = date_from
@@ -149,7 +157,7 @@ def list_qualification_visits(
 
 
 def get_qualification_visit(wizyta_id):
-    parameters = _qualification_parameters()
+    qualification_condition, parameters = _qualification_filter("w")
     parameters["wizyta_id"] = wizyta_id
     visit = _oracle_query(
         f"""
@@ -164,7 +172,7 @@ def get_qualification_visit(wizyta_id):
         LEFT JOIN {PATIENTS_VIEW} p
             ON p.PACJENT_ID = w.PACJENT_ID
         WHERE w.WIZYTA_ID = :wizyta_id
-          AND {_qualification_condition("w")}
+          AND {qualification_condition}
           AND ROWNUM = 1
         """,
         parameters,

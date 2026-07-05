@@ -8,11 +8,13 @@ from app.models.organizational_unit import OrganizationalUnit
 from app.models.patient import Patient
 from app.models.qualification_visit import QualificationVisit
 from app.models.visit import Visit
+from app.models.visit_parameter import VisitParameter
 from app.repositories import (
     event_repository,
     organizational_unit_repository,
     patient_repository,
     qualification_repository,
+    visit_parameter_repository,
 )
 
 
@@ -99,6 +101,7 @@ class EskulapGateway:
         qualifications=qualification_repository,
         events=event_repository,
         units=organizational_unit_repository,
+        visit_parameters=visit_parameter_repository,
     ):
         # Repozytoria korzystają z fabryki połączeń z db.py. Gateway nie
         # otwiera połączeń i nie zna SQL ani nazw widoków Oracle.
@@ -106,6 +109,7 @@ class EskulapGateway:
         self._qualifications = qualifications
         self._events = events
         self._units = units
+        self._visit_parameters = visit_parameters
 
     def search_patients(self, search_text) -> list[Patient]:
         rows = self._patients.search_patients(search_text)
@@ -185,6 +189,22 @@ class EskulapGateway:
                 jo_id=str(row["jo_id"]),
                 jo_symbol=_source_value(row, "jo_symbol"),
                 jo_nazwa=_source_value(row, "jo_nazwa"),
+            )
+            for row in rows
+        ]
+
+    def list_visit_parameters(
+        self,
+        only_active=True,
+    ) -> list[VisitParameter]:
+        rows = self._visit_parameters.list_visit_parameters(
+            only_active=only_active,
+        )
+        return [
+            VisitParameter(
+                code=str(row["parametr_kod"]),
+                name=_source_value(row, "parametr_nazwa"),
+                is_active=_source_value(row, "czy_aktualne"),
             )
             for row in rows
         ]

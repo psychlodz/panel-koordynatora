@@ -54,16 +54,16 @@ ON CONFLICT DO NOTHING;
 INSERT INTO pk_grupy_klockow(
     kod, nazwa, opis, kolejnosc, czy_aktywny, czy_systemowy, kolor
 ) VALUES
-    ('KWALIFIKACJA', 'Kwalifikacja', NULL, 10, 1, 1, '#2E6F9E'),
-    ('WIZYTY', 'Wizyty', NULL, 20, 1, 1, '#3A7CA5'),
-    ('KONSULTACJE', 'Konsultacje', NULL, 30, 1, 1, '#507DBC'),
-    ('BADANIA_LAB', 'Badania laboratoryjne', NULL, 40, 1, 1, '#2A9D8F'),
-    ('BADANIA_OBRAZOWE', 'Badania obrazowe', NULL, 50, 1, 1, '#577590'),
-    ('DIAGNOSTYKA', 'Diagnostyka', NULL, 60, 1, 1, '#6D597A'),
-    ('PSYCHOTERAPIA', 'Psychoterapia', NULL, 70, 1, 1, '#8F5D78'),
-    ('DOKUMENTACJA', 'Dokumentacja', NULL, 80, 1, 1, '#7A6C5D'),
-    ('RAPORTY', 'Raporty', NULL, 90, 1, 1, '#5C677D'),
-    ('ZAKONCZENIE_PROGRAMU', 'Zakończenie programu', NULL, 100, 1, 1, '#4F5D75')
+    ('KWALIFIKACJA', 'Kwalifikacja', NULL, 10, 1, 1, '#173F5F'),
+    ('WIZYTY', 'Wizyty', NULL, 20, 1, 1, '#2F80ED'),
+    ('KONSULTACJE', 'Konsultacje', NULL, 30, 1, 1, '#7B2CBF'),
+    ('BADANIA_LAB', 'Badania laboratoryjne', NULL, 40, 1, 1, '#F2994A'),
+    ('BADANIA_OBRAZOWE', 'Badania obrazowe', NULL, 50, 1, 1, '#1BA39C'),
+    ('DIAGNOSTYKA', 'Diagnostyka', NULL, 60, 1, 1, '#F2C94C'),
+    ('PSYCHOTERAPIA', 'Psychoterapia', NULL, 70, 1, 1, '#27AE60'),
+    ('DOKUMENTACJA', 'Dokumentacja', NULL, 80, 1, 1, '#828282'),
+    ('RAPORTY', 'Raporty', NULL, 90, 1, 1, '#1B365D'),
+    ('ZAKONCZENIE_PROGRAMU', 'Zakończenie programu', NULL, 100, 1, 1, '#1F6B45')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO pk_jednostki_czasu(
@@ -77,13 +77,20 @@ ON CONFLICT DO NOTHING;
 
 INSERT INTO pk_klocki(
     kod, nazwa, opis, typ_elementu_id, grupa_id, ikona, kolor,
+    kolor_tekstu,
     domyslny_termin_liczba, domyslna_jednostka_czasu_id,
     czy_wymaga_zlecenia, czy_obowiazkowy, czy_aktywny,
     czy_systemowy, kolejnosc
 )
 SELECT
     dane.kod, dane.nazwa, dane.opis, typ.typ_id, grupa.grupa_id,
-    dane.ikona, grupa.kolor, NULL, NULL, dane.wymaga_zlecenia,
+    dane.ikona, grupa.kolor,
+    CASE
+        WHEN dane.grupa_kod IN ('BADANIA_LAB', 'DIAGNOSTYKA')
+            THEN '#1F2937'
+        ELSE '#FFFFFF'
+    END,
+    NULL, NULL, dane.wymaga_zlecenia,
     dane.obowiazkowy, 1, 1, dane.kolejnosc
 FROM (
     VALUES
@@ -158,6 +165,25 @@ FROM (
 JOIN pk_typy_elementow typ ON typ.kod = dane.typ_kod
 JOIN pk_grupy_klockow grupa ON grupa.kod = dane.grupa_kod
 ON CONFLICT DO NOTHING;
+
+INSERT INTO pk_mapowanie_wizyt(
+    klocek_id,
+    parametr_kod,
+    parametr_nazwa_cache,
+    czy_aktywny
+)
+SELECT
+    k.klocek_id,
+    'F18',
+    'Wizyta kwalifikacyjna PKK',
+    1
+FROM pk_klocki k
+WHERE k.kod = 'PKK_KWAL'
+ON CONFLICT (parametr_kod) DO UPDATE
+SET klocek_id = EXCLUDED.klocek_id,
+    parametr_nazwa_cache = EXCLUDED.parametr_nazwa_cache,
+    czy_aktywny = EXCLUDED.czy_aktywny,
+    updated_at = CURRENT_TIMESTAMP;
 
 INSERT INTO pk_programy(kod, nazwa, wersja, opis)
 VALUES (

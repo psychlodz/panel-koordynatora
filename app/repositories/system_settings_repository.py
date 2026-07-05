@@ -54,6 +54,9 @@ def get_business_dictionaries():
                     grupa.kod AS grupa,
                     grupa.nazwa AS grupa_nazwa,
                     k.opis,
+                    k.ikona,
+                    k.kolor,
+                    k.kolor_tekstu,
                     k.czy_aktywny,
                     k.czy_systemowy,
                     k.kolejnosc

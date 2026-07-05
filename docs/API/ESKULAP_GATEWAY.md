@@ -21,9 +21,11 @@ flowchart LR
     G --> P["patient_repository"]
     G --> Q["qualification_repository"]
     G --> E["event_repository"]
+    G --> V["visit_parameter_repository"]
     P --> D["db.py"]
     Q --> D
     E --> P
+    V --> D
     D --> O[("Oracle / Eskulap")]
     G --> M["Modele dataclass"]
 ```
@@ -50,7 +52,8 @@ odpowiednio z `WP_PARAMETR` i słownika `CG_REF_CODES`.
 Pobiera wizyty kwalifikacyjne PKK z opcjonalnego okresu. Parametr
 `only_unassigned` ogranicza wynik do wizyt bez epizodu KOMPAS. Zwraca
 listę `QualificationVisit`. Wizyta kwalifikacyjna jest rozpoznawana po
-dokładnej wartości `PARAMETR_KOD = 'F18'`.
+aktywnych kodach przypisanych do klocka `PKK_KWAL` w tabeli
+`pk_mapowanie_wizyt`. Gateway nie zawiera stałego warunku dla `F18`.
 
 ### `get_patient_consultations(patient_id)`
 
@@ -72,6 +75,14 @@ Pobiera jednostki organizacyjne ze źródła harmonogramu wskazanego przez
 identyfikatorze, symbolu lub nazwie. Zwraca listę `OrganizationalUnit`
 z polami `jo_id`, `jo_symbol` i `jo_nazwa`. Operacja korzysta wyłącznie
 z instrukcji `SELECT`.
+
+### `list_visit_parameters(only_active=True)`
+
+Pobiera referencyjny słownik rodzajów wizyt z tylko do odczytu widoku
+`ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT`. Zwraca listę `VisitParameter`
+z kodem, nazwą i informacją o aktualności. Dane słownika nie są kopiowane
+do PostgreSQL; KOMPAS zapisuje wyłącznie wybrane przypisania kodów do
+klocków.
 
 ## Użycie
 
@@ -111,17 +122,17 @@ kodu. Widok `V_KOMPAS_PARAMETRY_WIZYT` udostępnia ten słownik wyłącznie
 do odczytu.
 
 Wizyty kwalifikacyjne nie mają osobnego widoku. Gateway pobiera je
-z `V_KOMPAS_WIZYTY`, filtrując `PARAMETR_KOD` po wartości `F18`.
-`F18` jest kodem rodzaju wizyty kwalifikacyjnej PKK. Jedyna definicja
-tego filtra znajduje się jako `PKK_KWAL_PARAMETR_KOD`
-w `qualification_repository.py`.
+z `V_KOMPAS_WIZYTY`, a lista dopuszczonych wartości `PARAMETR_KOD`
+pochodzi z aktywnych rekordów `pk_mapowanie_wizyt` przypisanych do
+`PKK_KWAL`. Seed PostgreSQL tworzy początkowe mapowanie `F18`, ale
+administrator może dopisać kolejne kody bez zmiany aplikacji.
 
 W modelu procesu `PKK` pozostaje typem elementu. Klocek `PKK_KWAL`
 reprezentuje wizytę kwalifikacyjną F18, a `PKK_WIZ` zwykłą wizytę lub
 czynność organizacyjną PKK w trakcie programu.
-Docelowo klocki typu wizyta, sesja i terapia będą mapowane do
-`parametr_kod` wybieranego z `V_KOMPAS_PARAMETRY_WIZYT`. Pełne mapowanie
-i jego interfejs administracyjny nie są jeszcze implementowane.
+Klocki typu wizyta, sesja i terapia mogą być mapowane do wielu wartości
+`parametr_kod` wybieranych z `V_KOMPAS_PARAMETRY_WIZYT` w module
+„Administracja → Ustawienia systemu → Integracja Eskulap”.
 Techniczna wartość `source_type = WIZYTA_KWALIFIKACYJNA_PKK` opisuje
 pochodzenie epizodu i nie jest kodem klocka.
 

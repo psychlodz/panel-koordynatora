@@ -1,4 +1,5 @@
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QComboBox,
@@ -27,6 +28,7 @@ from app.repositories.episode_dashboard_repository import (
 )
 from app.services.work_context import work_context
 from app.ui.episode_details_window import EpisodeDetailsDialog
+from app.ui.theme.process_colors import task_status_colors
 from app.ui.ui_helpers import create_help_button
 from app.ui.widgets.busy_indicator import busy_operation
 
@@ -489,6 +491,25 @@ class EpisodesDashboardWindow(QWidget):
                     )
                 if column_index in (1, 2):
                     item.setToolTip(CONTACT_TOOLTIP)
+                if column_index == 7:
+                    background = QColor(
+                        str(episode.get("next_task_color") or "")
+                    )
+                    foreground = QColor(
+                        str(episode.get("next_task_text_color") or "")
+                    )
+                    if background.isValid():
+                        item.setBackground(background)
+                    if foreground.isValid():
+                        item.setForeground(foreground)
+                if column_index in (8, 9):
+                    colors = task_status_colors(
+                        episode["next_task_status"],
+                        overdue=bool(episode["has_overdue"]),
+                    )
+                    if colors:
+                        item.setBackground(QColor(colors[0]))
+                        item.setForeground(QColor(colors[1]))
                 self.table.setItem(row_index, column_index, item)
 
         info = (

@@ -29,10 +29,11 @@ uprawnień administratora PostgreSQL.
 
 ## 3. Schemat, dane, indeksy i uprawnienia
 
-Zmiana modelu słowników ADM-DICT-3 nie posiada migracji danych. Dla bazy
-testowej należy usunąć dotychczasową bazę `kompas`, utworzyć ją ponownie
-i wykonać komplet aktualnych skryptów. Nie uruchamiaj nowego schematu na
-bazie zawierającej stary model `pk_klocki.typ`.
+Zmiany modeli ADM-DICT-3 i ADM-DICT-4 nie posiadają migracji danych.
+Dla bazy testowej należy usunąć dotychczasową bazę `kompas`, utworzyć ją
+ponownie i wykonać komplet aktualnych skryptów. ADM-DICT-4 dodaje
+`pk_klocki.kolor_tekstu` oraz tabelę `pk_mapowanie_wizyt`. Nie uruchamiaj
+nowego schematu na bazie zawierającej starszy model.
 
 Przykład odtworzenia bazy testowej jako `postgres`:
 

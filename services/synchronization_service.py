@@ -15,12 +15,11 @@ from app.repositories.task_repository import (
     list_active_tasks,
     list_synchronized_event_keys,
 )
+from app.repositories.visit_mapping_repository import list_visit_mappings
 from episode_generator import complete_task
 
 
 TASK_EVENT_TYPES = {
-    "WIZYTA_PSYCHIATRYCZNA": {EVENT_VISIT},
-    "DIAGNOSTYKA_PSYCHOLOGICZNA": {EVENT_VISIT},
     "KONSULTACJA_SPECJALISTYCZNA": {EVENT_CONSULTATION},
     "BADANIE_LAB": {EVENT_LABORATORY_ORDER},
     "BADANIE_GENETYCZNE": {EVENT_LABORATORY_ORDER},
@@ -54,18 +53,32 @@ def _event_key(event):
     return str(event.source), str(event.oracle_id)
 
 
-def _compatible_events(task, events, used_keys):
+def _compatible_events(task, events, used_keys, visit_mapping):
     event_types = TASK_EVENT_TYPES.get(task["klocek_kod"], set())
     return [
         event
         for event in events
-        if event.event_type in event_types
+        if (
+            event.event_type in event_types
+            or (
+                event.event_type == EVENT_VISIT
+                and visit_mapping.get(
+                    str(getattr(event, "parametr_kod", "") or "").upper()
+                )
+                == task["klocek_kod"]
+            )
+        )
         and _event_key(event) not in used_keys
     ]
 
 
-def _match_event(task, patient_tasks, events, used_keys):
-    candidates = _compatible_events(task, events, used_keys)
+def _match_event(task, patient_tasks, events, used_keys, visit_mapping):
+    candidates = _compatible_events(
+        task,
+        events,
+        used_keys,
+        visit_mapping,
+    )
     if not candidates:
         return None
 
@@ -101,8 +114,11 @@ def _match_event(task, patient_tasks, events, used_keys):
     compatible_tasks = [
         other
         for other in patient_tasks
-        if TASK_EVENT_TYPES.get(other["klocek_kod"], set())
-        & TASK_EVENT_TYPES.get(task["klocek_kod"], set())
+        if (
+            other["klocek_kod"] == task["klocek_kod"]
+            or TASK_EVENT_TYPES.get(other["klocek_kod"], set())
+            & TASK_EVENT_TYPES.get(task["klocek_kod"], set())
+        )
     ]
     if len(candidates) == 1 and len(compatible_tasks) == 1:
         return candidates[0]
@@ -121,10 +137,18 @@ def _load_patient_events(patient_id, date_from):
 
 def synchronize_tasks() -> SynchronizationResult:
     result = SynchronizationResult()
+    visit_mapping = {
+        str(mapping["parametr_kod"]).strip().upper(): mapping["klocek_kod"]
+        for mapping in list_visit_mappings(only_active=True)
+    }
+    mapped_visit_blocks = set(visit_mapping.values())
     tasks = [
         task
         for task in list_active_tasks()
-        if task["klocek_kod"] in TASK_EVENT_TYPES
+        if (
+            task["klocek_kod"] in TASK_EVENT_TYPES
+            or task["klocek_kod"] in mapped_visit_blocks
+        )
     ]
     result.tasks_checked = len(tasks)
     used_keys = list_synchronized_event_keys()
@@ -157,6 +181,7 @@ def synchronize_tasks() -> SynchronizationResult:
                 patient_tasks,
                 events,
                 used_keys,
+                visit_mapping,
             )
             if event is None:
                 result.tasks_skipped += 1

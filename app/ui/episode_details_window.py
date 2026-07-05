@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QColor
 
 from app.gateway.eskulap_gateway import EskulapGateway
 from app.repositories.episode_repository import (
@@ -292,10 +293,22 @@ class EpisodeDetailsDialog(QDialog):
                 element["data_realizacji"],
             ]
             for column_index, value in enumerate(values):
+                item = QTableWidgetItem(_text(value))
+                if column_index == 0:
+                    background = QColor(
+                        str(element.get("klocek_kolor") or "")
+                    )
+                    foreground = QColor(
+                        str(element.get("klocek_kolor_tekstu") or "")
+                    )
+                    if background.isValid():
+                        item.setBackground(background)
+                    if foreground.isValid():
+                        item.setForeground(foreground)
                 table.setItem(
                     row_index,
                     column_index,
-                    QTableWidgetItem(_text(value)),
+                    item,
                 )
         layout.addWidget(table)
         return panel
@@ -327,10 +340,22 @@ class EpisodeDetailsDialog(QDialog):
                 task["uwagi"],
             ]
             for column_index, value in enumerate(values):
+                item = QTableWidgetItem(_text(value))
+                if column_index == 0:
+                    background = QColor(
+                        str(task.get("klocek_kolor") or "")
+                    )
+                    foreground = QColor(
+                        str(task.get("klocek_kolor_tekstu") or "")
+                    )
+                    if background.isValid():
+                        item.setBackground(background)
+                    if foreground.isValid():
+                        item.setForeground(foreground)
                 table.setItem(
                     row_index,
                     column_index,
-                    QTableWidgetItem(_text(value)),
+                    item,
                 )
         layout.addWidget(table)
         return tab
