@@ -345,9 +345,11 @@ class MainWindow(QMainWindow):
 
     def open_episodes(self):
         def factory():
-            from app.ui.episodes_window import EpisodesWindow
+            from app.ui.episodes_dashboard_window import (
+                EpisodesDashboardWindow,
+            )
 
-            return EpisodesWindow()
+            return EpisodesDashboardWindow()
 
         self._show_window(
             "episodes",

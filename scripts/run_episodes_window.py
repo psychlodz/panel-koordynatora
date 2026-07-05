@@ -5,13 +5,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from PySide6.QtWidgets import QApplication
 
-from app.ui.episodes_window import EpisodesWindow
+from app.ui.episodes_dashboard_window import EpisodesDashboardWindow
 
 
 def main():
     application = QApplication(sys.argv)
     application.setApplicationName("KOMPAS")
-    window = EpisodesWindow()
+    window = EpisodesDashboardWindow()
     window.show()
     return application.exec()
 

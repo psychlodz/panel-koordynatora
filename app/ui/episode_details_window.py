@@ -5,6 +5,7 @@ from PySide6.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QFormLayout,
+    QGroupBox,
     QHeaderView,
     QLabel,
     QSplitter,
@@ -16,6 +17,7 @@ from PySide6.QtWidgets import (
 )
 from PySide6.QtCore import Qt
 
+from app.gateway.eskulap_gateway import EskulapGateway
 from app.repositories.episode_repository import (
     get_episode,
     list_episode_tasks,
@@ -27,22 +29,42 @@ from app.repositories.event_repository import (
     get_patient_laboratory_orders,
     get_patient_visits,
 )
-from app.repositories.patient_repository import get_patient
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 
 
 WAITING_STATUS = "OCZEKUJE NA AKTYWACJĘ"
+CONTACT_TOOLTIP = (
+    "Dane kontaktowe są pobierane z Eskulapa i nie są zapisywane w KOMPAS."
+)
 
 
 def _text(value):
     return "" if value is None else str(value)
 
 
+def _patient_value(patient, field_name, legacy_name=None):
+    if patient is None:
+        return None
+    if isinstance(patient, dict):
+        return patient.get(field_name) or (
+            patient.get(legacy_name) if legacy_name else None
+        )
+    return getattr(patient, field_name, None)
+
+
+def _contact_text(patient, field_name):
+    value = _patient_value(patient, field_name)
+    return str(value).strip() if value else "brak"
+
+
 def _patient_name(patient, fallback):
     if patient:
         name = " ".join(
             part
-            for part in (patient.get("nazwisko"), patient.get("imie"))
+            for part in (
+                _patient_value(patient, "last_name", "nazwisko"),
+                _patient_value(patient, "first_name", "imie"),
+            )
             if part
         ).strip()
         if name:
@@ -88,7 +110,9 @@ class EpisodeDetailsDialog(QDialog):
 
         if self.patient is None:
             try:
-                self.patient = get_patient(self.episode["pacjent_id"])
+                self.patient = EskulapGateway().get_patient(
+                    self.episode["pacjent_id"]
+                )
             except Exception as exc:
                 self.oracle_errors.append(f"Pacjent: {exc}")
 
@@ -174,7 +198,11 @@ class EpisodeDetailsDialog(QDialog):
         )
         form.addRow(
             "PESEL:",
-            QLabel(_text(self.patient.get("pesel")) if self.patient else ""),
+            QLabel(
+                _text(_patient_value(self.patient, "pesel"))
+                if self.patient
+                else ""
+            ),
         )
         form.addRow(
             "Program:",
@@ -221,6 +249,26 @@ class EpisodeDetailsDialog(QDialog):
         )
         form.addRow("Uwagi:", QLabel(_text(self.episode["uwagi"])))
         layout.addLayout(form)
+
+        contact_group = QGroupBox("Kontakt")
+        contact_group.setToolTip(CONTACT_TOOLTIP)
+        contact_form = QFormLayout(contact_group)
+        contact_fields = (
+            ("Telefon pacjenta:", "phone"),
+            ("E-mail pacjenta:", "email"),
+            ("Telefon opiekuna:", "guardian_phone"),
+            ("E-mail opiekuna:", "guardian_email"),
+        )
+        for label, field_name in contact_fields:
+            value_label = QLabel(
+                _contact_text(self.patient, field_name)
+            )
+            value_label.setTextInteractionFlags(
+                Qt.TextInteractionFlag.TextSelectableByMouse
+            )
+            value_label.setToolTip(CONTACT_TOOLTIP)
+            contact_form.addRow(label, value_label)
+        layout.addWidget(contact_group)
         layout.addStretch(1)
         return panel
 
