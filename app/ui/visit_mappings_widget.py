@@ -5,9 +5,11 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
     QHeaderView,
+    QInputDialog,
+    QLabel,
+    QLineEdit,
     QMessageBox,
     QPushButton,
-    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -22,118 +24,137 @@ from app.repositories.visit_mapping_repository import (
     list_mapping_blocks,
     list_visit_mappings,
 )
+from app.ui.ui_helpers import create_help_button
 from app.ui.widgets.busy_indicator import busy_operation
 
 
 MAPPING_ID_ROLE = int(Qt.ItemDataRole.UserRole) + 1
 PARAMETER_NAME_ROLE = int(Qt.ItemDataRole.UserRole) + 2
+BLOCK_ID_ROLE = int(Qt.ItemDataRole.UserRole) + 3
+
+DESCRIPTION = (
+    "Mapowanie rodzajów wizyt określa, jaki klocek procesu KOMPAS "
+    "odpowiada danemu rodzajowi wizyty z systemu Eskulap (WP_PARAMETR). "
+    "Jeden klocek może być powiązany z wieloma rodzajami wizyt."
+)
+
+HELP_TEXT = (
+    f"{DESCRIPTION}\n\n"
+    "Zaznacz jeden lub kilka wierszy i wybierz „Przypisz”, aby wskazać "
+    "klocek. „Usuń przypisanie” usuwa wyłącznie powiązanie w KOMPAS — "
+    "nie modyfikuje danych Eskulapa."
+)
 
 
 class VisitMappingsWidget(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self._blocks = []
+        self._blocks_by_id = {}
         self._parameters = []
         self._mappings_by_code = {}
 
         layout = QVBoxLayout(self)
-        controls = QHBoxLayout()
-        self.only_active_checkbox = QCheckBox(
-            "Pokaż tylko aktywne rodzaje wizyt"
-        )
-        self.only_active_checkbox.setChecked(True)
-        self.refresh_button = QPushButton("Odśwież")
-        self.refresh_button.setToolTip(
-            "Pobierz klocki z PostgreSQL i rodzaje wizyt z Eskulapa."
-        )
-        controls.addWidget(self.only_active_checkbox)
-        controls.addStretch(1)
-        controls.addWidget(self.refresh_button)
-        layout.addLayout(controls)
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(10)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        self.blocks_table = QTableWidget(0, 3)
-        self.blocks_table.setHorizontalHeaderLabels(
-            ["Klocek", "Grupa", "Mapowania"]
+        description = QLabel(DESCRIPTION)
+        description.setWordWrap(True)
+        description.setObjectName("settingsTabDescription")
+        layout.addWidget(description)
+
+        filters = QHBoxLayout()
+        self.only_active_checkbox = QCheckBox("Tylko aktywne")
+        self.only_active_checkbox.setChecked(True)
+        self.search_edit = QLineEdit()
+        self.search_edit.setClearButtonEnabled(True)
+        self.search_edit.setPlaceholderText(
+            "Szukaj po kodzie, nazwie, klocku lub grupie..."
         )
-        self.parameters_table = QTableWidget(0, 4)
-        self.parameters_table.setHorizontalHeaderLabels(
-            ["Kod WP_PARAMETR", "Nazwa w Eskulapie", "Aktywny", "Klocek"]
+        self.search_edit.setMinimumWidth(320)
+        filters.addWidget(self.only_active_checkbox)
+        filters.addWidget(QLabel("Wyszukiwarka:"))
+        filters.addWidget(self.search_edit, 1)
+        layout.addLayout(filters)
+
+        self.table = QTableWidget(0, 5)
+        self.table.setHorizontalHeaderLabels(
+            [
+                "Kod",
+                "Nazwa rodzaju wizyty",
+                "Klocek",
+                "Grupa",
+                "Status",
+            ]
         )
-        for table in (self.blocks_table, self.parameters_table):
-            table.setSelectionBehavior(
-                QAbstractItemView.SelectionBehavior.SelectRows
-            )
-            table.setEditTriggers(
-                QAbstractItemView.EditTrigger.NoEditTriggers
-            )
-            table.verticalHeader().setVisible(False)
-            table.horizontalHeader().setSectionResizeMode(
-                QHeaderView.ResizeMode.ResizeToContents
-            )
-        self.blocks_table.setSelectionMode(
-            QAbstractItemView.SelectionMode.SingleSelection
+        self.table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
         )
-        self.parameters_table.setSelectionMode(
+        self.table.setSelectionMode(
             QAbstractItemView.SelectionMode.ExtendedSelection
         )
-        self.blocks_table.horizontalHeader().setSectionResizeMode(
-            0, QHeaderView.ResizeMode.Stretch
+        self.table.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers
         )
-        self.parameters_table.horizontalHeader().setSectionResizeMode(
-            1, QHeaderView.ResizeMode.Stretch
-        )
-        splitter.addWidget(self.blocks_table)
-        splitter.addWidget(self.parameters_table)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 2)
-        layout.addWidget(splitter, 1)
+        self.table.setAlternatingRowColors(True)
+        self.table.verticalHeader().setVisible(False)
+        header = self.table.horizontalHeader()
+        header.setMinimumSectionSize(90)
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        self.table.setColumnWidth(0, 125)
+        self.table.setColumnWidth(2, 230)
+        self.table.setColumnWidth(3, 170)
+        self.table.setColumnWidth(4, 110)
+        layout.addWidget(self.table, 1)
 
         actions = QHBoxLayout()
-        self.assign_button = QPushButton("Przypisz zaznaczone")
+        self.assign_button = QPushButton("Przypisz")
         self.assign_button.setToolTip(
             "Przypisz zaznaczone rodzaje wizyt do wybranego klocka."
         )
         self.remove_button = QPushButton("Usuń przypisanie")
         self.remove_button.setToolTip(
-            "Usuń przypisania zaznaczonych rodzajów wizyt."
+            "Usuń mapowania zaznaczonych rodzajów wizyt."
+        )
+        self.refresh_button = QPushButton("Odśwież")
+        self.refresh_button.setToolTip(
+            "Pobierz klocki z PostgreSQL i rodzaje wizyt z Eskulapa."
+        )
+        self.help_button = create_help_button(
+            self,
+            "Mapowanie rodzajów wizyt",
+            HELP_TEXT,
         )
         actions.addWidget(self.assign_button)
         actions.addWidget(self.remove_button)
+        actions.addWidget(self.refresh_button)
         actions.addStretch(1)
+        actions.addWidget(self.help_button)
         layout.addLayout(actions)
 
         self.refresh_button.clicked.connect(self.refresh)
         self.only_active_checkbox.toggled.connect(self.refresh)
+        self.search_edit.textChanged.connect(self.apply_filter)
         self.assign_button.clicked.connect(self.assign_selected)
         self.remove_button.clicked.connect(self.remove_selected)
         QTimer.singleShot(0, self.refresh)
 
-    def selected_block_id(self):
-        row = self.blocks_table.currentRow()
-        item = self.blocks_table.item(row, 0) if row >= 0 else None
-        return (
-            item.data(Qt.ItemDataRole.UserRole)
-            if item is not None
-            else None
-        )
-
-    def selected_parameter_rows(self):
-        return sorted(
-            {index.row() for index in self.parameters_table.selectedIndexes()}
-        )
+    def selected_rows(self):
+        return sorted({index.row() for index in self.table.selectedIndexes()})
 
     @staticmethod
     def _active_text(value):
+        if value is None:
+            return "Brak danych"
         return (
-            "Tak"
-            if str(value if value is not None else "T").strip().upper()
+            "Aktywny"
+            if str(value).strip().upper()
             in {"T", "TAK", "Y", "YES", "1", "TRUE"}
-            else "Nie"
+            else "Nieaktywny"
         )
 
     def refresh(self):
-        selected_block = self.selected_block_id()
         try:
             with busy_operation(
                 self,
@@ -144,12 +165,16 @@ class VisitMappingsWidget(QWidget):
                 self._parameters = EskulapGateway().list_visit_parameters(
                     only_active=self.only_active_checkbox.isChecked(),
                 )
+            self._blocks_by_id = {
+                int(block["klocek_id"]): block
+                for block in self._blocks
+            }
             self._mappings_by_code = {
                 str(item["parametr_kod"]).upper(): item
                 for item in mappings
             }
-            self._fill_blocks(selected_block)
-            self._fill_parameters()
+            self._fill_table()
+            self.apply_filter()
         except Exception as exc:
             QMessageBox.critical(
                 self,
@@ -157,37 +182,7 @@ class VisitMappingsWidget(QWidget):
                 f"Nie udało się pobrać mapowań rodzajów wizyt:\n\n{exc}",
             )
 
-    def _fill_blocks(self, selected_block=None):
-        self.blocks_table.setRowCount(len(self._blocks))
-        selected_row = 0 if self._blocks else -1
-        for row, block in enumerate(self._blocks):
-            values = (
-                block["nazwa"],
-                block["grupa_nazwa"],
-                block["liczba_mapowan"],
-            )
-            for column, value in enumerate(values):
-                item = QTableWidgetItem(str(value or ""))
-                if column == 0:
-                    item.setData(
-                        Qt.ItemDataRole.UserRole,
-                        block["klocek_id"],
-                    )
-                    color = QColor(str(block.get("kolor") or ""))
-                    text_color = QColor(
-                        str(block.get("kolor_tekstu") or "")
-                    )
-                    if color.isValid():
-                        item.setBackground(color)
-                    if text_color.isValid():
-                        item.setForeground(text_color)
-                self.blocks_table.setItem(row, column, item)
-            if block["klocek_id"] == selected_block:
-                selected_row = row
-        if selected_row >= 0:
-            self.blocks_table.selectRow(selected_row)
-
-    def _fill_parameters(self):
+    def _all_parameters(self):
         parameters_by_code = {
             str(parameter.code).strip().upper(): parameter
             for parameter in self._parameters
@@ -200,23 +195,31 @@ class VisitMappingsWidget(QWidget):
                         name=mapping["parametr_nazwa_cache"],
                         is_active=None,
                     )
-
-        parameters = sorted(
+        return sorted(
             parameters_by_code.values(),
             key=lambda item: (
                 str(item.name or "").casefold(),
                 str(item.code).casefold(),
             ),
         )
-        self.parameters_table.setRowCount(len(parameters))
+
+    def _fill_table(self):
+        parameters = self._all_parameters()
+        self.table.setRowCount(len(parameters))
         for row, parameter in enumerate(parameters):
             code = str(parameter.code).strip().upper()
             mapping = self._mappings_by_code.get(code)
+            block = (
+                self._blocks_by_id.get(int(mapping["klocek_id"]))
+                if mapping
+                else None
+            )
             values = (
                 code,
                 parameter.name or "",
+                block["nazwa"] if block else "Nie przypisano",
+                block["grupa_nazwa"] if block else "",
                 self._active_text(parameter.is_active),
-                mapping["klocek_nazwa"] if mapping else "Nie przypisano",
             )
             for column, value in enumerate(values):
                 item = QTableWidgetItem(str(value))
@@ -226,27 +229,76 @@ class VisitMappingsWidget(QWidget):
                         MAPPING_ID_ROLE,
                         mapping["mapowanie_id"] if mapping else None,
                     )
+                    item.setData(PARAMETER_NAME_ROLE, parameter.name)
                     item.setData(
-                        PARAMETER_NAME_ROLE,
-                        parameter.name,
+                        BLOCK_ID_ROLE,
+                        mapping["klocek_id"] if mapping else None,
                     )
-                self.parameters_table.setItem(row, column, item)
+                if column == 2 and block:
+                    background = QColor(str(block.get("kolor") or ""))
+                    foreground = QColor(
+                        str(block.get("kolor_tekstu") or "")
+                    )
+                    if background.isValid():
+                        item.setBackground(background)
+                    if foreground.isValid():
+                        item.setForeground(foreground)
+                self.table.setItem(row, column, item)
 
-    def assign_selected(self):
-        block_id = self.selected_block_id()
-        rows = self.selected_parameter_rows()
-        if block_id is None or not rows:
+    def apply_filter(self):
+        search = self.search_edit.text().strip().casefold()
+        for row in range(self.table.rowCount()):
+            searchable = " ".join(
+                self.table.item(row, column).text()
+                for column in range(self.table.columnCount())
+                if self.table.item(row, column) is not None
+            ).casefold()
+            self.table.setRowHidden(
+                row,
+                bool(search and search not in searchable),
+            )
+
+    def _select_block(self):
+        if not self._blocks:
             QMessageBox.information(
                 self,
                 "KOMPAS",
-                "Wybierz klocek oraz co najmniej jeden rodzaj wizyty.",
+                "Brak aktywnych klocków możliwych do przypisania.",
             )
+            return None
+        options = [
+            f"{block['nazwa']} — {block['grupa_nazwa']}"
+            for block in self._blocks
+        ]
+        selected, accepted = QInputDialog.getItem(
+            self,
+            "Przypisz klocek",
+            "Klocek KOMPAS:",
+            options,
+            0,
+            False,
+        )
+        if not accepted:
+            return None
+        return self._blocks[options.index(selected)]
+
+    def assign_selected(self):
+        rows = self.selected_rows()
+        if not rows:
+            QMessageBox.information(
+                self,
+                "KOMPAS",
+                "Zaznacz co najmniej jeden rodzaj wizyty.",
+            )
+            return
+        block = self._select_block()
+        if block is None:
             return
         try:
             for row in rows:
-                item = self.parameters_table.item(row, 0)
+                item = self.table.item(row, 0)
                 assign_visit_parameter(
-                    block_id,
+                    block["klocek_id"],
                     item.data(Qt.ItemDataRole.UserRole),
                     item.data(PARAMETER_NAME_ROLE),
                 )
@@ -260,9 +312,8 @@ class VisitMappingsWidget(QWidget):
 
     def remove_selected(self):
         mapping_ids = []
-        for row in self.selected_parameter_rows():
-            item = self.parameters_table.item(row, 0)
-            mapping_id = item.data(MAPPING_ID_ROLE)
+        for row in self.selected_rows():
+            mapping_id = self.table.item(row, 0).data(MAPPING_ID_ROLE)
             if mapping_id is not None:
                 mapping_ids.append(mapping_id)
         if not mapping_ids:

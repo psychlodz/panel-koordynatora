@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
@@ -294,6 +295,19 @@ class UserEditorDialog(QDialog):
         self.resize(780, 720)
 
         layout = QVBoxLayout(self)
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        content = QWidget()
+        content_layout = QVBoxLayout(content)
+        scroll.setWidget(content)
+        layout.addWidget(scroll, 1)
+
         form = QFormLayout()
         self.login_edit = QLineEdit()
         self.name_edit = QLineEdit()
@@ -324,17 +338,18 @@ class UserEditorDialog(QDialog):
             ]
         self.roles_widget = RolesWidget(selected_roles)
         form.addRow("Role:", self.roles_widget)
-        layout.addLayout(form)
+        content_layout.addLayout(form)
 
         units_label = QLabel("Jednostki organizacyjne")
         units_label.setObjectName("panelTitle")
-        layout.addWidget(units_label)
+        content_layout.addWidget(units_label)
         self.units_widget = OrganizationalUnitsWidget(
             assigned_units,
             default_unit_id,
             self,
         )
-        layout.addWidget(self.units_widget, 1)
+        self.units_widget.setMinimumHeight(360)
+        content_layout.addWidget(self.units_widget, 1)
 
         buttons = QDialogButtonBox(
             QDialogButtonBox.StandardButton.Save

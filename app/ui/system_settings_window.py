@@ -8,10 +8,12 @@ from PySide6.QtWidgets import (
     QAbstractItemView,
     QFormLayout,
     QGroupBox,
+    QHeaderView,
     QHBoxLayout,
     QLabel,
     QMessageBox,
     QPushButton,
+    QScrollArea,
     QTabWidget,
     QTreeWidget,
     QTreeWidgetItem,
@@ -132,13 +134,16 @@ class SystemSettingsWindow(QWidget):
             "Integracja Eskulap",
         )
         self.tabs.addTab(
-            self._system_parameters_tab(),
+            self._scrollable(self._system_parameters_tab()),
             "Parametry systemu",
         )
         self.tabs.addTab(self._roles_tab(), "Role i uprawnienia")
-        self.tabs.addTab(self._diagnostics_tab(), "Diagnostyka")
         self.tabs.addTab(
-            self._system_information_tab(),
+            self._scrollable(self._diagnostics_tab()),
+            "Diagnostyka",
+        )
+        self.tabs.addTab(
+            self._scrollable(self._system_information_tab()),
             "Informacje o systemie",
         )
         layout.addWidget(self.tabs, 1)
@@ -192,6 +197,19 @@ class SystemSettingsWindow(QWidget):
         footer.addStretch(1)
         footer.addWidget(close_button)
         page._settings_layout.addLayout(footer)
+
+    @staticmethod
+    def _scrollable(widget):
+        scroll = QScrollArea()
+        scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        scroll.setWidget(widget)
+        return scroll
 
     @staticmethod
     def _tree(headers):
@@ -401,16 +419,9 @@ class SystemSettingsWindow(QWidget):
         )
         return button
 
-    def _eskulap_integration_tab(self):
-        title, description = TAB_DEFINITIONS[1]
-        page = self._page(
-            title,
-            description,
-            "Zakładka pokazuje aktywny filtr wizyty kwalifikacyjnej "
-            "oraz kontrakty integracyjne. Test Gateway uruchamia się "
-            "ręcznie zgodnie z pokazaną instrukcją.",
-        )
-
+    def _integration_diagnostics_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
         qualification_group = QGroupBox(
             "Filtr wizyty kwalifikacyjnej PKK"
         )
@@ -431,7 +442,7 @@ class SystemSettingsWindow(QWidget):
                 "PKK_KWAL (domyślnie mapowany na F18 w seedzie)"
             ),
         )
-        page._settings_layout.addWidget(qualification_group)
+        layout.addWidget(qualification_group)
 
         gateway_group = QGroupBox("Test Gateway")
         gateway_layout = QHBoxLayout(gateway_group)
@@ -444,10 +455,20 @@ class SystemSettingsWindow(QWidget):
             )
         )
         gateway_layout.addStretch(1)
-        page._settings_layout.addWidget(gateway_group)
+        layout.addWidget(gateway_group)
+        layout.addStretch(1)
+        return page
 
-        views_group = QGroupBox("Widoki Oracle")
-        views_layout = QVBoxLayout(views_group)
+    def _integration_views_page(self):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        description = QLabel(
+            "Widoki wykorzystywane przez Eskulap Gateway. "
+            "KOMPAS korzysta z nich wyłącznie do odczytu."
+        )
+        description.setWordWrap(True)
+        layout.addWidget(description)
+        views = self._tree(["Widok Oracle", "Tryb"])
         for view_name in (
             "ESK_RAPORTY.V_KOMPAS_PACJENCI",
             "ESK_RAPORTY.V_KOMPAS_WIZYTY",
@@ -455,20 +476,64 @@ class SystemSettingsWindow(QWidget):
             "ESK_RAPORTY.V_KOMPAS_KONSULTACJE",
             "ESK_RAPORTY.V_KOMPAS_BADANIA",
         ):
-            views_layout.addWidget(self._readonly_value(view_name))
-        page._settings_layout.addWidget(views_group)
-
-        mappings_group = QGroupBox("Mapowanie rodzajów wizyt")
-        mappings_layout = QVBoxLayout(mappings_group)
-        mappings_description = QLabel(
-            "Wybierz klocek po lewej i rodzaje wizyt Eskulapa po prawej. "
-            "Dane Oracle są tylko do odczytu; w PostgreSQL zapisywane są "
-            "wyłącznie przypisania kodów."
+            QTreeWidgetItem(views, [view_name, "Tylko odczyt"])
+        views.header().setSectionResizeMode(
+            0,
+            QHeaderView.ResizeMode.Stretch,
         )
-        mappings_description.setWordWrap(True)
-        mappings_layout.addWidget(mappings_description)
-        mappings_layout.addWidget(VisitMappingsWidget(mappings_group), 1)
-        page._settings_layout.addWidget(mappings_group)
+        views.resizeColumnToContents(1)
+        layout.addWidget(views, 1)
+        return page
+
+    @staticmethod
+    def _integration_placeholder(title):
+        page = QWidget()
+        layout = QVBoxLayout(page)
+        message = QLabel(
+            f"{title}\n\nFunkcja będzie dostępna w kolejnych wersjach."
+        )
+        message.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        message.setWordWrap(True)
+        layout.addStretch(1)
+        layout.addWidget(message)
+        layout.addStretch(1)
+        return page
+
+    def _eskulap_integration_tab(self):
+        title, description = TAB_DEFINITIONS[1]
+        page = self._page(
+            title,
+            description,
+            "Zakładka porządkuje diagnostykę integracji, widoki Oracle "
+            "oraz mapowania kodów referencyjnych Eskulapa.",
+        )
+        integration_tabs = QTabWidget()
+        integration_tabs.setObjectName("eskulapIntegrationTabs")
+        integration_tabs.addTab(
+            self._scrollable(self._integration_diagnostics_page()),
+            "Diagnostyka",
+        )
+        integration_tabs.addTab(
+            self._integration_views_page(),
+            "Widoki Oracle",
+        )
+        integration_tabs.addTab(
+            VisitMappingsWidget(integration_tabs),
+            "Rodzaje wizyt",
+        )
+        integration_tabs.addTab(
+            self._integration_placeholder("Mapowanie konsultacji"),
+            "Mapowanie konsultacji",
+        )
+        integration_tabs.addTab(
+            self._integration_placeholder("Mapowanie badań"),
+            "Mapowanie badań",
+        )
+        integration_tabs.addTab(
+            self._integration_placeholder("Mapowanie procedur"),
+            "Mapowanie procedur",
+        )
+        page._settings_layout.addWidget(integration_tabs, 1)
         self._add_footer(page)
         return page
 

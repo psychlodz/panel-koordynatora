@@ -109,6 +109,11 @@ QGroupBox::title {
     background-color: ${SURFACE};
 }
 
+QScrollArea {
+    background-color: transparent;
+    border: none;
+}
+
 /* === Przyciski === */
 QPushButton, QToolButton {
     min-height: 34px;
