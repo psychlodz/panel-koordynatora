@@ -1,4 +1,5 @@
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QSize, Qt, Signal, QTimer
+from PySide6.QtGui import QColor, QPainter, QPen
 from PySide6.QtWidgets import (
     QAbstractItemView,
     QFrame,
@@ -103,9 +104,15 @@ class PathwayTilesWidget(QListWidget):
         self.setDefaultDropAction(Qt.DropAction.MoveAction)
         self.setDragEnabled(True)
         self.setAcceptDrops(True)
-        self.setDropIndicatorShown(True)
+        self.setDropIndicatorShown(False)
+        self.setAutoScroll(False)
         self.setSpacing(8)
         self.setAlternatingRowColors(False)
+        self._drop_row = None
+        self._scroll_direction = 0
+        self._scroll_timer = QTimer(self)
+        self._scroll_timer.setInterval(180)
+        self._scroll_timer.timeout.connect(self._slow_auto_scroll)
         self.currentItemChanged.connect(self._selection_changed)
         self.itemDoubleClicked.connect(self._item_double_clicked)
         self.setStyleSheet(
@@ -218,9 +225,113 @@ class PathwayTilesWidget(QListWidget):
         previous_order = self.ordered_element_ids()
         super().dropEvent(event)
         new_order = self.ordered_element_ids()
+        self._clear_drag_feedback()
         self._refresh_selection()
         if new_order != previous_order:
             self.orderChanged.emit(new_order)
+
+    def dragEnterEvent(self, event):
+        super().dragEnterEvent(event)
+        if event.isAccepted():
+            self._update_drag_feedback(event.position().toPoint())
+
+    def dragMoveEvent(self, event):
+        super().dragMoveEvent(event)
+        if event.isAccepted():
+            self._update_drag_feedback(event.position().toPoint())
+
+    def dragLeaveEvent(self, event):
+        self._clear_drag_feedback()
+        super().dragLeaveEvent(event)
+
+    def paintEvent(self, event):
+        super().paintEvent(event)
+        if self._drop_row is None:
+            return
+
+        if self._drop_row >= self.count():
+            if self.count():
+                rect = self.visualItemRect(self.item(self.count() - 1))
+                marker_y = rect.bottom() + self.spacing() // 2
+            else:
+                marker_y = 10
+        else:
+            rect = self.visualItemRect(self.item(self._drop_row))
+            marker_y = rect.top() - self.spacing() // 2
+
+        painter = QPainter(self.viewport())
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        color = QColor("#0B6FA4")
+        painter.setPen(
+            QPen(
+                color,
+                4,
+                Qt.PenStyle.SolidLine,
+                Qt.PenCapStyle.RoundCap,
+            )
+        )
+        margin = 14
+        painter.drawLine(
+            margin,
+            marker_y,
+            max(margin, self.viewport().width() - margin),
+            marker_y,
+        )
+        painter.setBrush(color)
+        painter.setPen(Qt.PenStyle.NoPen)
+        painter.drawEllipse(margin - 5, marker_y - 5, 10, 10)
+        painter.drawEllipse(
+            self.viewport().width() - margin - 5,
+            marker_y - 5,
+            10,
+            10,
+        )
+
+    def _update_drag_feedback(self, position):
+        item = self.itemAt(position)
+        if item is None:
+            drop_row = self.count()
+        else:
+            row = self.row(item)
+            item_rect = self.visualItemRect(item)
+            drop_row = row + (position.y() >= item_rect.center().y())
+
+        if drop_row != self._drop_row:
+            self._drop_row = drop_row
+            self.viewport().update()
+
+        edge = 36
+        if position.y() < edge:
+            direction = -1
+        elif position.y() > self.viewport().height() - edge:
+            direction = 1
+        else:
+            direction = 0
+        self._set_scroll_direction(direction)
+
+    def _set_scroll_direction(self, direction):
+        self._scroll_direction = direction
+        if direction:
+            if not self._scroll_timer.isActive():
+                self._scroll_timer.start()
+        else:
+            self._scroll_timer.stop()
+
+    def _slow_auto_scroll(self):
+        if not self._scroll_direction:
+            return
+        scrollbar = self.verticalScrollBar()
+        step = max(1, scrollbar.singleStep())
+        scrollbar.setValue(
+            scrollbar.value() + self._scroll_direction * step
+        )
+        self.viewport().update()
+
+    def _clear_drag_feedback(self):
+        self._set_scroll_direction(0)
+        if self._drop_row is not None:
+            self._drop_row = None
+            self.viewport().update()
 
     def _selection_changed(self, current, _previous):
         self._refresh_selection()

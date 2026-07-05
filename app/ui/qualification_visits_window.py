@@ -24,7 +24,7 @@ from app.repositories.qualification_repository import (
     create_episode_from_qualification_visit,
     list_qualification_visits,
 )
-from app.ui.episode_details_window import EpisodeDetailsDialog
+from app.services.work_context import work_context
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 from app.ui.widgets.busy_indicator import busy_operation
 from version import APP_NAME
@@ -33,7 +33,9 @@ from version import APP_NAME
 class QualificationAssignmentDialog(QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setWindowTitle(f"{APP_NAME} — Przypisz program i ścieżkę")
+        self.setWindowTitle(
+            f"{APP_NAME} — Przypisz program i ścieżkę"
+        )
         self.resize(560, 300)
 
         layout = QVBoxLayout(self)
@@ -64,10 +66,12 @@ class QualificationAssignmentDialog(QDialog):
         for program in list_programs():
             if program["czy_aktywny"]:
                 self.program_combo.addItem(
-                    f"{program['kod']} — {program['nazwa']}",
+                    program["nazwa"],
                     program["program_id"],
                 )
-        self.program_combo.currentIndexChanged.connect(self.load_pathways)
+        self.program_combo.currentIndexChanged.connect(
+            self.load_pathways
+        )
         self.load_pathways()
 
     def load_pathways(self):
@@ -78,7 +82,7 @@ class QualificationAssignmentDialog(QDialog):
         for pathway in list_pathways(program_id):
             if pathway["czy_aktywna"]:
                 self.pathway_combo.addItem(
-                    f"{pathway['kod']} — {pathway['nazwa']}",
+                    pathway["nazwa"],
                     pathway["sciezka_id"],
                 )
 
@@ -104,7 +108,9 @@ class QualificationAssignmentDialog(QDialog):
 class QualificationVisitsWindow(QWidget):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle(f"{APP_NAME} — Wizyty kwalifikacyjne PKK")
+        self.setWindowTitle(
+            f"{APP_NAME} — Wizyty kwalifikacyjne PKK"
+        )
         self.resize(1400, 720)
         self._visits = {}
 
@@ -123,16 +129,20 @@ class QualificationVisitsWindow(QWidget):
         filters.addWidget(QLabel("Do:"))
         filters.addWidget(self.date_to)
         filters.addStretch(1)
+        self.refresh_button = QPushButton("Odśwież")
+        self.refresh_button.setToolTip(
+            "Pobierz ponownie nieprzypisane wizyty kwalifikacyjne."
+        )
+        filters.addWidget(self.refresh_button)
         layout.addLayout(filters)
 
         self.info_label = QLabel()
         layout.addWidget(self.info_label)
 
-        self.table = QTableWidget(0, 8)
+        self.table = QTableWidget(0, 7)
         self.table.setHorizontalHeaderLabels(
             [
                 "Data wizyty",
-                "ID pacjenta",
                 "PESEL",
                 "Nazwisko",
                 "Imię",
@@ -147,48 +157,44 @@ class QualificationVisitsWindow(QWidget):
         self.table.setSelectionMode(
             QAbstractItemView.SelectionMode.SingleSelection
         )
-        self.table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        self.table.setEditTriggers(
+            QAbstractItemView.EditTrigger.NoEditTriggers
+        )
         self.table.verticalHeader().setVisible(False)
         self.table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.ResizeToContents
         )
         self.table.horizontalHeader().setSectionResizeMode(
-            5, QHeaderView.ResizeMode.Stretch
+            4,
+            QHeaderView.ResizeMode.Stretch,
         )
         layout.addWidget(self.table, 1)
 
         actions = QHBoxLayout()
-        self.refresh_button = QPushButton("Odśwież")
         self.assign_button = QPushButton("Przypisz program/ścieżkę")
-        self.show_episode_button = QPushButton("Pokaż epizod")
         self.help_button = create_help_button(
             self,
             "Wizyty kwalifikacyjne PKK",
-            "To okno pokazuje wizyty mogące rozpocząć program KOMPAS.\n\n"
-            "Możesz odświeżyć listę, przypisać program i ścieżkę albo "
-            "otworzyć utworzony epizod.\n\n"
-            "Nie przypisuj wizyty, dopóki nie potwierdzisz właściwego "
-            "pacjenta i programu.",
+            "To okno pokazuje nieprzypisane wizyty kwalifikacyjne PKK.\n\n"
+            "Koordynator widzi wizyty swoich jednostek, a administrator "
+            "wszystkie jednostki. Po utworzeniu epizodu wizyta znika z listy.",
         )
-        self.refresh_button.setToolTip(
-            "Pobierz ponownie wizyty kwalifikacyjne z Eskulapa."
-        )
+        self.close_button = QPushButton("Zamknij")
         self.assign_button.setToolTip(
             "Przypisz program, ścieżkę i koordynatora do zaznaczonej wizyty."
         )
-        self.show_episode_button.setToolTip(
-            "Otwórz epizod utworzony z zaznaczonej wizyty."
+        self.close_button.setToolTip(
+            "Zamknij okno wizyt kwalifikacyjnych."
         )
-        actions.addWidget(self.refresh_button)
         actions.addWidget(self.assign_button)
-        actions.addWidget(self.show_episode_button)
         actions.addWidget(self.help_button)
         actions.addStretch(1)
+        actions.addWidget(self.close_button)
         layout.addLayout(actions)
 
         self.refresh_button.clicked.connect(self.refresh_visits)
         self.assign_button.clicked.connect(self.assign_selected_visit)
-        self.show_episode_button.clicked.connect(self.show_episode)
+        self.close_button.clicked.connect(self.close)
         self.refresh_visits()
 
     def selected_visit(self):
@@ -197,10 +203,37 @@ class QualificationVisitsWindow(QWidget):
         visit_id = item.data(Qt.ItemDataRole.UserRole) if item else None
         if visit_id is None:
             QMessageBox.information(
-                self, APP_NAME, "Wybierz wizytę kwalifikacyjną."
+                self,
+                APP_NAME,
+                "Wybierz wizytę kwalifikacyjną.",
             )
             return None
         return self._visits.get(str(visit_id))
+
+    @staticmethod
+    def _clinic_label(visit):
+        symbol = str(visit.get("poradnia_symbol") or "").strip()
+        name = str(
+            visit.get("poradnia_nazwa")
+            or visit.get("poradnia")
+            or ""
+        ).strip()
+        return " - ".join(value for value in (symbol, name) if value)
+
+    @staticmethod
+    def _allowed_visits(visits):
+        current_user = work_context.current_user
+        if current_user is not None and current_user.is_admin:
+            return visits
+        allowed_units = {
+            str(unit.jo_id)
+            for unit in work_context.user_units
+        }
+        return [
+            visit
+            for visit in visits
+            if str(visit.get("poradnia_id")) in allowed_units
+        ]
 
     def refresh_visits(self):
         try:
@@ -211,21 +244,21 @@ class QualificationVisitsWindow(QWidget):
                 visits = list_qualification_visits(
                     self.date_from.date().toString("yyyy-MM-dd"),
                     self.date_to.date().toString("yyyy-MM-dd"),
-                    only_unassigned=False,
+                    only_unassigned=True,
                 )
+            visits = self._allowed_visits(visits)
             self._visits = {
-                str(visit["wizyta_id"]): visit for visit in visits
+                str(visit["wizyta_id"]): visit
+                for visit in visits
             }
             self.table.setRowCount(len(visits))
             for row_index, visit in enumerate(visits):
                 values = [
                     visit.get("data_wizyty"),
-                    visit.get("pacjent_id"),
                     visit.get("pesel"),
                     visit.get("nazwisko"),
                     visit.get("imie"),
-                    visit.get("poradnia")
-                    or visit.get("poradnia_nazwa"),
+                    self._clinic_label(visit),
                     visit.get("pracownik"),
                     visit.get("assignment_status"),
                 ]
@@ -238,26 +271,23 @@ class QualificationVisitsWindow(QWidget):
                             Qt.ItemDataRole.UserRole,
                             visit["wizyta_id"],
                         )
-                    self.table.setItem(row_index, column_index, item)
+                    self.table.setItem(
+                        row_index,
+                        column_index,
+                        item,
+                    )
             self.info_label.setText(f"Wizyty: {len(visits)}")
         except Exception as exc:
             QMessageBox.critical(
                 self,
                 APP_NAME,
-                f"Nie udało się pobrać wizyt kwalifikacyjnych:\n\n{exc}",
+                "Nie udało się pobrać wizyt kwalifikacyjnych:\n\n"
+                f"{exc}",
             )
 
     def assign_selected_visit(self):
         visit = self.selected_visit()
         if visit is None:
-            return
-        if visit["epizod_id"] is not None:
-            QMessageBox.information(
-                self,
-                APP_NAME,
-                f"Wizyta jest już przypisana do epizodu "
-                f"{visit['epizod_id']}.",
-            )
             return
         try:
             dialog = QualificationAssignmentDialog(self)
@@ -282,32 +312,4 @@ class QualificationVisitsWindow(QWidget):
                 self,
                 APP_NAME,
                 f"Nie udało się utworzyć epizodu:\n\n{exc}",
-            )
-
-    def show_episode(self):
-        visit = self.selected_visit()
-        if visit is None:
-            return
-        if visit["epizod_id"] is None:
-            QMessageBox.information(
-                self,
-                APP_NAME,
-                "Wizyta nie jest jeszcze przypisana do epizodu.",
-            )
-            return
-        try:
-            with busy_operation(
-                self,
-                "Trwa pobieranie szczegółów epizodu z Oracle...",
-            ):
-                dialog = EpisodeDetailsDialog(
-                    visit["epizod_id"],
-                    parent=self,
-                )
-            dialog.exec()
-        except Exception as exc:
-            QMessageBox.critical(
-                self,
-                APP_NAME,
-                f"Nie udało się otworzyć epizodu:\n\n{exc}",
             )

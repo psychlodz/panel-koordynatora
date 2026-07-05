@@ -105,7 +105,13 @@ class PathwayDialog(QDialog):
 
 
 class PathwayElementDialog(QDialog):
-    def __init__(self, element=None, default_lp=1, parent=None):
+    def __init__(
+        self,
+        element=None,
+        default_lp=1,
+        pathway_elements=None,
+        parent=None,
+    ):
         super().__init__(parent)
         self.setWindowTitle(
             "KOMPAS — Edytuj element"
@@ -130,24 +136,44 @@ class PathwayElementDialog(QDialog):
         self.max_spin.setValue(-1)
         self.required_checkbox = QCheckBox("Element obowiązkowy")
         self.order_checkbox = QCheckBox("Wymaga zlecenia lekarza")
+        self.required_checkbox.setChecked(True)
+        self.order_checkbox.setChecked(True)
         self.deadline_spin = QSpinBox()
         self.deadline_spin.setRange(-1, 9999)
         self.deadline_spin.setSpecialValueText("Brak")
         self.deadline_spin.setValue(-1)
         self.deadline_unit_combo = QComboBox()
-        self.deadline_unit_combo.setEditable(True)
-        self.deadline_unit_combo.addItems(["", "DZIEN", "TYDZIEN", "MIESIAC"])
+        self.deadline_unit_combo.addItem("", None)
+        self.deadline_unit_combo.addItem("dzień", "DZIEN")
+        self.deadline_unit_combo.addItem("tydzień", "TYDZIEN")
+        self.deadline_unit_combo.addItem("miesiąc", "MIESIAC")
         self.deadline_from_combo = QComboBox()
-        self.deadline_from_combo.setEditable(True)
-        self.deadline_from_combo.addItems(
-            ["", "START_PROGRAMU", "POPRZEDNI_ELEMENT", "DATA_ZLECENIA"]
+        self.deadline_from_combo.addItem("", None)
+        self.deadline_from_combo.addItem(
+            "Początek programu",
+            "START_PROGRAMU",
         )
-        self.activation_edit = QLineEdit()
+        for pathway_element in pathway_elements or []:
+            if (
+                element is not None
+                and pathway_element["element_id"] == element["element_id"]
+            ):
+                continue
+            self.deadline_from_combo.addItem(
+                f"{pathway_element['lp']}. "
+                f"{pathway_element['nazwa_w_sciezce']}",
+                str(pathway_element["element_id"]),
+            )
+        self.activation_label = QLabel()
+        self.activation_label.setWordWrap(True)
         self.organization_edit = QTextEdit()
 
         blocks = list_blocks()
         if not blocks:
             raise ValueError("Biblioteka klocków jest pusta")
+        self.blocks_by_id = {
+            int(block["klocek_id"]): block for block in blocks
+        }
         for block in blocks:
             self.block_combo.addItem(
                 f"{block['kod']} — {block['nazwa']}", block["klocek_id"]
@@ -163,7 +189,7 @@ class PathwayElementDialog(QDialog):
         form.addRow("Termin — liczba:", self.deadline_spin)
         form.addRow("Termin — jednostka:", self.deadline_unit_combo)
         form.addRow("Termin liczony od:", self.deadline_from_combo)
-        form.addRow("Warunek aktywacji:", self.activation_edit)
+        form.addRow("Aktywacja:", self.activation_label)
         form.addRow("Opis organizacyjny:", self.organization_edit)
         layout.addLayout(form)
 
@@ -177,6 +203,9 @@ class PathwayElementDialog(QDialog):
         layout.addWidget(buttons)
 
         self.block_combo.currentIndexChanged.connect(self.fill_default_name)
+        self.block_combo.currentIndexChanged.connect(
+            self.update_activation_description
+        )
 
         if element is not None:
             index = self.block_combo.findData(element["klocek_id"])
@@ -197,16 +226,25 @@ class PathwayElementDialog(QDialog):
                 if element["termin_liczba"] is None
                 else element["termin_liczba"]
             )
-            self.deadline_unit_combo.setCurrentText(
-                element["termin_jednostka"] or ""
+            unit_index = self.deadline_unit_combo.findData(
+                element["termin_jednostka"]
             )
-            self.deadline_from_combo.setCurrentText(element["termin_od"] or "")
-            self.activation_edit.setText(element["warunek_aktywacji"] or "")
+            self.deadline_unit_combo.setCurrentIndex(max(0, unit_index))
+            deadline_from = element["termin_od"]
+            from_index = self.deadline_from_combo.findData(deadline_from)
+            if deadline_from and from_index < 0:
+                self.deadline_from_combo.addItem(
+                    f"Dotychczasowe ustawienie: {deadline_from}",
+                    deadline_from,
+                )
+                from_index = self.deadline_from_combo.count() - 1
+            self.deadline_from_combo.setCurrentIndex(max(0, from_index))
             self.organization_edit.setPlainText(
                 element["opis_organizacyjny"] or ""
             )
         else:
             self.fill_default_name()
+        self.update_activation_description()
 
     def fill_default_name(self, _index=None):
         if self.name_edit.text().strip():
@@ -214,6 +252,41 @@ class PathwayElementDialog(QDialog):
         text = self.block_combo.currentText()
         if " — " in text:
             self.name_edit.setText(text.split(" — ", 1)[1])
+
+    def activation_value(self):
+        block = self.blocks_by_id.get(self.block_combo.currentData(), {})
+        block_identity = " ".join(
+            str(block.get(field) or "").upper()
+            for field in ("kod", "typ", "nazwa")
+        )
+        oracle_activated = any(
+            marker in block_identity
+            for marker in (
+                "KONSULTAC",
+                "BADANIE",
+                "LAB",
+                "GENET",
+                "OBRAZ",
+            )
+        )
+        return (
+            "PO_WYSTAWIENIU_W_ESKULAPIE"
+            if oracle_activated
+            else "STATUS_EPIZODU"
+        )
+
+    def update_activation_description(self, _index=None):
+        if self.activation_value() == "PO_WYSTAWIENIU_W_ESKULAPIE":
+            text = (
+                "Automatycznie po wystawieniu konsultacji lub badania "
+                "w Eskulapie."
+            )
+        else:
+            text = (
+                "Planowanie i realizacja na podstawie statusu na liście "
+                "epizodów."
+            )
+        self.activation_label.setText(text)
 
     def accept(self):
         if self.block_combo.currentData() is None:
@@ -243,9 +316,9 @@ class PathwayElementDialog(QDialog):
             "czy_obowiazkowy": 1 if self.required_checkbox.isChecked() else 0,
             "czy_wymaga_zlecenia": 1 if self.order_checkbox.isChecked() else 0,
             "termin_liczba": None if self.deadline_spin.value() < 0 else self.deadline_spin.value(),
-            "termin_jednostka": self.deadline_unit_combo.currentText().strip() or None,
-            "termin_od": self.deadline_from_combo.currentText().strip() or None,
-            "warunek_aktywacji": self.activation_edit.text().strip() or None,
+            "termin_jednostka": self.deadline_unit_combo.currentData(),
+            "termin_od": self.deadline_from_combo.currentData(),
+            "warunek_aktywacji": self.activation_value(),
             "opis_organizacyjny": self.organization_edit.toPlainText().strip() or None,
         }
 
@@ -270,18 +343,20 @@ class PathwaysWindow(QWidget):
             self,
             "Ścieżki programu",
             "To okno służy do budowania ścieżek wybranego programu.\n\n"
-            "Możesz przeciągać kafelki, dodawać i edytować elementy, "
-            "zależności oraz wyzwalacze.\n\n"
+            "Możesz przeciągać kafelki oraz dodawać i edytować elementy.\n\n"
             "Nie usuwaj elementów używanych przez aktywne epizody bez "
             "wcześniejszego sprawdzenia skutków.",
         )
         self.refresh_button.setToolTip(
             "Pobierz ponownie ścieżki i elementy programu."
         )
+        self.close_button = QPushButton("Zamknij")
+        self.close_button.setToolTip("Zamknij okno ścieżek programu.")
         top_actions = QHBoxLayout()
         top_actions.addWidget(self.refresh_button)
         top_actions.addWidget(self.help_button)
         top_actions.addStretch(1)
+        top_actions.addWidget(self.close_button)
         layout.addLayout(top_actions)
 
         splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -302,20 +377,10 @@ class PathwaysWindow(QWidget):
         pathway_buttons = QHBoxLayout()
         self.new_pathway_button = QPushButton("Nowa ścieżka")
         self.edit_pathway_button = QPushButton("Edytuj ścieżkę")
-        self.dependencies_button = QPushButton("Zależności")
-        self.pathway_units_button = QPushButton("Jednostki")
         self.new_pathway_button.setToolTip("Dodaj nową ścieżkę programu.")
         self.edit_pathway_button.setToolTip("Edytuj zaznaczoną ścieżkę.")
-        self.dependencies_button.setToolTip(
-            "Otwórz zależności pomiędzy elementami zaznaczonej ścieżki."
-        )
-        self.pathway_units_button.setToolTip(
-            "Przypisz jednostki organizacyjne do zaznaczonej ścieżki."
-        )
         pathway_buttons.addWidget(self.new_pathway_button)
         pathway_buttons.addWidget(self.edit_pathway_button)
-        pathway_buttons.addWidget(self.dependencies_button)
-        pathway_buttons.addWidget(self.pathway_units_button)
         pathways_layout.addLayout(pathway_buttons)
         splitter.addWidget(pathways_panel)
 
@@ -351,7 +416,6 @@ class PathwaysWindow(QWidget):
         self.add_element_button = QPushButton("Dodaj element")
         self.edit_element_button = QPushButton("Edytuj element")
         self.delete_element_button = QPushButton("Usuń element")
-        self.triggers_button = QPushButton("Wyzwalacze")
         self.add_element_button.setToolTip(
             "Dodaj element na końcu albo przed zaznaczonym kafelkiem."
         )
@@ -361,27 +425,21 @@ class PathwaysWindow(QWidget):
         self.delete_element_button.setToolTip(
             "Usuń zaznaczony element ze ścieżki."
         )
-        self.triggers_button.setToolTip(
-            "Otwórz wyzwalacze zaznaczonego elementu."
-        )
         element_buttons.addWidget(self.add_element_button)
         element_buttons.addWidget(self.edit_element_button)
         element_buttons.addWidget(self.delete_element_button)
-        element_buttons.addWidget(self.triggers_button)
         elements_layout.addLayout(element_buttons)
         splitter.addWidget(elements_panel)
         splitter.setStretchFactor(0, 1)
         splitter.setStretchFactor(1, 2)
 
         self.refresh_button.clicked.connect(lambda: self.refresh_pathways())
+        self.close_button.clicked.connect(self.close)
         self.new_pathway_button.clicked.connect(self.new_pathway)
         self.edit_pathway_button.clicked.connect(self.edit_pathway)
-        self.dependencies_button.clicked.connect(self.open_dependencies)
-        self.pathway_units_button.clicked.connect(self.open_pathway_units)
         self.add_element_button.clicked.connect(self.add_element)
         self.edit_element_button.clicked.connect(self.edit_element)
         self.delete_element_button.clicked.connect(self.delete_element)
-        self.triggers_button.clicked.connect(self.open_triggers)
         self.pathways_table.itemSelectionChanged.connect(
             self.load_selected_pathway_elements
         )
@@ -666,7 +724,11 @@ class PathwaysWindow(QWidget):
             + 1
         )
         try:
-            dialog = PathwayElementDialog(default_lp=default_lp, parent=self)
+            dialog = PathwayElementDialog(
+                default_lp=default_lp,
+                pathway_elements=list(self._elements_by_id.values()),
+                parent=self,
+            )
             dialog.position_spin.setEnabled(False)
             dialog.position_spin.setToolTip(
                 "Pozycja zostanie wyliczona automatycznie."
@@ -694,7 +756,11 @@ class PathwaysWindow(QWidget):
             self.load_selected_pathway_elements()
             return
         try:
-            dialog = PathwayElementDialog(element, parent=self)
+            dialog = PathwayElementDialog(
+                element,
+                pathway_elements=list(self._elements_by_id.values()),
+                parent=self,
+            )
             if dialog.exec() != QDialog.DialogCode.Accepted:
                 return
             update_pathway_element(element_id, **dialog.values())
