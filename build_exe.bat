@@ -27,6 +27,13 @@ if not defined APP_NAME goto error
 if not defined APP_VERSION goto error
 if not defined APP_BUILD goto error
 
+python -c "from app.repositories.db_connection import load_database_settings; load_database_settings(); print('Database: PostgreSQL')"
+if errorlevel 1 (
+    echo Invalid KOMPAS database configuration.
+    echo Configure PostgreSQL in config.ini before building.
+    goto error
+)
+
 set "RELEASE_DIR=release\%APP_NAME%_%APP_VERSION%"
 
 if exist build rmdir /s /q build
@@ -38,6 +45,11 @@ if errorlevel 1 goto error
 
 python -m PyInstaller --clean --noconfirm plan_pracy.spec
 if errorlevel 1 goto error
+
+if exist "dist\%APP_NAME%\kompas.db" (
+    echo Build contains unsupported SQLite database kompas.db.
+    goto error
+)
 
 if not exist release mkdir release
 if not exist "%RELEASE_DIR%" mkdir "%RELEASE_DIR%"

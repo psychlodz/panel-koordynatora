@@ -7,6 +7,24 @@ Oracle/Eskulap jest systemem źródłowym danych pacjenta i danych medycznych.
 KOMPAS zarządza programami, ścieżkami, epizodami, zadaniami oraz
 konfiguracją procesu.
 
+## Bazy danych
+
+- **Oracle / Eskulap** — system źródłowy danych pacjenta i danych
+  medycznych; KOMPAS korzysta z niego wyłącznie do odczytu przez
+  `EskulapGateway`.
+- **PostgreSQL** — jedyna baza procesowa i konfiguracyjna KOMPAS.
+- **SQLite** — historyczny, niewspierany mechanizm zachowany wyłącznie
+  w katalogu `db/sqlite_deprecated/`; aplikacja go nie uruchamia i nie
+  tworzy pliku `kompas.db`.
+
+Konfiguracja bazy KOMPAS wymaga sekcji:
+
+```ini
+[kompas_db]
+engine=postgres
+postgres_dsn=host=SERVER port=5432 dbname=kompas user=kompas_app password=HASLO
+```
+
 ## Architektura modułów KOMPAS
 
 Struktura modułów KOMPAS 1.0 została zatwierdzona i zamrożona jako punkt
@@ -47,4 +65,3 @@ Budowanie wydania:
 ```text
 build_exe.bat
 ```
-

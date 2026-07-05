@@ -1,8 +1,8 @@
 from contextlib import closing
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
 )
 
 
@@ -90,8 +90,8 @@ def _validate_cycle(
 
 
 def list_dependencies(sciezka_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT
@@ -132,8 +132,8 @@ def validate_cycle(
     element_do_id,
     exclude_dependency_id=None,
 ) -> bool:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         return _validate_cycle(
             connection,
             sciezka_id,
@@ -151,8 +151,8 @@ def create_dependency(
     opis=None,
 ) -> int:
     dependency_type = _dependency_type(typ)
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             if not _validate_cycle(
                 connection,
@@ -194,8 +194,8 @@ def update_dependency(
     opis=None,
 ) -> int:
     dependency_type = _dependency_type(typ)
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             dependency = connection.execute(
                 """
@@ -242,8 +242,8 @@ def update_dependency(
 
 
 def delete_dependency(zaleznosc_id) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """

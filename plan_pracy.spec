@@ -28,12 +28,7 @@ a = Analysis(
     ['main.py'],
     pathex=[SPECPATH],
     binaries=[],
-    datas=[
-        ('config.ini', '.'),
-        ('db/schema.sql', 'db'),
-        ('db/seed.sql', 'db'),
-        ('db/migrations.sql', 'db'),
-    ],
+    datas=[('config.ini', '.')],
     hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},

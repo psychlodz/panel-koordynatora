@@ -6,8 +6,8 @@ from config import load_config
 from db import create_connection
 from episode_generator import create_episode_with_tasks
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
     is_integrity_error,
 )
 from app.repositories.patient_repository import PATIENTS_VIEW, VISITS_VIEW
@@ -57,8 +57,8 @@ def _oracle_query(sql, parameters=None, fetch_one=False):
 
 
 def _episode_assignments() -> dict[str, int]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT source_id, epizod_id

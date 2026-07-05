@@ -1,7 +1,13 @@
 import sys
+from contextlib import closing
 
 from PySide6.QtWidgets import QApplication, QDialog, QMessageBox
 
+from app.repositories.db_connection import (
+    POSTGRES_CONNECTION_ERROR,
+    create_connection,
+    initialize_database,
+)
 from app.ui.login_dialog import LoginDialog
 from app.ui.main_window import MainWindow
 from app.ui.theme import apply_theme
@@ -16,6 +22,15 @@ def main():
     application.setApplicationName(APP_NAME)
     application.setApplicationVersion(VERSION)
     apply_theme(application)
+
+    try:
+        initialize_database()
+        with closing(create_connection()) as connection:
+            connection.execute("SELECT 1").fetchone()
+    except Exception as exc:
+        message = str(exc).strip() or POSTGRES_CONNECTION_ERROR
+        QMessageBox.critical(None, APP_NAME, message)
+        return 1
 
     login_dialog = LoginDialog()
     if login_dialog.exec() != QDialog.DialogCode.Accepted:

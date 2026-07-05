@@ -5,14 +5,17 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection,
+    initialize_database,
+)
 from pathway_service import create_episode_with_tasks, list_episode_tasks
 
 
 def main():
-    initialize_local_db()
+    initialize_database()
 
-    with closing(create_local_connection()) as connection:
+    with closing(create_connection()) as connection:
         pathway = connection.execute(
             """
             SELECT p.program_id, s.sciezka_id
@@ -24,7 +27,9 @@ def main():
         ).fetchone()
 
     if pathway is None:
-        raise RuntimeError("Brak testowej ścieżki ADHD w lokalnej bazie")
+        raise RuntimeError(
+            "Brak testowej ścieżki ADHD w bazie PostgreSQL"
+        )
 
     pacjent_id = f"TEST-{datetime.now():%Y%m%d%H%M%S%f}"
     epizod_id = create_episode_with_tasks(

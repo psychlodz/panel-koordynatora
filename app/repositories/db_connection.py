@@ -1,21 +1,23 @@
 import configparser
 import os
 import re
-import sqlite3
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 
 from config import app_dir
-from local_db import (
-    create_local_connection,
-    initialize_local_db,
-    local_db_path,
+
+
+CONFIG_SECTION = "kompas_db"
+LEGACY_CONFIG_SECTION = "kompas_database"
+SUPPORTED_ENGINE = "postgres"
+POSTGRES_CONNECTION_ERROR = (
+    "Brak połączenia z centralną bazą KOMPAS PostgreSQL. "
+    "Sprawdź konfigurację."
 )
-
-
-CONFIG_SECTION = "kompas_database"
-SUPPORTED_ENGINES = {"sqlite", "postgres"}
+SQLITE_UNSUPPORTED_ERROR = (
+    "SQLite nie jest już wspierany. Skonfiguruj PostgreSQL."
+)
 INSERT_IDS = {
     "pk_users": "user_id",
     "pk_roles": "role_id",
@@ -35,9 +37,29 @@ INSERT_IDS = {
 
 @dataclass(frozen=True)
 class DatabaseSettings:
-    engine: str = "sqlite"
-    sqlite_path: str | None = None
+    engine: str = SUPPORTED_ENGINE
     postgres_dsn: str | None = None
+
+
+def _config_section(parser):
+    if parser.has_section(CONFIG_SECTION):
+        return CONFIG_SECTION
+    if parser.has_section(LEGACY_CONFIG_SECTION):
+        return LEGACY_CONFIG_SECTION
+    return CONFIG_SECTION
+
+
+def _validate_settings(settings):
+    engine = str(settings.engine or "").strip().lower()
+    if engine == "sqlite":
+        raise ValueError(SQLITE_UNSUPPORTED_ERROR)
+    if engine != SUPPORTED_ENGINE:
+        raise ValueError(
+            f"Nieobsługiwany silnik bazy KOMPAS: {engine or 'brak'}. "
+            "Skonfiguruj PostgreSQL."
+        )
+    if not str(settings.postgres_dsn or "").strip():
+        raise ValueError(POSTGRES_CONNECTION_ERROR)
 
 
 def load_database_settings(config_path=None) -> DatabaseSettings:
@@ -46,75 +68,47 @@ def load_database_settings(config_path=None) -> DatabaseSettings:
     if path.exists():
         parser.read(path, encoding="utf-8")
 
+    section = _config_section(parser)
     engine = parser.get(
-        CONFIG_SECTION,
+        section,
         "engine",
-        fallback="sqlite",
+        fallback=SUPPORTED_ENGINE,
     ).strip().lower()
-    if engine not in SUPPORTED_ENGINES:
-        raise ValueError(
-            "Nieobsługiwany silnik bazy KOMPAS: "
-            f"{engine}. Dozwolone: sqlite, postgres"
-        )
-
-    sqlite_path = parser.get(
-        CONFIG_SECTION,
-        "sqlite_path",
-        fallback="",
-    ).strip() or None
     postgres_dsn = (
         os.environ.get("KOMPAS_POSTGRES_DSN", "").strip()
         or parser.get(
-            CONFIG_SECTION,
+            section,
             "postgres_dsn",
             fallback="",
         ).strip()
         or None
     )
-    return DatabaseSettings(
+    settings = DatabaseSettings(
         engine=engine,
-        sqlite_path=sqlite_path,
         postgres_dsn=postgres_dsn,
     )
-
-
-def _create_sqlite_connection(settings):
-    if not settings.sqlite_path:
-        return create_local_connection()
-
-    path = _sqlite_path(settings)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(path)
-    connection.row_factory = sqlite3.Row
-    connection.execute("PRAGMA foreign_keys = ON")
-    return connection
-
-
-def _sqlite_path(settings):
-    path = Path(settings.sqlite_path or local_db_path())
-    if not path.is_absolute():
-        path = Path(app_dir()) / path
-    return path.resolve()
+    _validate_settings(settings)
+    return settings
 
 
 def _create_postgres_connection(settings):
-    if not settings.postgres_dsn:
-        raise ValueError(
-            "Brak postgres_dsn w sekcji [kompas_database] "
-            "lub zmiennej KOMPAS_POSTGRES_DSN"
-        )
+    _validate_settings(settings)
     try:
         import psycopg
         from psycopg.rows import dict_row
     except ImportError as exc:
         raise RuntimeError(
-            "Obsługa PostgreSQL wymaga pakietu psycopg[binary]"
+            f"{POSTGRES_CONNECTION_ERROR} "
+            "Brak sterownika psycopg[binary]."
         ) from exc
 
-    return psycopg.connect(
-        settings.postgres_dsn,
-        row_factory=dict_row,
-    )
+    try:
+        return psycopg.connect(
+            settings.postgres_dsn,
+            row_factory=dict_row,
+        )
+    except Exception as exc:
+        raise ConnectionError(POSTGRES_CONNECTION_ERROR) from exc
 
 
 def _replace_qmark_placeholders(sql):
@@ -186,9 +180,7 @@ class DatabaseCursor:
 
     @property
     def lastrowid(self):
-        if self._lastrowid is not None:
-            return self._lastrowid
-        return getattr(self._cursor, "lastrowid", None)
+        return self._lastrowid
 
     @property
     def rowcount(self):
@@ -227,23 +219,20 @@ def _compatible_row(row):
 
 
 class DatabaseConnection:
-    def __init__(self, connection, engine):
-        self._connection = connection
-        self.engine = engine
+    engine = SUPPORTED_ENGINE
 
-    def _sql(self, sql):
-        return _postgres_sql(sql) if self.engine == "postgres" else sql
+    def __init__(self, connection):
+        self._connection = connection
 
     def execute(self, sql, parameters=None):
         parameters = () if parameters is None else parameters
-        translated = self._sql(sql)
-        id_column = (
-            _insert_id_column(translated)
-            if self.engine == "postgres"
-            else None
-        )
+        translated = _postgres_sql(sql)
+        id_column = _insert_id_column(translated)
         if id_column:
-            translated = f"{translated.rstrip().rstrip(';')} RETURNING {id_column}"
+            translated = (
+                f"{translated.rstrip().rstrip(';')} "
+                f"RETURNING {id_column}"
+            )
         cursor = self._connection.execute(translated, parameters)
         lastrowid = None
         if id_column:
@@ -252,14 +241,8 @@ class DatabaseConnection:
         return DatabaseCursor(cursor, lastrowid)
 
     def executemany(self, sql, parameters):
-        if self.engine == "postgres":
-            cursor = self._connection.cursor()
-            cursor.executemany(self._sql(sql), parameters)
-        else:
-            cursor = self._connection.executemany(
-                self._sql(sql),
-                parameters,
-            )
+        cursor = self._connection.cursor()
+        cursor.executemany(_postgres_sql(sql), parameters)
         return DatabaseCursor(cursor)
 
     def commit(self):
@@ -287,67 +270,24 @@ class DatabaseConnection:
 
 
 def initialize_database(settings=None):
-    """Inicjalizuje automatycznie wyłącznie developerską bazę SQLite."""
+    """Waliduje konfigurację centralnej bazy; nie tworzy lokalnej bazy."""
     settings = settings or load_database_settings()
-    if settings.engine != "sqlite":
-        return None
-    if _sqlite_path(settings) == Path(local_db_path()).resolve():
-        return initialize_local_db()
-
-    database_path = _sqlite_path(settings)
-    database_path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(database_path)
-    try:
-        connection.execute("PRAGMA foreign_keys = ON")
-        empty = connection.execute(
-            """
-            SELECT COUNT(*)
-            FROM sqlite_master
-            WHERE type = 'table'
-              AND name NOT LIKE 'sqlite_%'
-            """
-        ).fetchone()[0] == 0
-        sql_root = Path(app_dir()) / "db"
-        scripts = [
-            (sql_root / "schema.sql").read_text(encoding="utf-8"),
-        ]
-        if empty:
-            scripts.append(
-                (sql_root / "seed.sql").read_text(encoding="utf-8")
-            )
-        scripts.append(
-            (sql_root / "migrations.sql").read_text(encoding="utf-8")
-        )
-        connection.executescript("\n".join(scripts))
-    finally:
-        connection.close()
-    return database_path
+    _validate_settings(settings)
+    return None
 
 
 def create_connection(settings=None):
-    """Tworzy ujednolicone połączenie z bazą KOMPAS, nigdy z Oracle."""
+    """Tworzy połączenie wyłącznie z centralną bazą KOMPAS PostgreSQL."""
     settings = settings or load_database_settings()
-    raw_connection = (
-        _create_sqlite_connection(settings)
-        if settings.engine == "sqlite"
-        else _create_postgres_connection(settings)
-    )
-    return DatabaseConnection(raw_connection, settings.engine)
+    return DatabaseConnection(_create_postgres_connection(settings))
 
 
 def patient_id_column(alias=None):
-    settings = load_database_settings()
-    column = (
-        "pacjent_id"
-        if settings.engine == "sqlite"
-        else "pacjent_id_eskulap"
-    )
+    column = "pacjent_id_eskulap"
     return f"{alias}.{column}" if alias else column
 
 
 def is_integrity_error(error):
-    if isinstance(error, sqlite3.IntegrityError):
-        return True
     error_type = type(error)
     return (
         error_type.__module__.startswith("psycopg")
@@ -368,3 +308,18 @@ def database_connection(settings=None):
         yield connection
     finally:
         connection.close()
+
+
+__all__ = [
+    "CONFIG_SECTION",
+    "DatabaseConnection",
+    "DatabaseSettings",
+    "POSTGRES_CONNECTION_ERROR",
+    "SQLITE_UNSUPPORTED_ERROR",
+    "create_connection",
+    "database_connection",
+    "initialize_database",
+    "is_integrity_error",
+    "load_database_settings",
+    "patient_id_column",
+]

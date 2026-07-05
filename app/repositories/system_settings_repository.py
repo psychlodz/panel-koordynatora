@@ -13,26 +13,15 @@ OPTIONAL_DICTIONARY_TABLES = {
 
 
 def _table_exists(connection, table_name):
-    if connection.engine == "sqlite":
-        row = connection.execute(
-            """
-            SELECT 1
-            FROM sqlite_master
-            WHERE type = 'table'
-              AND name = ?
-            """,
-            (table_name,),
-        ).fetchone()
-    else:
-        row = connection.execute(
-            """
-            SELECT 1
-            FROM information_schema.tables
-            WHERE table_schema = 'public'
-              AND table_name = ?
-            """,
-            (table_name,),
-        ).fetchone()
+    row = connection.execute(
+        """
+        SELECT 1
+        FROM information_schema.tables
+        WHERE table_schema = 'public'
+          AND table_name = ?
+        """,
+        (table_name,),
+    ).fetchone()
     return row is not None
 
 

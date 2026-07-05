@@ -1,6 +1,6 @@
 # Docelowy model słowników biznesowych KOMPAS
 
-Status dokumentu: **model bazowy wdrożony w SQLite i PostgreSQL**
+Status dokumentu: **model bazowy wdrożony w PostgreSQL**
 
 Dokument opisuje docelowy model PostgreSQL dla modułu
 „Administracja → Ustawienia systemu → Słowniki”. Model typów elementów,
@@ -8,9 +8,9 @@ grup klocków, jednostek czasu i biblioteki klocków jest wdrożony w
 schematach inicjalizacyjnych. Statusy biznesowe i historia zmian pozostają
 projektem na kolejne etapy.
 
-PostgreSQL jest docelowym źródłem słowników KOMPAS. SQLite otrzyma
-równoważny model wyłącznie jako środowisko developerskie, nie jako drugie
-niezależne źródło konfiguracji produkcyjnej.
+PostgreSQL jest jedynym źródłem słowników KOMPAS. Historyczny model SQLite
+został wycofany z aplikacji w DB-PG-3 i pozostaje wyłącznie w archiwum
+`db/sqlite_deprecated/`.
 
 ## 1. Zasady wspólne
 
@@ -417,8 +417,8 @@ operacją systemową.
 
 ## 9. Model tabel PostgreSQL
 
-Poniższy DDL opisuje wdrożony model bazowy. Wiążące skrypty instalacyjne
-znajdują się w `db/postgres/003_schema.sql` i `db/schema.sql`.
+Poniższy DDL opisuje wdrożony model bazowy. Wiążący skrypt instalacyjny
+znajduje się w `db/postgres/003_schema.sql`.
 Nie przygotowano migracji istniejących danych: bazy testowe należy
 odtworzyć od zera.
 
@@ -739,7 +739,7 @@ Wszystkie relacje słownikowe używają `ON DELETE RESTRICT`.
 2. Rozszerzono `pk_typy_elementow`.
 3. Usunięto tekstowy `pk_klocki.typ` ze schematów startowych.
 4. Rozszerzono `pk_klocki` o relacje i metadane.
-5. Dodano test świeżej inicjalizacji SQLite.
+5. Historyczny test inicjalizacji SQLite przeniesiono do archiwum w DB-PG-3.
 
 ### Etap 2 — użycie przez ścieżki i generator
 
@@ -758,7 +758,7 @@ Wszystkie relacje słownikowe używają `ON DELETE RESTRICT`.
 ### Etap 4 — statusy biznesowe
 
 1. Ujednolicić obecne kody statusów.
-2. Wprowadzić statusy i przejścia do PostgreSQL oraz SQLite.
+2. Wprowadzić statusy i przejścia do PostgreSQL.
 3. Zmigrować dane tekstowe.
 4. Przepiąć generator, synchronizację, dashboardy i filtry.
 5. Dopiero po stabilizacji udostępnić administratorowi kontrolowaną edycję

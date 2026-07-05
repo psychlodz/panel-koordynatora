@@ -12,7 +12,10 @@ if str(PROJECT_ROOT) not in sys.path:
 from app.repositories import db_connection
 from app.repositories.db_connection import (
     DatabaseSettings,
+    POSTGRES_CONNECTION_ERROR,
+    SQLITE_UNSUPPORTED_ERROR,
     create_connection,
+    initialize_database,
 )
 
 
@@ -130,6 +133,24 @@ def test_compatibility_layer():
     connection.close()
 
 
+def test_sqlite_is_rejected():
+    try:
+        initialize_database(DatabaseSettings(engine="sqlite"))
+    except ValueError as exc:
+        assert str(exc) == SQLITE_UNSUPPORTED_ERROR
+    else:
+        raise AssertionError("Konfiguracja SQLite nie została odrzucona.")
+
+
+def test_missing_postgres_dsn_is_rejected():
+    try:
+        initialize_database(DatabaseSettings(engine="postgres"))
+    except ValueError as exc:
+        assert str(exc) == POSTGRES_CONNECTION_ERROR
+    else:
+        raise AssertionError("Brak DSN PostgreSQL nie został odrzucony.")
+
+
 def test_live_postgres(dsn):
     sys.modules.pop("psycopg", None)
     sys.modules.pop("psycopg.rows", None)
@@ -161,6 +182,12 @@ def test_live_postgres(dsn):
 
 
 def main():
+    test_sqlite_is_rejected()
+    print("Blokada SQLite: OK")
+
+    test_missing_postgres_dsn_is_rejected()
+    print("Walidacja konfiguracji PostgreSQL: OK")
+
     test_compatibility_layer()
     print("Warstwa zgodności PostgreSQL: OK")
 

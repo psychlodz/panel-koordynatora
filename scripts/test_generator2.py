@@ -6,12 +6,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from episode_generator import complete_task, create_episode_with_tasks
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection,
+    initialize_database,
+)
 from pathway_service import list_episode_tasks
 
 
 def _adhd_pathway():
-    with closing(create_local_connection()) as connection:
+    with closing(create_connection()) as connection:
         return connection.execute(
             """
             SELECT p.program_id, s.sciezka_id
@@ -35,10 +38,12 @@ def _print_tasks(title, epizod_id):
 
 
 def main():
-    initialize_local_db()
+    initialize_database()
     pathway = _adhd_pathway()
     if pathway is None:
-        raise RuntimeError("Brak testowej ścieżki ADHD w lokalnej bazie")
+        raise RuntimeError(
+            "Brak testowej ścieżki ADHD w bazie PostgreSQL"
+        )
 
     epizod_id = create_episode_with_tasks(
         pacjent_id=f"GEN2-{datetime.now():%Y%m%d%H%M%S%f}",

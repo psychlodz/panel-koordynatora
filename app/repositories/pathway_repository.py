@@ -1,8 +1,8 @@
 from contextlib import closing
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
 )
 
 
@@ -72,8 +72,8 @@ def _element_values(
 
 
 def list_pathways(program_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT
@@ -95,8 +95,8 @@ def list_pathways(program_id) -> list[dict]:
 
 
 def get_pathway(sciezka_id):
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         row = connection.execute(
             """
             SELECT
@@ -117,8 +117,8 @@ def get_pathway(sciezka_id):
 
 
 def create_pathway(program_id, kod, nazwa, opis=None) -> int:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """
@@ -143,8 +143,8 @@ def update_pathway(
     opis=None,
     czy_aktywna=1,
 ) -> int:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """
@@ -170,8 +170,8 @@ def update_pathway(
 
 
 def list_pathway_elements(sciezka_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT
@@ -215,8 +215,8 @@ def list_pathway_elements(sciezka_id) -> list[dict]:
 
 
 def list_blocks() -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT
@@ -281,8 +281,8 @@ def add_element_to_pathway(
         warunek_aktywacji,
         opis_organizacyjny,
     )
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """
@@ -338,8 +338,8 @@ def update_pathway_element(
         warunek_aktywacji,
         opis_organizacyjny,
     )
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """
@@ -367,8 +367,8 @@ def update_pathway_element(
 
 
 def delete_pathway_element(element_id) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """
@@ -459,8 +459,8 @@ def _reorder_elements_in_connection(
 
 
 def reorder_elements(sciezka_id, ordered_element_ids) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             connection.execute("BEGIN IMMEDIATE")
             pathway = connection.execute(
@@ -481,24 +481,24 @@ def reorder_elements(sciezka_id, ordered_element_ids) -> None:
 
 
 def can_delete_element(element_id) -> bool:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         if _element_row(connection, element_id) is None:
             return False
         return not _has_completed_task(connection, element_id)
 
 
 def can_insert_before(element_id) -> bool:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         if _element_row(connection, element_id) is None:
             return False
         return not _has_completed_task(connection, element_id)
 
 
 def get_element_link_counts(element_id) -> dict:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         if _element_row(connection, element_id) is None:
             raise ValueError(f"Nie znaleziono elementu o ID {element_id}")
         dependencies = connection.execute(
@@ -526,8 +526,8 @@ def get_element_link_counts(element_id) -> dict:
 
 
 def delete_element_safe(element_id) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             connection.execute("BEGIN IMMEDIATE")
             element = _element_row(connection, element_id)
@@ -625,8 +625,8 @@ def add_element_at_position(
     )
     values[1] = 0
 
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             connection.execute("BEGIN IMMEDIATE")
             ordered_ids = _ordered_element_ids(connection, sciezka_id)

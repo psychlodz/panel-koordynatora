@@ -1,7 +1,7 @@
 # Widoki Oracle dla KOMPAS
 
 KOMPAS korzysta z danych Eskulapa wyłącznie w trybie odczytu. Dane
-pacjentów, wizyt, konsultacji i badań nie są kopiowane do SQLite. Lokalna baza
+pacjentów, wizyt, konsultacji i badań nie są kopiowane do PostgreSQL. Baza
 przechowuje jedynie identyfikator `PACJENT_ID` przypisany do epizodu.
 
 Definicje instalacyjne znajdują się w pliku
@@ -91,7 +91,7 @@ Konto skonfigurowane w `config.ini` powinno mieć wyłącznie uprawnienie
 - wykonuje tylko instrukcje `SELECT`,
 - używa parametrów wiązanych dla danych użytkownika,
 - nie wykonuje `INSERT`, `UPDATE`, `DELETE`, `MERGE` ani procedur,
-- nie zapisuje rekordów pacjentów w SQLite.
+- nie zapisuje rekordów pacjentów w PostgreSQL.
 
 ## Filtrowanie dat
 

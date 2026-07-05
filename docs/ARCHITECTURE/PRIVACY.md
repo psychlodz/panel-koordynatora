@@ -21,11 +21,9 @@ Epizod w docelowej bazie PostgreSQL zawiera wyłącznie:
 Identyfikator służy do pobrania aktualnego rekordu pacjenta z Oracle. Nie
 jest podstawą do tworzenia lokalnej kartoteki pacjentów.
 
-W developerskim schemacie SQLite historyczna nazwa kolumny to
-`pk_epizody.pacjent_id`. Jej znaczenie jest identyczne: przechowuje
-wyłącznie techniczny identyfikator Eskulapa. Zmiana nazwy w działającym
-SQLite nastąpi wraz z kontrolowanym przepięciem repozytoriów w DB-PG-2,
-bez zmiany znaczenia danych.
+PostgreSQL jest jedyną bazą procesową KOMPAS. Historyczne schematy SQLite
+zostały wycofane z działania aplikacji i znajdują się wyłącznie w archiwum
+`db/sqlite_deprecated/`.
 
 ## Pobieranie danych na żądanie
 
@@ -46,7 +44,7 @@ sequenceDiagram
 
 Gateway pobiera dane pacjenta tylko wtedy, gdy są potrzebne. DTO `Patient`
 może zawierać dane zwrócone przez Oracle, lecz nie jest encją trwałą i nie
-jest przekazywany do repozytoriów zapisu PostgreSQL lub SQLite.
+jest przekazywany do repozytoriów zapisu PostgreSQL.
 
 ## Zakaz duplikowania
 

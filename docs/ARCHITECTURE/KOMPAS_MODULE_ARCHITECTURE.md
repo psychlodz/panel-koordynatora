@@ -106,8 +106,8 @@ kontekstowe i dokumentację użytkową. Nie zawiera logiki biznesowej.
    konfiguracyjnych. Wszystkie ustawienia trafiają do „Ustawień systemu”.
 4. Oracle/Eskulap jest źródłem danych medycznych i danych pacjenta.
 5. PostgreSQL przechowuje wyłącznie dane procesowe i konfigurację KOMPAS.
-6. SQLite pozostaje developerskim odpowiednikiem bazy procesowej KOMPAS,
-   a nie lokalnym źródłem danych pacjenta.
+6. PostgreSQL jest jedyną bazą procesową KOMPAS. Historyczny tryb SQLite
+   nie jest wspierany i nie uczestniczy w działaniu aplikacji.
 7. UI nie odwołuje się bezpośrednio do Oracle. Dostęp do Eskulapa odbywa
    się przez `EskulapGateway`.
 8. Repozytoria danych procesowych KOMPAS nie przechowują PESEL-u, imienia,
@@ -123,16 +123,14 @@ flowchart LR
     G["Gateway Eskulap"]
     UI["Moduły UI KOMPAS"]
     P[("PostgreSQL<br/>proces i konfiguracja")]
-    S[("SQLite<br/>development")]
 
     O -->|"wyłącznie odczyt"| G
     G -->|"DTO"| UI
     UI <-->|"repozytoria KOMPAS"| P
-    UI <-.->|"tryb developerski"| S
 ```
 
-Oracle nie jest modyfikowany przez KOMPAS. PostgreSQL i SQLite nie są
-źródłem danych osobowych ani medycznych pacjenta.
+Oracle nie jest modyfikowany przez KOMPAS. PostgreSQL nie jest źródłem
+danych osobowych ani medycznych pacjenta.
 
 ## Zasada kwalifikowania nowych funkcji
 
@@ -156,4 +154,3 @@ propozycję nowego modułu. Taka propozycja wymaga osobnego ADR.
 - `docs/DATABASE_ARCHITECTURE.md`
 - `docs/ARCHITECTURE/PRIVACY.md`
 - `docs/API/ESKULAP_GATEWAY.md`
-

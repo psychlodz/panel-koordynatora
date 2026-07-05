@@ -1,8 +1,8 @@
 from contextlib import closing
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
 )
 
 
@@ -83,8 +83,8 @@ def _replace_program_units(connection, program_id, units):
 
 
 def list_programs() -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             f"""
             SELECT {PROGRAM_COLUMNS}
@@ -113,8 +113,8 @@ def list_programs() -> list[dict]:
 
 
 def get_program(program_id):
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         row = connection.execute(
             f"""
             SELECT {PROGRAM_COLUMNS}
@@ -135,9 +135,9 @@ def create_program(
 ) -> int:
     kod = _required_text(kod, "kod")
     nazwa = _required_text(nazwa, "nazwa")
-    initialize_local_db()
+    initialize_database()
 
-    with closing(create_local_connection()) as connection:
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """
@@ -165,9 +165,9 @@ def update_program(
     kod = _required_text(kod, "kod")
     nazwa = _required_text(nazwa, "nazwa")
     active = 1 if czy_aktywny else 0
-    initialize_local_db()
+    initialize_database()
 
-    with closing(create_local_connection()) as connection:
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """

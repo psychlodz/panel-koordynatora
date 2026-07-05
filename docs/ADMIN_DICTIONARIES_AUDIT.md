@@ -4,7 +4,12 @@ Data audytu: 2026-07-05
 
 ## Cel i zakres
 
-Audyt obejmuje definicje SQLite i PostgreSQL, dane startowe, migracje,
+> **Uwaga po DB-PG-3:** SQLite nie jest już obsługiwanym trybem aplikacji.
+> Wzmianki o SQLite i plikach `db/schema.sql`, `db/seed.sql` oraz
+> `db/migrations.sql` poniżej opisują stan historyczny z chwili audytu.
+> Aktualnym źródłem schematu i seedów są wyłącznie skrypty `db/postgres/`.
+
+Audyt obejmował definicje historycznego SQLite i PostgreSQL, dane startowe, migracje,
 repozytoria, usługi, modele oraz interfejs użytkownika. Nie wprowadza zmian
 w działaniu aplikacji ani w strukturze baz danych.
 
@@ -65,8 +70,9 @@ edycji należy rozdzielić:
   narzucone przez kod i ograniczenia schematu.
 - Przypisania użytkowników, programów i ścieżek do jednostek Eskulapa.
 
-SQLite i PostgreSQL mają zasadniczo ten sam model słowników, ale utrzymują
-oddzielne seedy. SQLite dodatkowo wykonuje `db/migrations.sql`, który również
+W chwili audytu SQLite i PostgreSQL miały zasadniczo ten sam model słowników,
+ale utrzymywały oddzielne seedy. Historyczny SQLite wykonywał dodatkowo
+`db/migrations.sql`, który również
 zawiera wartości ról, klocków i wyzwalaczy.
 
 ### Zapisane na sztywno w kodzie
@@ -107,7 +113,7 @@ w schematach startowych. Każdy klocek ma również obowiązkową grupę.
 
 Typy wyzwalaczy i zależności występują równolegle w:
 
-- ograniczeniach SQLite;
+- historycznych ograniczeniach SQLite (wyłącznie kontekst audytu);
 - ograniczeniach PostgreSQL;
 - walidacji repozytorium;
 - etykietach i listach UI;

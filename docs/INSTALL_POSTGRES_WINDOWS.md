@@ -175,10 +175,10 @@ Na każdej stacji KOMPAS zainstaluj zależności aplikacji:
 python -m pip install -r requirements.txt
 ```
 
-W prywatnym `config.ini` ustaw:
+W prywatnym `config.ini` ustaw jedyną wspieraną bazę procesową:
 
 ```ini
-[kompas_database]
+[kompas_db]
 engine=postgres
 postgres_dsn=host=SERVER port=5432 dbname=kompas user=kompas_app password=HASLO
 ```
@@ -186,15 +186,8 @@ postgres_dsn=host=SERVER port=5432 dbname=kompas user=kompas_app password=HASLO
 Alternatywnie cały DSN umieść w zmiennej `KOMPAS_POSTGRES_DSN`. Ma ona
 pierwszeństwo przed wartością z pliku.
 
-Dla dotychczasowego trybu lokalnego pozostaw:
-
-```ini
-[kompas_database]
-engine=sqlite
-sqlite_path=kompas.db
-```
-
-Brak sekcji `[kompas_database]` również oznacza domyślny tryb SQLite.
+SQLite nie jest wspierany. Brak poprawnego DSN zatrzymuje dostęp do
+modułów KOMPAS i nie powoduje utworzenia lokalnego pliku bazy.
 
 ## 8. Test z serwera i klienta
 

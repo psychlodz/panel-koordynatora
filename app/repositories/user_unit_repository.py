@@ -1,8 +1,8 @@
 from contextlib import closing
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
 )
 
 
@@ -54,8 +54,8 @@ def _ensure_default(connection, user_id):
 
 
 def list_user_units(user_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT
@@ -83,8 +83,8 @@ def assign_unit_to_user(
     jo_symbol,
     jo_nazwa,
 ) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             connection.execute("BEGIN IMMEDIATE")
             connection.execute(
@@ -111,8 +111,8 @@ def assign_unit_to_user(
 
 
 def remove_unit_from_user(user_id, jo_id) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             connection.execute("BEGIN IMMEDIATE")
             cursor = connection.execute(
@@ -130,8 +130,8 @@ def remove_unit_from_user(user_id, jo_id) -> None:
 
 def set_default_unit(user_id, jo_id) -> None:
     jo_id = _unit_id(jo_id)
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             connection.execute("BEGIN IMMEDIATE")
             exists = connection.execute(
@@ -156,8 +156,8 @@ def set_default_unit(user_id, jo_id) -> None:
 
 
 def get_default_unit(user_id):
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         row = connection.execute(
             """
             SELECT

@@ -5,13 +5,16 @@ from episode_generator import (
     complete_task,
     create_episode_with_tasks,
 )
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection,
+    initialize_database,
+)
 
 
 def list_episode_tasks(epizod_id) -> list[dict]:
-    initialize_local_db()
+    initialize_database()
 
-    with closing(create_local_connection()) as connection:
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT

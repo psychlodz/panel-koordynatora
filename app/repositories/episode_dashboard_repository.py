@@ -3,8 +3,8 @@ from contextlib import closing
 from datetime import date, datetime
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
     patient_id_column,
 )
 
@@ -133,8 +133,8 @@ def _episode_units(episode, program_units, pathway_units):
 
 
 def _load_dashboard_episodes(current_user=None, current_unit=None):
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         episodes = [
             dict(row)
             for row in connection.execute(

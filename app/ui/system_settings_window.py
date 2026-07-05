@@ -71,7 +71,7 @@ TAB_DEFINITIONS = (
 def _readable_engine(settings):
     if settings is None:
         return "Nieznany"
-    return "PostgreSQL" if settings.engine == "postgres" else "SQLite"
+    return "PostgreSQL"
 
 
 def _safe_postgres_dsn(settings):

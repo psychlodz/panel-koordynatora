@@ -1,8 +1,8 @@
 from contextlib import closing
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
     patient_id_column,
 )
 
@@ -31,8 +31,8 @@ def _episode_columns():
 
 
 def list_episodes() -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             f"""
             SELECT
@@ -77,8 +77,8 @@ def list_episodes() -> list[dict]:
 
 
 def list_active_episodes() -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             f"""
             SELECT {_episode_columns()}
@@ -93,8 +93,8 @@ def list_active_episodes() -> list[dict]:
 
 
 def get_episode(epizod_id):
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         row = connection.execute(
             f"""
             SELECT {_episode_columns()}
@@ -109,8 +109,8 @@ def get_episode(epizod_id):
 
 
 def list_episode_tasks(epizod_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT
@@ -142,8 +142,8 @@ def list_episode_tasks(epizod_id) -> list[dict]:
 
 
 def list_episode_process_elements(epizod_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT

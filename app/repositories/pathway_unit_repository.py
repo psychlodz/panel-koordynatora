@@ -1,8 +1,8 @@
 from contextlib import closing
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
 )
 
 
@@ -19,8 +19,8 @@ def _optional_text(value):
 
 
 def list_pathway_units(sciezka_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT
@@ -46,8 +46,8 @@ def assign_unit_to_pathway(
     jo_symbol,
     jo_nazwa,
 ) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             connection.execute(
                 """
@@ -72,8 +72,8 @@ def assign_unit_to_pathway(
 
 
 def remove_unit_from_pathway(sciezka_id, jo_id) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """

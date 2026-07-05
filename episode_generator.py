@@ -3,8 +3,8 @@ from contextlib import closing
 from datetime import datetime
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
     patient_id_column,
 )
 
@@ -127,8 +127,8 @@ def create_episode_with_tasks(
     source_type=None,
     source_id=None,
 ) -> int:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         try:
             _validate_episode_data(
                 connection,
@@ -192,8 +192,8 @@ def activate_next_tasks(
     trigger_element_id,
     trigger_type="PO_ZAKONCZENIU",
 ) -> list[int]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             return _activate_triggered_tasks(
                 connection,
@@ -210,12 +210,12 @@ def complete_task(
     eskulap_system=None,
     eskulap_id=None,
 ) -> list[int]:
-    initialize_local_db()
+    initialize_database()
     completion_date = data_realizacji or datetime.now().isoformat(
         timespec="seconds"
     )
 
-    with closing(create_local_connection()) as connection:
+    with closing(create_connection()) as connection:
         with connection:
             task = connection.execute(
                 """

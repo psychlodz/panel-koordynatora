@@ -1,8 +1,8 @@
 from contextlib import closing
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
 )
 
 
@@ -80,8 +80,8 @@ def _ensure_unique_episode_start(
 
 
 def list_triggers(element_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT
@@ -117,8 +117,8 @@ def create_trigger(
     normalized_type = _trigger_type(trigger_type)
     if normalized_type == "START_EPIZODU":
         trigger_element_id = None
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             _element_pathway_id(connection, element_id)
             _validate_source(connection, element_id, trigger_element_id)
@@ -155,8 +155,8 @@ def update_trigger(
     normalized_type = _trigger_type(trigger_type)
     if normalized_type == "START_EPIZODU":
         trigger_element_id = None
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             trigger = connection.execute(
                 """
@@ -196,8 +196,8 @@ def update_trigger(
 
 
 def delete_trigger(trigger_id) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """

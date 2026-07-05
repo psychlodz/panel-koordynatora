@@ -2,142 +2,100 @@
 
 ## Podział odpowiedzialności
 
-KOMPAS korzysta z trzech niezależnych źródeł danych:
+KOMPAS korzysta z dwóch systemów danych:
 
 | System | Rola | Zapis przez KOMPAS |
 |---|---|---|
-| Oracle / Eskulap | Źródło danych medycznych i organizacyjnych | Nie |
-| PostgreSQL | Centralne dane KOMPAS w testach i produkcji | Tak |
-| SQLite | Tryb developerski i lokalny fallback | Tak |
+| Oracle / Eskulap | Dane pacjenta, medyczne i organizacyjne | Nie |
+| PostgreSQL | Centralne dane procesowe i konfiguracja KOMPAS | Tak |
 
-Oracle pozostaje dostępny wyłącznie przez `EskulapGateway`. PostgreSQL nie
-zastępuje Oracle i nie służy do modyfikowania danych Eskulapa.
+**PostgreSQL jest jedyną bazą procesową KOMPAS.**
 
-**Dane pacjenta są zawsze pobierane z Oracle przez Eskulap Gateway.**
+SQLite został usunięty z mechanizmu działania aplikacji w DB-PG-3.
+Historyczne pliki znajdują się w `db/sqlite_deprecated/`, nie są wspierane,
+uruchamiane ani pakowane do EXE.
 
-### Oracle / Eskulap
+## Oracle / Eskulap
 
-Oracle jest systemem źródłowym i przechowuje:
+Oracle jest systemem źródłowym dla:
 
-- dane pacjenta,
-- dane medyczne,
-- wizyty,
-- konsultacje,
-- badania.
+- danych pacjenta;
+- danych medycznych;
+- wizyt;
+- konsultacji;
+- badań;
+- danych referencyjnych Eskulapa.
 
-KOMPAS korzysta z tych danych wyłącznie do odczytu przez Eskulap Gateway.
+UI nie łączy się z Oracle bezpośrednio. Odczyt odbywa się przez
+`EskulapGateway`. KOMPAS nie zapisuje nic do Oracle.
 
-### PostgreSQL
+## PostgreSQL
 
-PostgreSQL jest centralną bazą danych procesowych KOMPAS i przechowuje:
+PostgreSQL przechowuje:
 
-- programy,
-- ścieżki,
-- epizody,
-- zadania,
-- użytkowników,
-- role,
-- przypisania jednostek organizacyjnych,
-- konfigurację procesów KOMPAS.
+- programy i ścieżki;
+- słowniki KOMPAS;
+- epizody i zadania;
+- zależności i wyzwalacze;
+- użytkowników, role i przypisania jednostek;
+- konfigurację procesów.
 
-Nie zawiera kartoteki pacjentów ani kopii danych osobowych.
-
-Baza PostgreSQL KOMPAS musi być utworzona w kodowaniu `UTF8`. Skrypty
-instalacyjne ustawiają również `client_encoding = 'UTF8'`, aby nazwy
-programów, ścieżek, klocków i elementów były przesyłane bez konwersji
-zależnej od strony kodowej klienta. `lc_collate` i `lc_ctype` pozostają
-zgodne z lokalizacją wybraną podczas instalacji PostgreSQL na Windows.
+Epizod zawiera wyłącznie `pacjent_id_eskulap`, który służy do pobierania
+aktualnych danych pacjenta z Oracle. PostgreSQL nie zawiera lokalnej
+kartoteki pacjentów ani kopii ich danych osobowych.
 
 ```mermaid
 flowchart TB
     O[("Oracle / Eskulap\nSystem of Record")]
     G["Eskulap Gateway\nwyłącznie SELECT"]
     UI["UI KOMPAS"]
-    P[("PostgreSQL\ndane procesowe")]
-    S[("SQLite\ndevelopment")]
+    P[("PostgreSQL\njedyna baza procesowa")]
 
     O --> G
     G -->|"aktualne dane pacjenta"| UI
     P -->|"programy, epizody, zadania"| UI
     UI -->|"zapis danych procesowych"| P
-    S <-.->|"tryb developerski"| UI
 ```
 
-## PostgreSQL
+## Połączenie aplikacji
 
-Centralna baza przechowuje programy, ścieżki, elementy procesu, zależności,
-wyzwalacze, epizody, zadania, konta, role oraz przypisania jednostek.
-Epizod zawiera wyłącznie `pacjent_id_eskulap`, który pozwala pobrać
-aktualne dane pacjenta z Oracle. Schemat znajduje się w `db/postgres/`.
+Wszystkie repozytoria danych KOMPAS korzystają z
+`app/repositories/db_connection.py`. Warstwa obsługuje wyłącznie PostgreSQL
+i nie tworzy automatycznie bazy ani schematu.
 
-Warstwa `app/repositories/db_connection.py` potrafi utworzyć połączenie
-SQLite lub PostgreSQL na podstawie sekcji `[kompas_database]`. Obecne
-repozytoria danych KOMPAS korzystają wyłącznie z tej warstwy. Szczegóły
-sterowników, placeholderów parametrów, zwracanych identyfikatorów i
-różnic dialektu SQL nie przenikają do UI.
-
-Repozytoria Oracle pozostają oddzielone od tego mechanizmu i nadal
-korzystają z `db.py` poprzez Eskulap Gateway.
-
-## Wybór silnika KOMPAS
-
-Silnik jest wybierany w prywatnym `config.ini`.
-
-SQLite:
+Konfiguracja prywatnego `config.ini`:
 
 ```ini
-[kompas_database]
-engine=sqlite
-sqlite_path=kompas.db
-```
-
-PostgreSQL:
-
-```ini
-[kompas_database]
+[kompas_db]
 engine=postgres
 postgres_dsn=host=SERVER port=5432 dbname=kompas user=kompas_app password=HASLO
 ```
 
-Zmienna `KOMPAS_POSTGRES_DSN` ma pierwszeństwo przed DSN zapisanym w
-pliku. Przed pierwszym uruchomieniem PostgreSQL należy wykonać skrypty
-`db/postgres/001-005` zgodnie z instrukcją instalacji.
+Zmienna `KOMPAS_POSTGRES_DSN` ma pierwszeństwo przed DSN zapisanym w pliku.
+Brak DSN, błąd połączenia albo próba ustawienia `engine=sqlite` zatrzymuje
+operację z czytelnym komunikatem i nigdy nie tworzy `kompas.db`.
 
-Test warstwy SQLite:
+## Kodowanie
 
-```text
-python scripts/test_db_sqlite.py
-```
+Baza PostgreSQL KOMPAS musi być utworzona w kodowaniu `UTF8`. Skrypty
+instalacyjne ustawiają `client_encoding = 'UTF8'`. `lc_collate` i
+`lc_ctype` pozostają zgodne z lokalizacją wybraną podczas instalacji
+PostgreSQL na Windows.
 
-Test zgodności oraz opcjonalny test serwera PostgreSQL:
+## Test
+
+Podstawowy test warstwy danych:
 
 ```text
 python scripts/test_db_postgres.py
 ```
 
-Test integracyjny serwera uruchamia się po ustawieniu
-`KOMPAS_TEST_POSTGRES_DSN`.
+Test live wymaga zmiennej:
 
-## SQLite
+```powershell
+$env:KOMPAS_TEST_POSTGRES_DSN = "host=... dbname=kompas user=... password=..."
+python scripts/test_db_postgres.py
+```
 
-SQLite nadal jest domyślnym silnikiem developerskim. Dotychczasowy
-`local_db.py`, baza `kompas.db` oraz istniejące repozytoria pozostają
-niezmienione. Dzięki temu aktualna aplikacja działa lokalnie tak jak przed
-dodaniem skryptów PostgreSQL.
-
-Dotychczasowa kolumna SQLite `pk_epizody.pacjent_id` zawiera techniczny
-identyfikator pacjenta z Eskulapa. Nie zawiera PESEL-u ani lokalnego
-identyfikatora kartoteki KOMPAS. Przy przepięciu repozytoriów w DB-PG-2
-odpowiada kolumnie PostgreSQL `pacjent_id_eskulap`.
-
-## Dane pacjenta
-
-PostgreSQL i SQLite nie utrzymują kopii PESEL-u, imienia, nazwiska, adresu,
-telefonu, adresu e-mail ani innych danych identyfikacyjnych pacjenta.
-Nie istnieje lokalny cache danych osobowych.
-
-Model `Patient` jest obiektem DTO zwracanym przez Gateway i istnieje tylko
-w pamięci procesu na czas obsługi żądania lub prezentacji danych. Nie jest
-modelem trwałym i nie może być zapisywany przez repozytoria KOMPAS.
-
-Szczegółowe zasady minimalizacji opisuje `docs/ARCHITECTURE/PRIVACY.md`.
+Szczegółowe zasady minimalizacji danych opisuje
+`docs/ARCHITECTURE/PRIVACY.md`.

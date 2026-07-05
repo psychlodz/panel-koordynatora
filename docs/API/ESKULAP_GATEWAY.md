@@ -11,7 +11,7 @@ Warstwa nie zapisuje żadnych danych do Oracle.
 Gateway zawsze pobiera aktualne dane pacjenta z Oracle.
 KOMPAS nie utrzymuje własnej kopii danych osobowych. Model `Patient` jest
 wyłącznie DTO przekazywanym w pamięci i nie jest zapisywany w PostgreSQL
-ani SQLite.
+ani w żadnej lokalnej bazie KOMPAS.
 
 ## Zależności
 

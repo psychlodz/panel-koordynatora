@@ -6,8 +6,8 @@ from contextlib import closing
 from dataclasses import dataclass
 
 from app.repositories.db_connection import (
-    create_connection as create_local_connection,
-    initialize_database as initialize_local_db,
+    create_connection,
+    initialize_database,
 )
 
 
@@ -112,8 +112,8 @@ def _login_error():
 
 def login(login, password) -> AuthenticatedUser:
     normalized_login = str(login or "").strip()
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         row = connection.execute(
             """
             SELECT
@@ -181,8 +181,8 @@ def _validate_new_password(new_password) -> str:
 
 def change_password(user_id, old_password, new_password) -> None:
     password = _validate_new_password(new_password)
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         row = connection.execute(
             """
             SELECT password_hash, is_active, locked_at
@@ -235,8 +235,8 @@ def _require_admin(connection, admin_user_id):
 
 def reset_password(admin_user_id, target_user_id, new_password) -> None:
     password = _validate_new_password(new_password)
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             _require_admin(connection, admin_user_id)
             cursor = connection.execute(
@@ -283,8 +283,8 @@ def _is_last_active_admin(connection, user_id) -> bool:
 
 
 def block_user(user_id) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             if _is_last_active_admin(connection, user_id):
                 raise ValueError(
@@ -304,8 +304,8 @@ def block_user(user_id) -> None:
 
 
 def unblock_user(user_id) -> None:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             cursor = connection.execute(
                 """
@@ -323,8 +323,8 @@ def unblock_user(user_id) -> None:
 
 
 def list_roles() -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         rows = connection.execute(
             """
             SELECT role_id, code, name
@@ -336,8 +336,8 @@ def list_roles() -> list[dict]:
 
 
 def list_users(admin_user_id) -> list[dict]:
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         _require_admin(connection, admin_user_id)
         rows = connection.execute(
             """
@@ -487,8 +487,8 @@ def create_user(
     if not normalized_name:
         raise ValueError("Imię i nazwisko jest wymagane")
     password = _validate_new_password(password)
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             _require_admin(connection, admin_user_id)
             cursor = connection.execute(
@@ -536,8 +536,8 @@ def update_user(
         raise ValueError("Imię i nazwisko jest wymagane")
     codes = _normalized_role_codes(role_codes)
 
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             _require_admin(connection, admin_user_id)
             exists = connection.execute(
@@ -575,8 +575,8 @@ def update_user(
 
 def set_user_roles(admin_user_id, user_id, role_codes) -> None:
     codes = _normalized_role_codes(role_codes)
-    initialize_local_db()
-    with closing(create_local_connection()) as connection:
+    initialize_database()
+    with closing(create_connection()) as connection:
         with connection:
             _require_admin(connection, admin_user_id)
             exists = connection.execute(
