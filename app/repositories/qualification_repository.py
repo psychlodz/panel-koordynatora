@@ -1,3 +1,4 @@
+import logging
 from contextlib import closing
 from datetime import date, datetime, timedelta
 
@@ -16,6 +17,7 @@ SOURCE_SYSTEM = "ESKULAP"
 SOURCE_TYPE = "WIZYTA_KWALIFIKACYJNA_PKK"
 # F18 = rodzaj wizyty kwalifikacyjnej PKK zapisany w WP_PARAMETR.
 PKK_KWAL_PARAMETR_KOD = "F18"
+logger = logging.getLogger(__name__)
 
 
 def _date_value(value, field_name):
@@ -188,17 +190,26 @@ def create_episode_from_qualification_visit(
     sciezka_id,
     koordynator_id=None,
 ) -> int:
-    visit = get_qualification_visit(wizyta_id)
-    if visit is None:
-        raise ValueError("Nie znaleziono wizyty kwalifikacyjnej w Eskulapie")
-    if visit["epizod_id"] is not None:
-        raise ValueError(
-            f"Wizyta jest już przypisana do epizodu {visit['epizod_id']}"
-        )
-    if visit.get("pacjent_id") is None:
-        raise ValueError("Wizyta nie zawiera identyfikatora pacjenta")
-
+    logger.debug(
+        "START_KWALIFIKACJI wizyta_id=%s program_id=%s sciezka_id=%s",
+        wizyta_id,
+        program_id,
+        sciezka_id,
+    )
     try:
+        visit = get_qualification_visit(wizyta_id)
+        if visit is None:
+            raise ValueError(
+                "Nie znaleziono wizyty kwalifikacyjnej w Eskulapie"
+            )
+        if visit["epizod_id"] is not None:
+            raise ValueError(
+                "Wizyta jest już przypisana do epizodu "
+                f"{visit['epizod_id']}"
+            )
+        if visit.get("pacjent_id") is None:
+            raise ValueError("Wizyta nie zawiera identyfikatora pacjenta")
+
         return create_episode_with_tasks(
             pacjent_id=str(visit["pacjent_id"]),
             program_id=program_id,
@@ -210,6 +221,11 @@ def create_episode_from_qualification_visit(
             source_id=str(wizyta_id),
         )
     except Exception as exc:
+        logger.debug(
+            "ROLLBACK wizyta_id=%s",
+            wizyta_id,
+            exc_info=True,
+        )
         if not is_integrity_error(exc):
             raise
         raise ValueError(

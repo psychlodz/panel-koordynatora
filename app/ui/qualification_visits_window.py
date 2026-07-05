@@ -1,3 +1,5 @@
+import logging
+
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -28,6 +30,9 @@ from app.services.work_context import work_context
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 from app.ui.widgets.busy_indicator import busy_operation
 from version import APP_NAME
+
+
+logger = logging.getLogger(__name__)
 
 
 class QualificationAssignmentDialog(QDialog):
@@ -120,8 +125,9 @@ class QualificationVisitsWindow(QWidget):
         layout.addWidget(title)
 
         filters = QHBoxLayout()
-        self.date_from = QDateEdit(QDate.currentDate().addMonths(-3))
-        self.date_to = QDateEdit(QDate.currentDate().addMonths(1))
+        today = QDate.currentDate()
+        self.date_from = QDateEdit(today.addDays(-7))
+        self.date_to = QDateEdit(today.addDays(7))
         self.date_from.setCalendarPopup(True)
         self.date_to.setCalendarPopup(True)
         filters.addWidget(QLabel("Od:"))
@@ -277,13 +283,17 @@ class QualificationVisitsWindow(QWidget):
                         item,
                     )
             self.info_label.setText(f"Wizyty: {len(visits)}")
+            logger.debug("REFRESH_OK visits=%s", len(visits))
+            return True
         except Exception as exc:
+            logger.debug("REFRESH_ERROR", exc_info=True)
             QMessageBox.critical(
                 self,
                 APP_NAME,
                 "Nie udało się pobrać wizyt kwalifikacyjnych:\n\n"
                 f"{exc}",
             )
+            return False
 
     def assign_selected_visit(self):
         visit = self.selected_visit()
@@ -301,7 +311,16 @@ class QualificationVisitsWindow(QWidget):
                     visit["wizyta_id"],
                     **dialog.values(),
                 )
-            self.refresh_visits()
+            refresh_ok = self.refresh_visits()
+            if not refresh_ok:
+                raise RuntimeError(
+                    "Epizod utworzono, ale nie udało się odświeżyć listy"
+                )
+            if str(visit["wizyta_id"]) in self._visits:
+                raise RuntimeError(
+                    "Epizod utworzono, ale wizyta nadal znajduje się "
+                    "na liście nieprzypisanych"
+                )
             QMessageBox.information(
                 self,
                 APP_NAME,

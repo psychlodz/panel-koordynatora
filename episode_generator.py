@@ -1,11 +1,17 @@
+import logging
 from contextlib import closing
 from datetime import datetime
 
-from local_db import create_local_connection, initialize_local_db
+from app.repositories.db_connection import (
+    create_connection as create_local_connection,
+    initialize_database as initialize_local_db,
+    patient_id_column,
+)
 
 
 TASK_STATUS_PENDING = "DO_ZAPLANOWANIA"
 TASK_STATUS_COMPLETED = "ZAKONCZONE"
+logger = logging.getLogger(__name__)
 
 
 def _validate_episode_data(connection, pacjent_id, program_id, sciezka_id):
@@ -123,17 +129,18 @@ def create_episode_with_tasks(
 ) -> int:
     initialize_local_db()
     with closing(create_local_connection()) as connection:
-        with connection:
+        try:
             _validate_episode_data(
                 connection,
                 pacjent_id,
                 program_id,
                 sciezka_id,
             )
+            patient_column = patient_id_column()
             cursor = connection.execute(
-                """
+                f"""
                 INSERT INTO pk_epizody(
-                    pacjent_id,
+                    {patient_column},
                     program_id,
                     sciezka_id,
                     data_start,
@@ -159,11 +166,24 @@ def create_episode_with_tasks(
                 ),
             )
             epizod_id = int(cursor.lastrowid)
-            _activate_triggered_tasks(
+            logger.debug("EPIZOD_CREATED epizod_id=%s", epizod_id)
+            task_ids = _activate_triggered_tasks(
                 connection,
                 epizod_id,
                 "START_EPIZODU",
             )
+            logger.debug(
+                "TASKS_CREATED epizod_id=%s count=%s ids=%s",
+                epizod_id,
+                len(task_ids),
+                task_ids,
+            )
+            connection.commit()
+            logger.debug("COMMIT_OK epizod_id=%s", epizod_id)
+        except Exception:
+            connection.rollback()
+            logger.debug("ROLLBACK", exc_info=True)
+            raise
     return epizod_id
 
 

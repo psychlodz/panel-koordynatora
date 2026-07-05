@@ -6,10 +6,12 @@ from app.ui.login_dialog import LoginDialog
 from app.ui.main_window import MainWindow
 from app.ui.theme import apply_theme
 from app.services.work_context import initialize_work_context
+from app.services.debug_logging import configure_debug_logging
 from version import APP_NAME, VERSION
 
 
 def main():
+    configure_debug_logging()
     application = QApplication(sys.argv)
     application.setApplicationName(APP_NAME)
     application.setApplicationVersion(VERSION)
