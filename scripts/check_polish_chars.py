@@ -14,7 +14,7 @@ from app.repositories.db_connection import (
 )
 
 
-SUSPICIOUS_CHARACTERS = ("Å", "Ä", "Ã", "Â")
+SUSPICIOUS_CHARACTERS = ("Å", "Ä", "Ã", "Â", "Ĺ", "Ă")
 TEXT_COLUMNS = {
     "pk_programy": (
         "program_id",

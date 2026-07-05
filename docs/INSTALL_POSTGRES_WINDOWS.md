@@ -115,7 +115,7 @@ python scripts/check_polish_chars.py
 ```
 
 Skrypt kończy się kodem błędu, jeśli baza lub połączenie nie używa UTF-8
-albo dane zawierają podejrzane sekwencje `Å`, `Ä`, `Ã` lub `Â`.
+albo dane zawierają podejrzane sekwencje `Å`, `Ä`, `Ã`, `Â`, `Ĺ` lub `Ă`.
 
 Opcjonalna naprawa danych słownikowych wymaga wcześniej wykonanej kopii
 zapasowej i jawnego parametru:

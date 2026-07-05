@@ -30,7 +30,9 @@ def repair_text(value):
     current = value
     for _attempt in range(3):
         candidates = []
-        for source_encoding in ("cp1252", "latin1"):
+        # CP1250 odpowiada typowemu przypadkowi: poprawny tekst UTF-8
+        # został błędnie odczytany przez polską stronę kodową Windows.
+        for source_encoding in ("cp1250", "cp1252", "latin1"):
             try:
                 candidate = current.encode(source_encoding).decode("utf-8")
             except (UnicodeEncodeError, UnicodeDecodeError):
