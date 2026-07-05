@@ -210,8 +210,8 @@ class MainWindow(QMainWindow):
             "Konfiguracja programów KOMPAS",
         )
         self.episodes_button = ModuleTileButton(
-            "Pacjenci w programach",
-            "Epizody i postęp realizacji",
+            "Dashboard epizodów",
+            "Stan realizacji programów pacjentów",
         )
         self.qualification_button = ModuleTileButton(
             "Wizyty kwalifikacyjne PKK",
@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
             "Otwórz listę i konfigurację programów KOMPAS."
         )
         self.episodes_button.setToolTip(
-            "Otwórz listę pacjentów uczestniczących w programach."
+            "Otwórz dashboard realizacji epizodów i zadań."
         )
         self.qualification_button.setToolTip(
             "Pobierz wizyty kwalifikacyjne PKK i przypisz program."
@@ -349,12 +349,14 @@ class MainWindow(QMainWindow):
                 EpisodesDashboardWindow,
             )
 
-            return EpisodesDashboardWindow()
+            return EpisodesDashboardWindow(
+                current_user=self.current_user,
+            )
 
         self._show_window(
             "episodes",
             factory,
-            "Trwa otwieranie listy epizodów...",
+            "Trwa otwieranie dashboardu epizodów...",
         )
 
     def open_qualification_visits(self):
