@@ -55,16 +55,16 @@ INSERT INTO pk_klocki(kod, nazwa, typ, opis) VALUES
         'Kwalifikacja pacjenta do programu.'
     ),
     (
-        'WIZYTA_KWALIFIKACYJNA_PKK',
+        'PKK_KWAL',
         'Wizyta kwalifikacyjna w PKK',
         'PKK',
-        'Wizyta kwalifikująca pacjenta do programu KOMPAS w punkcie PKK.'
+        'Wizyta kwalifikacyjna będąca podstawą utworzenia epizodu KOMPAS.'
     ),
     (
+        'PKK_WIZ',
+        'Wizyta w PKK',
         'PKK',
-        'Punkt konsultacyjno-koordynacyjny',
-        'PKK',
-        'Obsługa pacjenta w punkcie konsultacyjno-koordynacyjnym.'
+        'Wizyta lub czynność organizacyjna realizowana w PKK w trakcie programu.'
     ),
     (
         'WIZYTA_PSYCHIATRYCZNA',
@@ -134,6 +134,12 @@ INSERT INTO pk_klocki(kod, nazwa, typ, opis) VALUES
     )
 ON CONFLICT DO NOTHING;
 
+-- PKK_KWAL jest integrowany z rodzajem wizyty F18 w Eskulapie.
+UPDATE pk_klocki
+SET czy_aktywny = 0,
+    updated_at = now()
+WHERE kod IN ('PKK', 'WIZYTA_KWALIFIKACYJNA_PKK');
+
 INSERT INTO pk_programy(kod, nazwa, wersja, opis)
 VALUES (
     'ADHD_DZ_ML',
@@ -185,9 +191,9 @@ JOIN pk_programy p ON p.program_id = s.program_id
 CROSS JOIN (
     VALUES
         (
-            'KWALIFIKACJA', 1, 'Kwalifikacja / PKK',
+            'PKK_KWAL', 1, 'Wizyta kwalifikacyjna w PKK',
             1, 1, 1, 0, NULL::integer, NULL::text, NULL::text,
-            'Początek organizacyjnej obsługi pacjenta w programie.'
+            'Wizyta F18 w Eskulapie będąca podstawą utworzenia epizodu.'
         ),
         (
             'WIZYTA_PSYCHIATRYCZNA', 2,
@@ -251,6 +257,27 @@ WHERE p.kod = 'ADHD_DZ_ML'
   AND s.kod = 'PODSTAWOWA'
 ON CONFLICT DO NOTHING;
 
+UPDATE pk_sciezka_elementy e
+SET klocek_id = kwal.klocek_id,
+    nazwa_w_sciezce = 'Wizyta kwalifikacyjna w PKK',
+    opis_organizacyjny =
+        'Wizyta F18 w Eskulapie będąca podstawą utworzenia epizodu.',
+    updated_at = now()
+FROM pk_sciezki s
+JOIN pk_programy p ON p.program_id = s.program_id
+JOIN pk_klocki kwal ON kwal.kod = 'PKK_KWAL'
+JOIN pk_klocki stary
+    ON stary.kod IN (
+        'KWALIFIKACJA',
+        'WIZYTA_KWALIFIKACYJNA_PKK',
+        'PKK'
+    )
+WHERE e.sciezka_id = s.sciezka_id
+  AND e.klocek_id = stary.klocek_id
+  AND p.kod = 'ADHD_DZ_ML'
+  AND s.kod = 'PODSTAWOWA'
+  AND e.lp = 1;
+
 INSERT INTO pk_wyzwalacze(element_id, trigger_type, opis)
 SELECT
     e.element_id,
@@ -262,7 +289,7 @@ JOIN pk_programy p ON p.program_id = s.program_id
 JOIN pk_klocki k ON k.klocek_id = e.klocek_id
 WHERE p.kod = 'ADHD_DZ_ML'
   AND s.kod = 'PODSTAWOWA'
-  AND k.kod IN ('KWALIFIKACJA', 'WIZYTA_PSYCHIATRYCZNA')
+  AND k.kod IN ('PKK_KWAL', 'WIZYTA_PSYCHIATRYCZNA')
   AND NOT EXISTS (
       SELECT 1
       FROM pk_wyzwalacze w
@@ -304,4 +331,3 @@ WHERE p.kod = 'ADHD_DZ_ML'
   );
 
 COMMIT;
-

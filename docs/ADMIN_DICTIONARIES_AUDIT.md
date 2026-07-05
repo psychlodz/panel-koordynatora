@@ -40,7 +40,7 @@ edycji należy rozdzielić:
 | Klasyfikacja rodzajów badań z Oracle | Zbiory kodów laboratoryjnych i obrazowych w kodzie | `app/repositories/event_repository.py`: `LABORATORY_TYPES`, `IMAGING_TYPES` | Docelowo kontrolowana | Przenieść do tabeli mapowań integracyjnych „kod Eskulapa → typ zdarzenia”. Edycję ograniczyć do administratora technicznego i walidować przed zapisem. |
 | Typy konsultacji | Brak lokalnego słownika; konsultacje są pobierane jako jeden typ zdarzenia, a szczegóły pochodzą z Oracle | `app/repositories/patient_repository.py`, `app/repositories/event_repository.py`, widok `V_KOMPAS_KONSULTACJE` | Nie na obecnym etapie | Oracle pozostaje źródłem prawdy. Jeśli potrzebne będzie grupowanie, dodać mapowanie kodów Oracle, nie kopiować słownika medycznego do KOMPAS bez potrzeby. |
 | Mapowanie klocków na zdarzenia Eskulapa | Słownik w kodzie `TASK_EVENT_TYPES` | `services/synchronization_service.py` | Docelowo kontrolowana | Przenieść do dedykowanej konfiguracji integracji powiązanej z `pk_klocki`. Nie oferować pełnej edycji, dopóki nie powstanie walidacja konfliktów i test dopasowania. |
-| Filtr wizyty kwalifikacyjnej PKK | Słownik w kodzie: `kwalifikacja`, `PKK`, `kwalifikacyjna` | `app/repositories/qualification_repository.py`: `QUALIFICATION_FILTER` | Tak, kontrolowana | Wysoki priorytet. Przenieść do konfiguracji per jednostka lub globalnej, z ekranem testowego podglądu wyników przed zapisaniem. |
+| Filtr wizyty kwalifikacyjnej PKK | Kod integracyjny `F18` w jednym miejscu | `app/repositories/qualification_repository.py`: `QUALIFICATION_VISIT_TYPE` | Docelowo kontrolowana | `F18` jest rodzajem wizyty kwalifikacyjnej PKK w Eskulapie. Ewentualną przyszłą konfigurację należy udostępnić z ekranem testowego podglądu wyników. |
 | Jednostki organizacyjne | Źródło w Oracle przez Gateway; lokalnie tylko identyfikatory i opisowe migawki przypisań użytkownika/programu/ścieżki | `app/repositories/organizational_unit_repository.py`, `app/gateway/eskulap_gateway.py`, `pk_user_units`, `pk_program_units`, `pk_pathway_units` | Tylko przypisania | Nie tworzyć lokalnego słownika jednostek. Lista zawsze pochodzi z Eskulapa; administrator zarządza jedynie przypisaniami. |
 | Programy i ścieżki | Tabele w obu bazach, dane przykładowe ADHD w seedach, istniejące moduły administracyjne | `pk_programy`, `pk_sciezki`, `pk_sciezka_elementy`, seedy, repozytoria i UI programów/ścieżek | Tak, w istniejących modułach | Traktować jako konfigurację procesu, nie jako ogólny słownik. Pozostawić w modułach „Programy” i „Ścieżki”. |
 | Aktywność programu, ścieżki, klocka i elementu | Flagi `czy_aktywny`/`czy_aktywna` z wartościami 0/1 | schematy obu baz oraz odpowiednie repozytoria i UI | Tak, przez akcję aktywuj/dezaktywuj | Nie tworzyć słownika `AKTYWNY/NIEAKTYWNY`. Zachować flagi i spójne polskie etykiety prezentacyjne. |
@@ -117,6 +117,12 @@ Dodanie wartości tylko w jednym miejscu prowadzi do niespójności.
 Klasyfikacja badań, mapowanie klocków na zdarzenia oraz filtr wizyt
 kwalifikacyjnych są zapisane w Pythonie. Ich zmiana wymaga wydania nowej
 wersji aplikacji, chociaż są zależne od konfiguracji konkretnego Eskulapa.
+
+Typ `PKK` należy odróżniać od klocków procesu: `PKK_KWAL` oznacza wizytę
+kwalifikacyjną F18, natomiast `PKK_WIZ` zwykłą wizytę lub obsługę PKK.
+Historyczny ogólny klocek `PKK` jest przeznaczony do dezaktywacji.
+`WIZYTA_KWALIFIKACYJNA_PKK` pozostaje wyłącznie technicznym typem źródła
+epizodu (`source_type`) i nie jest już kodem klocka.
 
 ### 5. Role są w bazie, ale nie wszystkie są dynamiczne
 

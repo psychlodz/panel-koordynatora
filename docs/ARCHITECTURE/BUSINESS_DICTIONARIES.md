@@ -108,6 +108,18 @@ wyboru właściwego zachowania. Nie zastępuje konkretnego klocka.
 | `RAPORT` | Raport | Tak | raport końcowy |
 | `ZAKONCZENIE` | Zakończenie programu | Tak | formalne zamknięcie procesu |
 
+`PKK` jest typem elementu procesu, a nie klockiem dodawanym bezpośrednio
+do ścieżki. Konkretnymi klockami tego typu są:
+
+| Kod klocka | Nazwa | Integracja |
+|---|---|---|
+| `PKK_KWAL` | Wizyta kwalifikacyjna w PKK | Eskulap, rodzaj wizyty `F18` |
+| `PKK_WIZ` | Wizyta w PKK | zwykła wizyta lub obsługa w trakcie programu |
+
+Ogólny historyczny klocek `PKK` jest nieaktywny i nie może być wybierany
+do nowych ścieżek. `PKK_KWAL` stanowi element kwalifikacyjny przykładowej
+ścieżki ADHD i jest podstawą utworzenia epizodu KOMPAS.
+
 ### Ocena modelu obecnego
 
 Obecna tabela `pk_typy_elementow` zawiera tylko `typ_id`, `kod` i `nazwa`.
@@ -219,6 +231,10 @@ Klocek posiada:
 | `czy_aktywny` | Dostępność dla nowych ścieżek | Tak |
 | `czy_systemowy` | Ochrona kontraktu systemowego | Nie |
 | `kolejnosc` | Pozycja w bibliotece | Tak |
+
+Przykładem rozdzielenia typu od klocka jest typ `PKK`, do którego należą
+dwa różne wzorce: `PKK_KWAL` oraz `PKK_WIZ`. Kod typu nie może być używany
+zamiennie z kodem klocka.
 
 ### Zasada kopiowania domyślnych wartości
 

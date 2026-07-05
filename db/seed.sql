@@ -38,8 +38,9 @@ INSERT OR IGNORE INTO pk_typy_elementow(kod, nazwa) VALUES
 
 INSERT OR IGNORE INTO pk_klocki(kod, nazwa, typ, opis) VALUES
 ('KWALIFIKACJA', 'Kwalifikacja', 'PKK', 'Kwalifikacja pacjenta do programu.'),
-('WIZYTA_KWALIFIKACYJNA_PKK', 'Wizyta kwalifikacyjna w PKK', 'PKK', 'Wizyta kwalifikująca pacjenta do programu KOMPAS w punkcie PKK.'),
-('PKK', 'Punkt konsultacyjno-koordynacyjny', 'PKK', 'Obsługa pacjenta w punkcie konsultacyjno-koordynacyjnym.'),
+-- PKK_KWAL: integracja Eskulap, rodzaj wizyty F18.
+('PKK_KWAL', 'Wizyta kwalifikacyjna w PKK', 'PKK', 'Wizyta kwalifikacyjna będąca podstawą utworzenia epizodu KOMPAS.'),
+('PKK_WIZ', 'Wizyta w PKK', 'PKK', 'Wizyta lub czynność organizacyjna realizowana w PKK w trakcie programu.'),
 ('WIZYTA_PSYCHIATRYCZNA', 'Wizyta psychiatryczna', 'WIZYTA', 'Wizyta diagnostyczna lub kontrolna u psychiatry.'),
 ('DIAGNOSTYKA_PSYCHOLOGICZNA', 'Diagnostyka psychologiczna', 'WIZYTA', 'Proces diagnostyki psychologicznej.'),
 ('SESJA_TERAPEUTYCZNA', 'Sesja terapeutyczna', 'SESJA', 'Pojedyncza sesja terapeutyczna.'),
@@ -51,6 +52,11 @@ INSERT OR IGNORE INTO pk_klocki(kod, nazwa, typ, opis) VALUES
 ('KONSYLIUM', 'Konsylium', 'KONSYLIUM', 'Konsylium zespołu prowadzącego program.'),
 ('RAPORT_KONCOWY', 'Raport końcowy', 'RAPORT', 'Raport końcowy i plan dalszego postępowania.'),
 ('ZAMKNIECIE_PROGRAMU', 'Zamknięcie programu', 'ZAMKNIECIE', 'Formalne zakończenie udziału w programie.');
+
+UPDATE pk_klocki
+SET czy_aktywny = 0,
+    updated_at = CURRENT_TIMESTAMP
+WHERE kod IN ('PKK', 'WIZYTA_KWALIFIKACYJNA_PKK');
 
 INSERT OR IGNORE INTO pk_programy(kod, nazwa, wersja, opis)
 VALUES (
@@ -71,11 +77,11 @@ INSERT OR IGNORE INTO pk_sciezka_elementy(
     czy_wymaga_zlecenia, termin_liczba, termin_jednostka,
     termin_od, opis_organizacyjny
 )
-SELECT s.sciezka_id, k.klocek_id, 1, 'Kwalifikacja / PKK',
+SELECT s.sciezka_id, k.klocek_id, 1, 'Wizyta kwalifikacyjna w PKK',
        1, 1, 1, 0, NULL, NULL, NULL,
-       'Początek organizacyjnej obsługi pacjenta w programie.'
+       'Wizyta F18 w Eskulapie będąca podstawą utworzenia epizodu.'
 FROM pk_sciezki s, pk_klocki k
-WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'KWALIFIKACJA';
+WHERE s.kod = 'PODSTAWOWA' AND k.kod = 'PKK_KWAL';
 
 INSERT OR IGNORE INTO pk_sciezka_elementy(
     sciezka_id, klocek_id, lp, nazwa_w_sciezce,

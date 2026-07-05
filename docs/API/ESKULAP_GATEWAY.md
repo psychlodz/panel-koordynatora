@@ -47,7 +47,8 @@ Pobiera wizyty pacjenta. Zwraca listę `Visit`.
 
 Pobiera wizyty kwalifikacyjne PKK z opcjonalnego okresu. Parametr
 `only_unassigned` ogranicza wynik do wizyt bez epizodu KOMPAS. Zwraca
-listę `QualificationVisit`.
+listę `QualificationVisit`. Wizyta kwalifikacyjna jest rozpoznawana po
+dokładnej wartości `TYP_WIZYTY = 'F18'`.
 
 ### `get_patient_consultations(patient_id)`
 
@@ -100,10 +101,16 @@ Badania laboratoryjne i obrazowe korzystają ze wspólnego widoku
 `V_KOMPAS_BADANIA` i są rozdzielane według typu badania.
 
 Wizyty kwalifikacyjne nie mają osobnego widoku. Gateway pobiera je
-z `V_KOMPAS_WIZYTY`, filtrując pola `TYP_WIZYTY`, `PORADNIA_SYMBOL`,
-`PORADNIA_NAZWA` i `OPIS`. Początkowe wartości filtra
-(`kwalifikacja`, `PKK`, `kwalifikacyjna`) są konfigurowane w
-`qualification_repository.py`.
+z `V_KOMPAS_WIZYTY`, filtrując `TYP_WIZYTY` po wartości `F18`.
+`F18` jest Eskulapowym rodzajem wizyty kwalifikacyjnej PKK. Jedyna
+definicja tego filtra znajduje się jako `QUALIFICATION_VISIT_TYPE`
+w `qualification_repository.py`.
+
+W modelu procesu `PKK` pozostaje typem elementu. Klocek `PKK_KWAL`
+reprezentuje wizytę kwalifikacyjną F18, a `PKK_WIZ` zwykłą wizytę lub
+czynność organizacyjną PKK w trakcie programu.
+Techniczna wartość `source_type = WIZYTA_KWALIFIKACYJNA_PKK` opisuje
+pochodzenie epizodu i nie jest kodem klocka.
 
 Po każdej zmianie pliku `docs/SQL/kompas_oracle_views.sql` administrator
 musi ręcznie wykonać odpowiednie instrukcje `CREATE OR REPLACE VIEW`

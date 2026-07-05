@@ -27,14 +27,15 @@ Repozytorium wyszukuje pacjentów po fragmencie `NAZWISKO` albo `PESEL`.
 Minimalny kontrakt kolumn:
 
 - `PACJENT_ID`,
-- `DATA_WIZYTY`.
+- `DATA_WIZYTY`,
+- `TYP_WIZYTY` — wymagane do rozpoznania kwalifikacji PKK `F18`.
 
 Widok może udostępniać dodatkowe informacje, np. identyfikator wizyty,
 status, jednostkę organizacyjną, personel i rodzaj świadczenia.
 
 Wizyty kwalifikacyjne PKK są pobierane z `V_KOMPAS_WIZYTY`. Aplikacja
-filtruje je po typie wizyty, symbolu lub nazwie poradni oraz opisie.
-Nie wymagają osobnego widoku Oracle.
+rozpoznaje je po dokładnej wartości `TYP_WIZYTY = 'F18'`. `F18` oznacza
+rodzaj wizyty kwalifikacyjnej PKK. Nie wymagają osobnego widoku Oracle.
 
 ### `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`
 

@@ -14,11 +14,8 @@ from app.repositories.patient_repository import PATIENTS_VIEW, VISITS_VIEW
 
 SOURCE_SYSTEM = "ESKULAP"
 SOURCE_TYPE = "WIZYTA_KWALIFIKACYJNA_PKK"
-QUALIFICATION_FILTER = {
-    "typ_wizyty": "kwalifikacja",
-    "poradnia": "PKK",
-    "opis": "kwalifikacyjna",
-}
+# F18 = rodzaj wizyty kwalifikacyjnej PKK w Eskulapie.
+QUALIFICATION_VISIT_TYPE = "F18"
 
 
 def _date_value(value, field_name):
@@ -90,28 +87,14 @@ def _with_assignment(visit, assignments):
 
 def _qualification_condition(alias="w"):
     return f"""
-        (
-            UPPER(NVL({alias}.TYP_WIZYTY, '')) LIKE
-                UPPER(:qualification_visit_type)
-            OR UPPER(NVL({alias}.PORADNIA_SYMBOL, '')) LIKE
-                UPPER(:qualification_clinic)
-            OR UPPER(NVL({alias}.PORADNIA_NAZWA, '')) LIKE
-                UPPER(:qualification_clinic)
-            OR UPPER(NVL({alias}.OPIS, '')) LIKE
-                UPPER(:qualification_description)
-        )
+        UPPER(TRIM(NVL({alias}.TYP_WIZYTY, ''))) =
+            UPPER(:qualification_visit_type)
     """
 
 
 def _qualification_parameters():
     return {
-        "qualification_visit_type": (
-            f"%{QUALIFICATION_FILTER['typ_wizyty']}%"
-        ),
-        "qualification_clinic": f"%{QUALIFICATION_FILTER['poradnia']}%",
-        "qualification_description": (
-            f"%{QUALIFICATION_FILTER['opis']}%"
-        ),
+        "qualification_visit_type": QUALIFICATION_VISIT_TYPE,
     }
 
 

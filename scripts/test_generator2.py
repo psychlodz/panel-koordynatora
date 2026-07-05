@@ -51,7 +51,7 @@ def main():
 
     tasks = _print_tasks("Zadania po utworzeniu epizodu:", epizod_id)
     initial_codes = {task["klocek_kod"] for task in tasks}
-    expected_initial = {"KWALIFIKACJA", "WIZYTA_PSYCHIATRYCZNA"}
+    expected_initial = {"PKK_KWAL", "WIZYTA_PSYCHIATRYCZNA"}
     if initial_codes != expected_initial:
         raise AssertionError(
             f"Oczekiwano {expected_initial}, otrzymano {initial_codes}"
