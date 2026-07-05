@@ -176,7 +176,9 @@ class PathwayElementDialog(QDialog):
         }
         for block in blocks:
             self.block_combo.addItem(
-                f"{block['kod']} — {block['nazwa']}", block["klocek_id"]
+                f"{block['nazwa']} "
+                f"({block['typ_nazwa']} • {block['grupa_nazwa']})",
+                block["klocek_id"],
             )
 
         form.addRow("Klocek:", self.block_combo)
@@ -249,9 +251,9 @@ class PathwayElementDialog(QDialog):
     def fill_default_name(self, _index=None):
         if self.name_edit.text().strip():
             return
-        text = self.block_combo.currentText()
-        if " — " in text:
-            self.name_edit.setText(text.split(" — ", 1)[1])
+        block = self.blocks_by_id.get(self.block_combo.currentData(), {})
+        if block.get("nazwa"):
+            self.name_edit.setText(block["nazwa"])
 
     def activation_value(self):
         block = self.blocks_by_id.get(self.block_combo.currentData(), {})

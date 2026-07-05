@@ -24,39 +24,98 @@ FROM pk_users u, pk_roles r
 WHERE u.login = 'admin'
   AND r.code = 'ADMIN';
 
-INSERT OR IGNORE INTO pk_typy_elementow(kod, nazwa) VALUES
-('PKK', 'Punkt konsultacyjno-koordynacyjny'),
-('WIZYTA', 'Wizyta'),
-('SESJA', 'Sesja terapeutyczna'),
-('KONSULTACJA', 'Konsultacja specjalistyczna'),
-('LAB', 'Badanie laboratoryjne'),
-('GENETYKA', 'Badanie genetyczne'),
-('OBRAZOWE', 'Badanie obrazowe'),
-('KONSYLIUM', 'Konsylium'),
-('RAPORT', 'Raport końcowy'),
-('ZAMKNIECIE', 'Zamknięcie programu');
+INSERT OR IGNORE INTO pk_typy_elementow(
+    kod, nazwa, opis, kolejnosc, czy_aktywny, czy_systemowy
+) VALUES
+('PKK', 'Punkt konsultacyjno-koordynacyjny', NULL, 10, 1, 1),
+('WIZYTA', 'Wizyta', NULL, 20, 1, 1),
+('SESJA', 'Sesja', NULL, 30, 1, 1),
+('KONSULTACJA', 'Konsultacja', NULL, 40, 1, 1),
+('BADANIE_LAB', 'Badanie laboratoryjne', NULL, 50, 1, 1),
+('BADANIE_GEN', 'Badanie genetyczne', NULL, 60, 1, 1),
+('BADANIE_OBRAZOWE', 'Badanie obrazowe', NULL, 70, 1, 1),
+('KONSYLIUM', 'Konsylium', NULL, 80, 1, 1),
+('DOKUMENT', 'Dokument', NULL, 90, 1, 1),
+('RAPORT', 'Raport', NULL, 100, 1, 1),
+('ZAKONCZENIE', 'Zakończenie programu', NULL, 110, 1, 1);
 
-INSERT OR IGNORE INTO pk_klocki(kod, nazwa, typ, opis) VALUES
-('KWALIFIKACJA', 'Kwalifikacja', 'PKK', 'Kwalifikacja pacjenta do programu.'),
--- PKK_KWAL: integracja Eskulap, rodzaj wizyty F18.
-('PKK_KWAL', 'Wizyta kwalifikacyjna w PKK', 'PKK', 'Wizyta kwalifikacyjna będąca podstawą utworzenia epizodu KOMPAS.'),
-('PKK_WIZ', 'Wizyta w PKK', 'PKK', 'Wizyta lub czynność organizacyjna realizowana w PKK w trakcie programu.'),
-('WIZYTA_PSYCHIATRYCZNA', 'Wizyta psychiatryczna', 'WIZYTA', 'Wizyta diagnostyczna lub kontrolna u psychiatry.'),
-('DIAGNOSTYKA_PSYCHOLOGICZNA', 'Diagnostyka psychologiczna', 'WIZYTA', 'Proces diagnostyki psychologicznej.'),
-('SESJA_TERAPEUTYCZNA', 'Sesja terapeutyczna', 'SESJA', 'Pojedyncza sesja terapeutyczna.'),
-('PSYCHOTERAPIA', 'Psychoterapia', 'SESJA', 'Cykl psychoterapii.'),
-('KONSULTACJA_SPECJALISTYCZNA', 'Konsultacja specjalistyczna', 'KONSULTACJA', 'Konsultacja u wskazanego specjalisty.'),
-('BADANIE_LAB', 'Badanie laboratoryjne', 'LAB', 'Badanie laboratoryjne zlecone w programie.'),
-('BADANIE_GENETYCZNE', 'Badanie genetyczne', 'GENETYKA', 'Badanie genetyczne zlecone w programie.'),
-('BADANIE_OBRAZOWE', 'Badanie obrazowe', 'OBRAZOWE', 'Badanie obrazowe zlecone w programie.'),
-('KONSYLIUM', 'Konsylium', 'KONSYLIUM', 'Konsylium zespołu prowadzącego program.'),
-('RAPORT_KONCOWY', 'Raport końcowy', 'RAPORT', 'Raport końcowy i plan dalszego postępowania.'),
-('ZAMKNIECIE_PROGRAMU', 'Zamknięcie programu', 'ZAMKNIECIE', 'Formalne zakończenie udziału w programie.');
+INSERT OR IGNORE INTO pk_grupy_klockow(
+    kod, nazwa, opis, kolejnosc, czy_aktywny, czy_systemowy, kolor
+) VALUES
+('KWALIFIKACJA', 'Kwalifikacja', NULL, 10, 1, 1, '#2E6F9E'),
+('WIZYTY', 'Wizyty', NULL, 20, 1, 1, '#3A7CA5'),
+('KONSULTACJE', 'Konsultacje', NULL, 30, 1, 1, '#507DBC'),
+('BADANIA_LAB', 'Badania laboratoryjne', NULL, 40, 1, 1, '#2A9D8F'),
+('BADANIA_OBRAZOWE', 'Badania obrazowe', NULL, 50, 1, 1, '#577590'),
+('DIAGNOSTYKA', 'Diagnostyka', NULL, 60, 1, 1, '#6D597A'),
+('PSYCHOTERAPIA', 'Psychoterapia', NULL, 70, 1, 1, '#8F5D78'),
+('DOKUMENTACJA', 'Dokumentacja', NULL, 80, 1, 1, '#7A6C5D'),
+('RAPORTY', 'Raporty', NULL, 90, 1, 1, '#5C677D'),
+('ZAKONCZENIE_PROGRAMU', 'Zakończenie programu', NULL, 100, 1, 1, '#4F5D75');
 
-UPDATE pk_klocki
-SET czy_aktywny = 0,
-    updated_at = CURRENT_TIMESTAMP
-WHERE kod IN ('PKK', 'WIZYTA_KWALIFIKACYJNA_PKK');
+INSERT OR IGNORE INTO pk_jednostki_czasu(
+    kod, nazwa, opis, rodzaj_obliczenia, mnoznik,
+    kolejnosc, czy_aktywny, czy_systemowy
+) VALUES
+('DZIEN', 'dzień', NULL, 'DNI', 1, 10, 1, 1),
+('TYDZIEN', 'tydzień', NULL, 'DNI', 7, 20, 1, 1),
+('MIESIAC', 'miesiąc', NULL, 'MIESIACE', 1, 30, 1, 1);
+
+INSERT OR IGNORE INTO pk_klocki(
+    kod, nazwa, opis, typ_elementu_id, grupa_id, ikona, kolor,
+    domyslny_termin_liczba, domyslna_jednostka_czasu_id,
+    czy_wymaga_zlecenia, czy_obowiazkowy, czy_aktywny,
+    czy_systemowy, kolejnosc
+)
+SELECT
+    dane.kod, dane.nazwa, dane.opis, typ.typ_id, grupa.grupa_id,
+    dane.ikona, grupa.kolor, NULL, NULL, dane.wymaga_zlecenia,
+    dane.obowiazkowy, 1, 1, dane.kolejnosc
+FROM (
+    SELECT 'PKK_KWAL' AS kod, 'Wizyta kwalifikacyjna w PKK' AS nazwa,
+           'Wizyta kwalifikacyjna w PKK; w Eskulapie rodzaj wizyty F18.' AS opis,
+           'PKK' AS typ_kod, 'KWALIFIKACJA' AS grupa_kod,
+           'PKK' AS ikona, 0 AS wymaga_zlecenia, 1 AS obowiazkowy,
+           10 AS kolejnosc
+    UNION ALL SELECT 'PKK_WIZ', 'Wizyta w PKK',
+           'Wizyta lub czynność organizacyjna realizowana w PKK w trakcie programu.',
+           'PKK', 'WIZYTY', 'PKK', 0, 0, 20
+    UNION ALL SELECT 'WIZYTA_PSYCHIATRYCZNA', 'Wizyta psychiatryczna',
+           'Wizyta diagnostyczna lub kontrolna u psychiatry.',
+           'WIZYTA', 'WIZYTY', 'WIZ', 0, 1, 30
+    UNION ALL SELECT 'DIAGNOSTYKA_PSYCHOLOGICZNA', 'Diagnostyka psychologiczna',
+           'Proces diagnostyki psychologicznej.',
+           'WIZYTA', 'DIAGNOSTYKA', 'PSY', 0, 1, 40
+    UNION ALL SELECT 'SESJA_TERAPEUTYCZNA', 'Sesja terapeutyczna',
+           'Pojedyncza sesja terapeutyczna.',
+           'SESJA', 'PSYCHOTERAPIA', 'SES', 0, 0, 50
+    UNION ALL SELECT 'PSYCHOTERAPIA', 'Psychoterapia',
+           'Cykl psychoterapii.',
+           'SESJA', 'PSYCHOTERAPIA', 'PSY', 0, 0, 60
+    UNION ALL SELECT 'KONSULTACJA_SPECJALISTYCZNA', 'Konsultacja specjalistyczna',
+           'Konsultacja u wskazanego specjalisty.',
+           'KONSULTACJA', 'KONSULTACJE', 'KON', 1, 0, 70
+    UNION ALL SELECT 'BADANIE_LAB', 'Badanie laboratoryjne',
+           'Badanie laboratoryjne zlecone w programie.',
+           'BADANIE_LAB', 'BADANIA_LAB', 'LAB', 1, 0, 80
+    UNION ALL SELECT 'BADANIE_GENETYCZNE', 'Badanie genetyczne',
+           'Badanie genetyczne zlecone w programie.',
+           'BADANIE_GEN', 'DIAGNOSTYKA', 'GEN', 1, 0, 90
+    UNION ALL SELECT 'BADANIE_OBRAZOWE', 'Badanie obrazowe',
+           'Badanie obrazowe zlecone w programie.',
+           'BADANIE_OBRAZOWE', 'BADANIA_OBRAZOWE', 'OBR', 1, 0, 100
+    UNION ALL SELECT 'KONSYLIUM', 'Konsylium',
+           'Konsylium zespołu prowadzącego program.',
+           'KONSYLIUM', 'DIAGNOSTYKA', 'KON', 0, 1, 110
+    UNION ALL SELECT 'RAPORT_KONCOWY', 'Raport końcowy',
+           'Raport końcowy i plan dalszego postępowania.',
+           'RAPORT', 'RAPORTY', 'RAP', 0, 1, 120
+    UNION ALL SELECT 'ZAMKNIECIE_PROGRAMU', 'Zamknięcie programu',
+           'Formalne zakończenie udziału w programie.',
+           'ZAKONCZENIE', 'ZAKONCZENIE_PROGRAMU', 'KON', 0, 1, 130
+) dane
+JOIN pk_typy_elementow typ ON typ.kod = dane.typ_kod
+JOIN pk_grupy_klockow grupa ON grupa.kod = dane.grupa_kod;
 
 INSERT OR IGNORE INTO pk_programy(kod, nazwa, wersja, opis)
 VALUES (

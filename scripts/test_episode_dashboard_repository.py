@@ -82,11 +82,26 @@ def main():
                 """,
                 (pathway_id,),
             )
+            type_id = connection.execute(
+                """
+                INSERT INTO pk_typy_elementow(kod, nazwa)
+                VALUES ('TEST', 'Typ testowy')
+                """
+            ).lastrowid
+            group_id = connection.execute(
+                """
+                INSERT INTO pk_grupy_klockow(kod, nazwa)
+                VALUES ('TEST', 'Grupa testowa')
+                """
+            ).lastrowid
             block_id = connection.execute(
                 """
-                INSERT INTO pk_klocki(kod, nazwa, typ)
-                VALUES ('DASH', 'Zadanie dashboardu', 'TEST')
-                """
+                INSERT INTO pk_klocki(
+                    kod, nazwa, typ_elementu_id, grupa_id
+                )
+                VALUES ('DASH', 'Zadanie dashboardu', ?, ?)
+                """,
+                (type_id, group_id),
             ).lastrowid
             element_ids = []
             for lp, requires_order in ((1, 0), (2, 1), (3, 0)):

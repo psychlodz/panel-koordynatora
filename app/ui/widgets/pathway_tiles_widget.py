@@ -53,9 +53,16 @@ class PathwayTile(QFrame):
 
         block = QLabel(
             f"{element.get('klocek_nazwa') or 'Klocek'} "
-            f"[{element.get('klocek_kod') or '—'}]"
+            f"[{element.get('klocek_kod') or '—'}] • "
+            f"{element.get('klocek_typ_nazwa') or 'bez typu'} • "
+            f"{element.get('klocek_grupa_nazwa') or 'bez grupy'}"
         )
         block.setObjectName("tileMetadata")
+        color = element.get("klocek_kolor")
+        if color:
+            block.setStyleSheet(
+                f"border-left: 6px solid {color}; padding-left: 6px;"
+            )
         content.addWidget(block)
 
         maximum = (

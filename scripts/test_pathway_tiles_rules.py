@@ -39,11 +39,26 @@ def main():
                 """,
                 (program_id,),
             ).lastrowid
+            typ_id = connection.execute(
+                """
+                INSERT INTO pk_typy_elementow(kod, nazwa)
+                VALUES ('TEST', 'Typ testowy')
+                """
+            ).lastrowid
+            grupa_id = connection.execute(
+                """
+                INSERT INTO pk_grupy_klockow(kod, nazwa)
+                VALUES ('TEST', 'Grupa testowa')
+                """
+            ).lastrowid
             klocek_id = connection.execute(
                 """
-                INSERT INTO pk_klocki(kod, nazwa, typ)
-                VALUES ('TEST', 'Klocek testowy', 'TEST')
-                """
+                INSERT INTO pk_klocki(
+                    kod, nazwa, typ_elementu_id, grupa_id
+                )
+                VALUES ('TEST', 'Klocek testowy', ?, ?)
+                """,
+                (typ_id, grupa_id),
             ).lastrowid
             element_ids = []
             for position, name in enumerate(("Pierwszy", "Drugi", "Trzeci"), 1):

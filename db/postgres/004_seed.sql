@@ -34,111 +34,129 @@ WHERE lower(u.login) = 'admin'
   AND r.code = 'ADMIN'
 ON CONFLICT DO NOTHING;
 
-INSERT INTO pk_typy_elementow(kod, nazwa) VALUES
-    ('PKK', 'Punkt konsultacyjno-koordynacyjny'),
-    ('WIZYTA', 'Wizyta'),
-    ('SESJA', 'Sesja terapeutyczna'),
-    ('KONSULTACJA', 'Konsultacja specjalistyczna'),
-    ('LAB', 'Badanie laboratoryjne'),
-    ('GENETYKA', 'Badanie genetyczne'),
-    ('OBRAZOWE', 'Badanie obrazowe'),
-    ('KONSYLIUM', 'Konsylium'),
-    ('RAPORT', 'Raport końcowy'),
-    ('ZAMKNIECIE', 'Zamknięcie programu')
+INSERT INTO pk_typy_elementow(
+    kod, nazwa, opis, kolejnosc, czy_aktywny, czy_systemowy
+) VALUES
+    ('PKK', 'Punkt konsultacyjno-koordynacyjny', NULL, 10, 1, 1),
+    ('WIZYTA', 'Wizyta', NULL, 20, 1, 1),
+    ('SESJA', 'Sesja', NULL, 30, 1, 1),
+    ('KONSULTACJA', 'Konsultacja', NULL, 40, 1, 1),
+    ('BADANIE_LAB', 'Badanie laboratoryjne', NULL, 50, 1, 1),
+    ('BADANIE_GEN', 'Badanie genetyczne', NULL, 60, 1, 1),
+    ('BADANIE_OBRAZOWE', 'Badanie obrazowe', NULL, 70, 1, 1),
+    ('KONSYLIUM', 'Konsylium', NULL, 80, 1, 1),
+    ('DOKUMENT', 'Dokument', NULL, 90, 1, 1),
+    ('RAPORT', 'Raport', NULL, 100, 1, 1),
+    ('ZAKONCZENIE', 'Zakończenie programu', NULL, 110, 1, 1)
 ON CONFLICT DO NOTHING;
 
-INSERT INTO pk_klocki(kod, nazwa, typ, opis) VALUES
-    (
-        'KWALIFIKACJA',
-        'Kwalifikacja',
-        'PKK',
-        'Kwalifikacja pacjenta do programu.'
-    ),
-    (
-        'PKK_KWAL',
-        'Wizyta kwalifikacyjna w PKK',
-        'PKK',
-        'Wizyta kwalifikacyjna będąca podstawą utworzenia epizodu KOMPAS.'
-    ),
-    (
-        'PKK_WIZ',
-        'Wizyta w PKK',
-        'PKK',
-        'Wizyta lub czynność organizacyjna realizowana w PKK w trakcie programu.'
-    ),
-    (
-        'WIZYTA_PSYCHIATRYCZNA',
-        'Wizyta psychiatryczna',
-        'WIZYTA',
-        'Wizyta diagnostyczna lub kontrolna u psychiatry.'
-    ),
-    (
-        'DIAGNOSTYKA_PSYCHOLOGICZNA',
-        'Diagnostyka psychologiczna',
-        'WIZYTA',
-        'Proces diagnostyki psychologicznej.'
-    ),
-    (
-        'SESJA_TERAPEUTYCZNA',
-        'Sesja terapeutyczna',
-        'SESJA',
-        'Pojedyncza sesja terapeutyczna.'
-    ),
-    (
-        'PSYCHOTERAPIA',
-        'Psychoterapia',
-        'SESJA',
-        'Cykl psychoterapii.'
-    ),
-    (
-        'KONSULTACJA_SPECJALISTYCZNA',
-        'Konsultacja specjalistyczna',
-        'KONSULTACJA',
-        'Konsultacja u wskazanego specjalisty.'
-    ),
-    (
-        'BADANIE_LAB',
-        'Badanie laboratoryjne',
-        'LAB',
-        'Badanie laboratoryjne zlecone w programie.'
-    ),
-    (
-        'BADANIE_GENETYCZNE',
-        'Badanie genetyczne',
-        'GENETYKA',
-        'Badanie genetyczne zlecone w programie.'
-    ),
-    (
-        'BADANIE_OBRAZOWE',
-        'Badanie obrazowe',
-        'OBRAZOWE',
-        'Badanie obrazowe zlecone w programie.'
-    ),
-    (
-        'KONSYLIUM',
-        'Konsylium',
-        'KONSYLIUM',
-        'Konsylium zespołu prowadzącego program.'
-    ),
-    (
-        'RAPORT_KONCOWY',
-        'Raport końcowy',
-        'RAPORT',
-        'Raport końcowy i plan dalszego postępowania.'
-    ),
-    (
-        'ZAMKNIECIE_PROGRAMU',
-        'Zamknięcie programu',
-        'ZAMKNIECIE',
-        'Formalne zakończenie udziału w programie.'
-    )
+INSERT INTO pk_grupy_klockow(
+    kod, nazwa, opis, kolejnosc, czy_aktywny, czy_systemowy, kolor
+) VALUES
+    ('KWALIFIKACJA', 'Kwalifikacja', NULL, 10, 1, 1, '#2E6F9E'),
+    ('WIZYTY', 'Wizyty', NULL, 20, 1, 1, '#3A7CA5'),
+    ('KONSULTACJE', 'Konsultacje', NULL, 30, 1, 1, '#507DBC'),
+    ('BADANIA_LAB', 'Badania laboratoryjne', NULL, 40, 1, 1, '#2A9D8F'),
+    ('BADANIA_OBRAZOWE', 'Badania obrazowe', NULL, 50, 1, 1, '#577590'),
+    ('DIAGNOSTYKA', 'Diagnostyka', NULL, 60, 1, 1, '#6D597A'),
+    ('PSYCHOTERAPIA', 'Psychoterapia', NULL, 70, 1, 1, '#8F5D78'),
+    ('DOKUMENTACJA', 'Dokumentacja', NULL, 80, 1, 1, '#7A6C5D'),
+    ('RAPORTY', 'Raporty', NULL, 90, 1, 1, '#5C677D'),
+    ('ZAKONCZENIE_PROGRAMU', 'Zakończenie programu', NULL, 100, 1, 1, '#4F5D75')
 ON CONFLICT DO NOTHING;
 
--- PKK_KWAL jest integrowany z rodzajem wizyty F18 w Eskulapie.
-UPDATE pk_klocki
-SET czy_aktywny = 0,
-    updated_at = now()
-WHERE kod IN ('PKK', 'WIZYTA_KWALIFIKACYJNA_PKK');
+INSERT INTO pk_jednostki_czasu(
+    kod, nazwa, opis, rodzaj_obliczenia, mnoznik,
+    kolejnosc, czy_aktywny, czy_systemowy
+) VALUES
+    ('DZIEN', 'dzień', NULL, 'DNI', 1, 10, 1, 1),
+    ('TYDZIEN', 'tydzień', NULL, 'DNI', 7, 20, 1, 1),
+    ('MIESIAC', 'miesiąc', NULL, 'MIESIACE', 1, 30, 1, 1)
+ON CONFLICT DO NOTHING;
+
+INSERT INTO pk_klocki(
+    kod, nazwa, opis, typ_elementu_id, grupa_id, ikona, kolor,
+    domyslny_termin_liczba, domyslna_jednostka_czasu_id,
+    czy_wymaga_zlecenia, czy_obowiazkowy, czy_aktywny,
+    czy_systemowy, kolejnosc
+)
+SELECT
+    dane.kod, dane.nazwa, dane.opis, typ.typ_id, grupa.grupa_id,
+    dane.ikona, grupa.kolor, NULL, NULL, dane.wymaga_zlecenia,
+    dane.obowiazkowy, 1, 1, dane.kolejnosc
+FROM (
+    VALUES
+        (
+            'PKK_KWAL', 'Wizyta kwalifikacyjna w PKK',
+            'Wizyta kwalifikacyjna w PKK; w Eskulapie rodzaj wizyty F18.',
+            'PKK', 'KWALIFIKACJA', 'PKK', 0, 1, 10
+        ),
+        (
+            'PKK_WIZ', 'Wizyta w PKK',
+            'Wizyta lub czynność organizacyjna realizowana w PKK w trakcie programu.',
+            'PKK', 'WIZYTY', 'PKK', 0, 0, 20
+        ),
+        (
+            'WIZYTA_PSYCHIATRYCZNA', 'Wizyta psychiatryczna',
+            'Wizyta diagnostyczna lub kontrolna u psychiatry.',
+            'WIZYTA', 'WIZYTY', 'WIZ', 0, 1, 30
+        ),
+        (
+            'DIAGNOSTYKA_PSYCHOLOGICZNA', 'Diagnostyka psychologiczna',
+            'Proces diagnostyki psychologicznej.',
+            'WIZYTA', 'DIAGNOSTYKA', 'PSY', 0, 1, 40
+        ),
+        (
+            'SESJA_TERAPEUTYCZNA', 'Sesja terapeutyczna',
+            'Pojedyncza sesja terapeutyczna.',
+            'SESJA', 'PSYCHOTERAPIA', 'SES', 0, 0, 50
+        ),
+        (
+            'PSYCHOTERAPIA', 'Psychoterapia', 'Cykl psychoterapii.',
+            'SESJA', 'PSYCHOTERAPIA', 'PSY', 0, 0, 60
+        ),
+        (
+            'KONSULTACJA_SPECJALISTYCZNA', 'Konsultacja specjalistyczna',
+            'Konsultacja u wskazanego specjalisty.',
+            'KONSULTACJA', 'KONSULTACJE', 'KON', 1, 0, 70
+        ),
+        (
+            'BADANIE_LAB', 'Badanie laboratoryjne',
+            'Badanie laboratoryjne zlecone w programie.',
+            'BADANIE_LAB', 'BADANIA_LAB', 'LAB', 1, 0, 80
+        ),
+        (
+            'BADANIE_GENETYCZNE', 'Badanie genetyczne',
+            'Badanie genetyczne zlecone w programie.',
+            'BADANIE_GEN', 'DIAGNOSTYKA', 'GEN', 1, 0, 90
+        ),
+        (
+            'BADANIE_OBRAZOWE', 'Badanie obrazowe',
+            'Badanie obrazowe zlecone w programie.',
+            'BADANIE_OBRAZOWE', 'BADANIA_OBRAZOWE', 'OBR', 1, 0, 100
+        ),
+        (
+            'KONSYLIUM', 'Konsylium',
+            'Konsylium zespołu prowadzącego program.',
+            'KONSYLIUM', 'DIAGNOSTYKA', 'KON', 0, 1, 110
+        ),
+        (
+            'RAPORT_KONCOWY', 'Raport końcowy',
+            'Raport końcowy i plan dalszego postępowania.',
+            'RAPORT', 'RAPORTY', 'RAP', 0, 1, 120
+        ),
+        (
+            'ZAMKNIECIE_PROGRAMU', 'Zamknięcie programu',
+            'Formalne zakończenie udziału w programie.',
+            'ZAKONCZENIE', 'ZAKONCZENIE_PROGRAMU', 'KON', 0, 1, 130
+        )
+) AS dane(
+    kod, nazwa, opis, typ_kod, grupa_kod, ikona,
+    wymaga_zlecenia, obowiazkowy, kolejnosc
+)
+JOIN pk_typy_elementow typ ON typ.kod = dane.typ_kod
+JOIN pk_grupy_klockow grupa ON grupa.kod = dane.grupa_kod
+ON CONFLICT DO NOTHING;
 
 INSERT INTO pk_programy(kod, nazwa, wersja, opis)
 VALUES (
@@ -256,27 +274,6 @@ JOIN pk_klocki k ON k.kod = dane.kod_klocka
 WHERE p.kod = 'ADHD_DZ_ML'
   AND s.kod = 'PODSTAWOWA'
 ON CONFLICT DO NOTHING;
-
-UPDATE pk_sciezka_elementy e
-SET klocek_id = kwal.klocek_id,
-    nazwa_w_sciezce = 'Wizyta kwalifikacyjna w PKK',
-    opis_organizacyjny =
-        'Wizyta F18 w Eskulapie będąca podstawą utworzenia epizodu.',
-    updated_at = now()
-FROM pk_sciezki s
-JOIN pk_programy p ON p.program_id = s.program_id
-JOIN pk_klocki kwal ON kwal.kod = 'PKK_KWAL'
-JOIN pk_klocki stary
-    ON stary.kod IN (
-        'KWALIFIKACJA',
-        'WIZYTA_KWALIFIKACYJNA_PKK',
-        'PKK'
-    )
-WHERE e.sciezka_id = s.sciezka_id
-  AND e.klocek_id = stary.klocek_id
-  AND p.kod = 'ADHD_DZ_ML'
-  AND s.kod = 'PODSTAWOWA'
-  AND e.lp = 1;
 
 INSERT INTO pk_wyzwalacze(element_id, trigger_type, opis)
 SELECT

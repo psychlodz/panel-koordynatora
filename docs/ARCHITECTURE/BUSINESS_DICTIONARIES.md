@@ -1,10 +1,12 @@
 # Docelowy model słowników biznesowych KOMPAS
 
-Status dokumentu: **projekt architektury — bez implementacji**
+Status dokumentu: **model bazowy wdrożony w SQLite i PostgreSQL**
 
 Dokument opisuje docelowy model PostgreSQL dla modułu
-„Administracja → Ustawienia systemu → Słowniki”. Nie jest migracją i nie
-zmienia obecnego schematu ani działania aplikacji.
+„Administracja → Ustawienia systemu → Słowniki”. Model typów elementów,
+grup klocków, jednostek czasu i biblioteki klocków jest wdrożony w
+schematach inicjalizacyjnych. Statusy biznesowe i historia zmian pozostają
+projektem na kolejne etapy.
 
 PostgreSQL jest docelowym źródłem słowników KOMPAS. SQLite otrzyma
 równoważny model wyłącznie jako środowisko developerskie, nie jako drugie
@@ -116,9 +118,10 @@ do ścieżki. Konkretnymi klockami tego typu są:
 | `PKK_KWAL` | Wizyta kwalifikacyjna w PKK | Eskulap, rodzaj wizyty `F18` |
 | `PKK_WIZ` | Wizyta w PKK | zwykła wizyta lub obsługa w trakcie programu |
 
-Ogólny historyczny klocek `PKK` jest nieaktywny i nie może być wybierany
-do nowych ścieżek. `PKK_KWAL` stanowi element kwalifikacyjny przykładowej
-ścieżki ADHD i jest podstawą utworzenia epizodu KOMPAS.
+Ogólny historyczny klocek `PKK` nie jest tworzony przez aktualne seedy
+i nie może być wybierany do nowych ścieżek. `PKK_KWAL` stanowi element
+kwalifikacyjny przykładowej ścieżki ADHD i jest podstawą utworzenia
+epizodu KOMPAS.
 
 Kod rodzaju wizyty znajduje się w
 `RI_WIZYTY_W_PORADNIACH.WP_PARAMETR`. Słownik Eskulapa
@@ -135,32 +138,16 @@ przez tylko do odczytu widok `V_KOMPAS_PARAMETRY_WIZYT`. Słownik ten
 pozostaje danymi referencyjnymi Eskulapa i nie jest kopiowany do
 PostgreSQL.
 
-### Ocena modelu obecnego
+### Stan wdrożenia
 
-Obecna tabela `pk_typy_elementow` zawiera tylko `typ_id`, `kod` i `nazwa`.
-Tabela `pk_klocki` przechowuje typ jako niezależny tekst w kolumnie `typ`.
-Brakuje klucza obcego, opisu, aktywności, kolejności i metadanych
-prezentacyjnych.
+`pk_typy_elementow` zawiera pełne metadane słownikowe. `pk_klocki`
+nie posiada tekstowej kolumny `typ`; źródłem typu jest wyłącznie
+`typ_elementu_id` wskazujące `pk_typy_elementow.typ_id`.
 
-Docelowo `pk_klocki.typ` zostaje zastąpione przez
-`pk_klocki.typ_elementu_id` wskazujące `pk_typy_elementow.typ_id`.
-
-Planowana migracja istniejących kodów:
-
-| Kod obecny | Kod docelowy |
-|---|---|
-| `PKK` | `PKK` |
-| `WIZYTA` | `WIZYTA` |
-| `SESJA` | `SESJA` |
-| `KONSULTACJA` | `KONSULTACJA` |
-| `LAB` | `BADANIE_LAB` |
-| `GENETYKA` | `BADANIE_GEN` |
-| `OBRAZOWE` | `BADANIE_OBRAZOWE` |
-| `KONSYLIUM` | `KONSYLIUM` |
-| `RAPORT` | `RAPORT` |
-| `ZAMKNIECIE` | `ZAKONCZENIE` |
-
-`DOKUMENT` jest nowym typem bez odpowiednika w obecnym seedzie.
+Kody `BADANIE_LAB`, `BADANIE_GEN`, `BADANIE_OBRAZOWE` i `ZAKONCZENIE`
+są kanonicznymi kodami typów. `DOKUMENT` jest dostępny jako typ bazowy.
+Zmiana została wykonana w schematach startowych, bez migracji istniejących
+danych.
 
 ### Pola edytowalne
 
@@ -203,28 +190,13 @@ Klocek jest gotowym wzorcem czynności dodawanym do ścieżki programu.
 Przechowuje wartości domyślne, które użytkownik może później nadpisać
 w konkretnym elemencie ścieżki.
 
-### Ocena modelu obecnego
+### Stan wdrożenia
 
-Obecne `pk_klocki` posiada:
-
-- kod;
-- nazwę;
-- tekstowy typ;
-- opis;
-- ikonę;
-- aktywność;
-- daty utworzenia i modyfikacji.
-
-Brakuje:
-
-- relacji do typu elementu;
-- grupy;
-- koloru;
-- domyślnego czasu realizacji i jednostki czasu;
-- domyślnej obowiązkowości;
-- domyślnego wymagania zlecenia;
-- flagi systemowej;
-- kolejności prezentacji.
+`pk_klocki` posiada relacje do typu elementu i grupy, kolor, ikonę,
+domyślny termin i jednostkę czasu, obowiązkowość, wymaganie zlecenia,
+aktywność, flagę systemową oraz kolejność prezentacji. Repozytorium
+ścieżek pobiera typ i grupę przez relacje słownikowe i sortuje bibliotekę
+według grupy, kolejności oraz nazwy.
 
 ### Model docelowy
 
@@ -443,10 +415,12 @@ operacją systemową.
 
 ---
 
-## 9. Projekt tabel PostgreSQL
+## 9. Model tabel PostgreSQL
 
-Poniższy DDL jest projektem docelowym. Nie należy wykonywać go bez osobnej
-migracji, planu konwersji istniejących danych i testów SQLite/PostgreSQL.
+Poniższy DDL opisuje wdrożony model bazowy. Wiążące skrypty instalacyjne
+znajdują się w `db/postgres/003_schema.sql` i `db/schema.sql`.
+Nie przygotowano migracji istniejących danych: bazy testowe należy
+odtworzyć od zera.
 
 Każda tabela słownikowa wymaga wspólnego triggera aktualizującego
 `updated_at` oraz triggera blokującego zmianę `kod`. Ochrona kodu musi
@@ -757,15 +731,15 @@ Wszystkie relacje słownikowe używają `ON DELETE RESTRICT`.
 - Operacja nie może kaskadowo zmieniać programów, ścieżek, epizodów ani
   zadań.
 
-## 12. Kolejność implementacji
+## 12. Kolejność dalszej implementacji
 
-### Etap 1 — fundament i integralność
+### Etap 1 — fundament i integralność — zrealizowany
 
-1. Dodać `pk_grupy_klockow` i `pk_jednostki_czasu`.
-2. Rozszerzyć `pk_typy_elementow`.
-3. Zmigrować tekstowy `pk_klocki.typ` do `typ_elementu_id`.
-4. Rozszerzyć `pk_klocki` o grupę, domyślne parametry i metadane.
-5. Przygotować równoważne migracje i testy dla SQLite oraz PostgreSQL.
+1. Dodano `pk_grupy_klockow` i `pk_jednostki_czasu`.
+2. Rozszerzono `pk_typy_elementow`.
+3. Usunięto tekstowy `pk_klocki.typ` ze schematów startowych.
+4. Rozszerzono `pk_klocki` o relacje i metadane.
+5. Dodano test świeżej inicjalizacji SQLite.
 
 ### Etap 2 — użycie przez ścieżki i generator
 

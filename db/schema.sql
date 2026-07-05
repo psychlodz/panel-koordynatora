@@ -97,20 +97,110 @@ CREATE TABLE IF NOT EXISTS pk_pathway_units (
 CREATE TABLE IF NOT EXISTS pk_typy_elementow (
     typ_id INTEGER PRIMARY KEY AUTOINCREMENT,
     kod TEXT NOT NULL UNIQUE,
-    nazwa TEXT NOT NULL
+    nazwa TEXT NOT NULL,
+    opis TEXT,
+    kolejnosc INTEGER NOT NULL DEFAULT 0,
+    czy_aktywny INTEGER NOT NULL DEFAULT 1,
+    czy_systemowy INTEGER NOT NULL DEFAULT 0,
+    ikona TEXT,
+    kolor TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    CHECK (czy_aktywny IN (0, 1)),
+    CHECK (czy_systemowy IN (0, 1)),
+    CHECK (kolejnosc >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS pk_grupy_klockow (
+    grupa_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kod TEXT NOT NULL UNIQUE,
+    nazwa TEXT NOT NULL,
+    opis TEXT,
+    kolejnosc INTEGER NOT NULL DEFAULT 0,
+    czy_aktywny INTEGER NOT NULL DEFAULT 1,
+    czy_systemowy INTEGER NOT NULL DEFAULT 0,
+    ikona TEXT,
+    kolor TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    CHECK (czy_aktywny IN (0, 1)),
+    CHECK (czy_systemowy IN (0, 1)),
+    CHECK (kolejnosc >= 0)
+);
+
+CREATE TABLE IF NOT EXISTS pk_jednostki_czasu (
+    jednostka_czasu_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    kod TEXT NOT NULL UNIQUE,
+    nazwa TEXT NOT NULL,
+    opis TEXT,
+    rodzaj_obliczenia TEXT NOT NULL,
+    mnoznik INTEGER NOT NULL DEFAULT 1,
+    kolejnosc INTEGER NOT NULL DEFAULT 0,
+    czy_aktywny INTEGER NOT NULL DEFAULT 1,
+    czy_systemowy INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT,
+    CHECK (rodzaj_obliczenia IN ('DNI', 'MIESIACE', 'LATA')),
+    CHECK (mnoznik > 0),
+    CHECK (kolejnosc >= 0),
+    CHECK (czy_aktywny IN (0, 1)),
+    CHECK (czy_systemowy IN (0, 1))
 );
 
 CREATE TABLE IF NOT EXISTS pk_klocki (
     klocek_id INTEGER PRIMARY KEY AUTOINCREMENT,
     kod TEXT NOT NULL UNIQUE,
     nazwa TEXT NOT NULL,
-    typ TEXT NOT NULL,
     opis TEXT,
+    typ_elementu_id INTEGER NOT NULL,
+    grupa_id INTEGER NOT NULL,
     ikona TEXT,
+    kolor TEXT,
+    domyslny_termin_liczba INTEGER,
+    domyslna_jednostka_czasu_id INTEGER,
+    czy_wymaga_zlecenia INTEGER NOT NULL DEFAULT 0,
+    czy_obowiazkowy INTEGER NOT NULL DEFAULT 0,
     czy_aktywny INTEGER NOT NULL DEFAULT 1,
+    czy_systemowy INTEGER NOT NULL DEFAULT 0,
+    kolejnosc INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TEXT
+    updated_at TEXT,
+    FOREIGN KEY(typ_elementu_id)
+        REFERENCES pk_typy_elementow(typ_id),
+    FOREIGN KEY(grupa_id)
+        REFERENCES pk_grupy_klockow(grupa_id),
+    FOREIGN KEY(domyslna_jednostka_czasu_id)
+        REFERENCES pk_jednostki_czasu(jednostka_czasu_id),
+    CHECK (
+        domyslny_termin_liczba IS NULL
+        OR domyslny_termin_liczba >= 0
+    ),
+    CHECK (
+        (
+            domyslny_termin_liczba IS NULL
+            AND domyslna_jednostka_czasu_id IS NULL
+        )
+        OR
+        (
+            domyslny_termin_liczba IS NOT NULL
+            AND domyslna_jednostka_czasu_id IS NOT NULL
+        )
+    ),
+    CHECK (czy_wymaga_zlecenia IN (0, 1)),
+    CHECK (czy_obowiazkowy IN (0, 1)),
+    CHECK (czy_aktywny IN (0, 1)),
+    CHECK (czy_systemowy IN (0, 1)),
+    CHECK (kolejnosc >= 0)
 );
+
+CREATE INDEX IF NOT EXISTS idx_pk_klocki_typ
+ON pk_klocki(typ_elementu_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_klocki_grupa
+ON pk_klocki(grupa_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_klocki_jednostka_czasu
+ON pk_klocki(domyslna_jednostka_czasu_id);
 
 CREATE TABLE IF NOT EXISTS pk_sciezka_elementy (
     element_id INTEGER PRIMARY KEY AUTOINCREMENT,

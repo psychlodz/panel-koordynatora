@@ -22,6 +22,8 @@ INSERT_IDS = {
     "pk_programy": "program_id",
     "pk_sciezki": "sciezka_id",
     "pk_typy_elementow": "typ_id",
+    "pk_grupy_klockow": "grupa_id",
+    "pk_jednostki_czasu": "jednostka_czasu_id",
     "pk_klocki": "klocek_id",
     "pk_sciezka_elementy": "element_id",
     "pk_sciezka_zaleznosci": "zaleznosc_id",

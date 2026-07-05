@@ -243,27 +243,38 @@ class SystemSettingsWindow(QWidget):
                     ],
                 )
 
-            for label, key in (
-                ("Grupy klocków", "block_groups"),
-                ("Jednostki czasu", "time_units"),
-            ):
-                node = QTreeWidgetItem(tree, [label, "", "", "", ""])
-                if not data["optional_tables"][key]:
-                    QTreeWidgetItem(
-                        node,
-                        [MIGRATION_PENDING, "", "", "", ""],
-                    )
-                else:
-                    QTreeWidgetItem(
-                        node,
-                        [
-                            "Tabela dostępna",
-                            "Podgląd danych w kolejnym sprincie",
-                            "",
-                            "",
-                            "",
-                        ],
-                    )
+            groups_node = QTreeWidgetItem(
+                tree, ["Grupy klocków", "", "", "", ""]
+            )
+            for item in data["block_groups"]:
+                QTreeWidgetItem(
+                    groups_node,
+                    [
+                        item["kod"],
+                        item["nazwa"],
+                        "Grupa",
+                        "Tak" if item["czy_aktywny"] else "Nie",
+                        item["opis"] or "",
+                    ],
+                )
+
+            time_node = QTreeWidgetItem(
+                tree, ["Jednostki czasu", "", "", "", ""]
+            )
+            for item in data["time_units"]:
+                QTreeWidgetItem(
+                    time_node,
+                    [
+                        item["kod"],
+                        item["nazwa"],
+                        (
+                            f"{item['rodzaj_obliczenia']} × "
+                            f"{item['mnoznik']}"
+                        ),
+                        "Tak" if item["czy_aktywny"] else "Nie",
+                        item["opis"] or "",
+                    ],
+                )
         except Exception:
             QTreeWidgetItem(
                 tree,

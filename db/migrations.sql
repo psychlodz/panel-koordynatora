@@ -27,53 +27,8 @@ FROM pk_users u, pk_roles r
 WHERE u.login = 'admin'
   AND r.code = 'ADMIN';
 
--- ADM-DICT-2: separate qualification and regular PKK visits.
--- PKK_KWAL is integrated with Eskulap visit type F18.
-INSERT OR IGNORE INTO pk_klocki(kod, nazwa, typ, opis)
-VALUES
-(
-    'PKK_KWAL',
-    'Wizyta kwalifikacyjna w PKK',
-    'PKK',
-    'Wizyta kwalifikacyjna będąca podstawą utworzenia epizodu KOMPAS.'
-),
-(
-    'PKK_WIZ',
-    'Wizyta w PKK',
-    'PKK',
-    'Wizyta lub czynność organizacyjna realizowana w PKK w trakcie programu.'
-);
-
-UPDATE pk_klocki
-SET czy_aktywny = 0,
-    updated_at = CURRENT_TIMESTAMP
-WHERE kod IN ('PKK', 'WIZYTA_KWALIFIKACYJNA_PKK');
-
-UPDATE pk_sciezka_elementy
-SET klocek_id = (
-        SELECT klocek_id
-        FROM pk_klocki
-        WHERE kod = 'PKK_KWAL'
-    ),
-    nazwa_w_sciezce = 'Wizyta kwalifikacyjna w PKK',
-    opis_organizacyjny =
-        'Wizyta F18 w Eskulapie będąca podstawą utworzenia epizodu.',
-    updated_at = CURRENT_TIMESTAMP
-WHERE element_id IN (
-    SELECT e.element_id
-    FROM pk_sciezka_elementy e
-    JOIN pk_sciezki s ON s.sciezka_id = e.sciezka_id
-    JOIN pk_programy p ON p.program_id = s.program_id
-    JOIN pk_klocki k ON k.klocek_id = e.klocek_id
-    WHERE p.kod = 'ADHD_DZ_ML'
-      AND s.kod = 'PODSTAWOWA'
-      AND e.lp = 1
-      AND k.kod IN (
-          'KWALIFIKACJA',
-          'WIZYTA_KWALIFIKACYJNA_PKK',
-          'PKK'
-      )
-);
+-- ADM-DICT-3 zmienia model słowników bez migracji danych.
+-- Istniejącą bazę developerską należy odtworzyć od zera.
 
 -- S8-E1: initial task triggers for the ADHD pathway.
 INSERT OR IGNORE INTO pk_wyzwalacze(element_id, trigger_type, opis)

@@ -29,6 +29,23 @@ uprawnień administratora PostgreSQL.
 
 ## 3. Schemat, dane, indeksy i uprawnienia
 
+Zmiana modelu słowników ADM-DICT-3 nie posiada migracji danych. Dla bazy
+testowej należy usunąć dotychczasową bazę `kompas`, utworzyć ją ponownie
+i wykonać komplet aktualnych skryptów. Nie uruchamiaj nowego schematu na
+bazie zawierającej stary model `pk_klocki.typ`.
+
+Przykład odtworzenia bazy testowej jako `postgres`:
+
+```powershell
+psql -U postgres -d postgres `
+  -c "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname='kompas' AND pid <> pg_backend_pid();"
+psql -U postgres -d postgres -c "DROP DATABASE IF EXISTS kompas;"
+psql -U postgres -d postgres -f db/postgres/001_create_database.sql
+```
+
+Operacja `DROP DATABASE` bezpowrotnie usuwa dane. Wykonaj ją wyłącznie dla
+bazy testowej albo po przygotowaniu i sprawdzeniu kopii zapasowej.
+
 Wykonuj skrypty w kolejności numerów:
 
 ```powershell

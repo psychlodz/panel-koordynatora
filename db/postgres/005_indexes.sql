@@ -18,6 +18,15 @@ ON pk_program_units(jo_id);
 CREATE INDEX IF NOT EXISTS idx_pk_pathway_units_jo
 ON pk_pathway_units(jo_id);
 
+CREATE INDEX IF NOT EXISTS idx_pk_klocki_typ
+ON pk_klocki(typ_elementu_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_klocki_grupa
+ON pk_klocki(grupa_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_klocki_jednostka_czasu
+ON pk_klocki(domyslna_jednostka_czasu_id);
+
 CREATE INDEX IF NOT EXISTS idx_pk_sciezka_elementy_sciezka
 ON pk_sciezka_elementy(sciezka_id);
 

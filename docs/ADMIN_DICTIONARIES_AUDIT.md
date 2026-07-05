@@ -25,13 +25,14 @@ edycji należy rozdzielić:
 | Statusy epizodów | Kod oraz domyślna wartość w SQLite/PostgreSQL; brak tabeli słownikowej i ograniczenia `CHECK` | `db/schema.sql`, `db/postgres/003_schema.sql`, `episode_generator.py`, `app/repositories/episode_dashboard_repository.py`, UI epizodów | Docelowo kontrolowana | Przenieść do dedykowanego słownika statusów i dodać model dozwolonych przejść. W pierwszym etapie tylko podgląd; kodów systemowych nie wolno dowolnie usuwać ani zmieniać. |
 | Statusy zadań | Kod, SQL i domyślna wartość w obu bazach; brak tabeli słownikowej | `db/schema.sql`, `db/postgres/003_schema.sql`, `episode_generator.py`, `app/repositories/task_repository.py`, `app/repositories/episode_repository.py`, `services/synchronization_service.py`, `app/repositories/episode_dashboard_repository.py`, `app/ui/tasks_window.py` | Docelowo kontrolowana | Najwyższy priorytet normalizacji. Utworzyć kanoniczne kody i przejścia statusów. W module administracyjnym początkowo tylko podgląd i edycja etykiety/kolejności, bez zmiany kodu. |
 | Status prezentacyjny elementu bez zadania | Kod w UI: `OCZEKUJE NA AKTYWACJĘ` | `app/ui/episode_details_window.py` | Nie | Zostawić jako etykietę prezentacyjną albo przenieść do zasobów językowych. Nie jest stanem zapisanym w bazie. |
-| Typy elementów procesu | Tabela `pk_typy_elementow` w SQLite i PostgreSQL, wartości w obu seedach | `db/schema.sql`, `db/seed.sql`, `db/postgres/003_schema.sql`, `db/postgres/004_seed.sql` | Tak, z ograniczeniami | Pełna edycja nazw i aktywności; dodawanie nowych typów dozwolone. Najpierw powiązać `pk_klocki.typ` kluczem obcym lub identyfikatorem typu. |
-| Biblioteka klocków procesu | Tabela `pk_klocki` w obu bazach, wartości w seedach i migracji SQLite | `db/schema.sql`, `db/seed.sql`, `db/migrations.sql`, `db/postgres/003_schema.sql`, `db/postgres/004_seed.sql`, `app/repositories/pathway_repository.py` | Tak, z ochroną używanych rekordów | Pełna edycja nazwy, opisu, ikony i aktywności. Kod i typ powinny być chronione, gdy klocek jest używany przez ścieżkę. Preferować dezaktywację zamiast usuwania. |
+| Typy elementów procesu | Pełna tabela `pk_typy_elementow` w SQLite i PostgreSQL, wartości w obu seedach | `db/schema.sql`, `db/seed.sql`, `db/postgres/003_schema.sql`, `db/postgres/004_seed.sql` | Tak, z ograniczeniami | Typ jest powiązany z klockiem przez `typ_elementu_id`. Udostępnić kontrolowaną edycję nazw, opisów, prezentacji i aktywności; kod systemowy pozostaje niezmienny. |
+| Biblioteka klocków procesu | Tabela `pk_klocki` w obu bazach, wartości w seedach | `db/schema.sql`, `db/seed.sql`, `db/postgres/003_schema.sql`, `db/postgres/004_seed.sql`, `app/repositories/pathway_repository.py` | Tak, z ochroną używanych rekordów | Pełna edycja nazwy, opisu, ikony, koloru, grupy i aktywności. Kod oraz systemowe znaczenie typu powinny być chronione, gdy klocek jest używany przez ścieżkę. Preferować dezaktywację zamiast usuwania. |
 | Typy wyzwalaczy | `CHECK` w obu bazach oraz duplikaty w repozytorium i UI | `db/schema.sql`, `db/postgres/003_schema.sql`, `app/repositories/trigger_repository.py`, `app/ui/triggers_window.py`, `episode_generator.py` | Tylko podgląd | Zostawić jako zamknięty słownik systemowy: `START_EPIZODU`, `PO_ZAKONCZENIU`, `PO_ZLECENIU`, `PO_WYNIKU`, `RECZNIE`. Etykiety mogą być konfigurowalne, ale dodanie kodu wymaga implementacji jego semantyki. |
 | Typy zależności | `CHECK` w obu bazach oraz duplikaty w repozytorium i UI | `db/schema.sql`, `db/postgres/003_schema.sql`, `app/repositories/dependency_repository.py`, `app/ui/dependencies_window.py` | Tylko podgląd | Zostawić w kodzie jako enum systemowy: `KOLEJNOSC`, `WARUNEK`. W bazie zachować `CHECK`; w UI administracyjnym wyświetlać opis działania. |
 | Role użytkowników | Tabela `pk_roles` w obu bazach, wartości w seedach i migracji; kod `ADMIN` ma specjalne znaczenie w usługach | `db/schema.sql`, `db/seed.sql`, `db/migrations.sql`, `db/postgres/003_schema.sql`, `db/postgres/004_seed.sql`, `app/repositories/role_repository.py`, `app/services/auth_service.py` | Ograniczona | Role są już słownikiem bazodanowym. Pozwolić edytować nazwy i przypisania, ale chronić kody systemowe `ADMIN`, `KOORDYNATOR`, `KIEROWNIK`; szczególnie nie pozwalać usunąć ostatniego administratora. |
 | Stany konta użytkownika | Flagi i pola: `is_active`, `locked_at`, `must_change_password`, `failed_login_count`; etykiety w UI | schematy obu baz, `app/services/auth_service.py`, `app/repositories/user_repository.py`, `app/ui/users_window.py` | Nie jako słownik | Zostawić jako model stanu konta i akcje „zablokuj/odblokuj”. `AKTYWNY`/`ZABLOKOWANY` są prezentacją pól, a nie edytowalnym słownikiem. |
-| Jednostki czasu | Kod w UI oraz wartości w seedach ścieżek: `DZIEN`, `TYDZIEN`, `MIESIAC` | `app/ui/pathways_window.py`, `db/seed.sql`, `db/postgres/004_seed.sql` | Ograniczona | Przenieść do małego słownika bazodanowego z kodem, polską nazwą, kolejnością i aktywnością. Kody powinny być systemowe; administrator może zmieniać etykietę i aktywność. |
+| Grupy klocków | Tabela `pk_grupy_klockow` w SQLite i PostgreSQL | schematy, seedy, `app/repositories/pathway_repository.py` | Tak, z ograniczeniami | Edycja nazwy, opisu, ikony, koloru, kolejności i aktywności; kod systemowy niezmienny. |
+| Jednostki czasu | Tabela `pk_jednostki_czasu`; UI nadal używa kodów `DZIEN`, `TYDZIEN`, `MIESIAC` | schematy, seedy, `app/ui/pathways_window.py` | Ograniczona | Słownik bazodanowy jest gotowy. Kody i sposób obliczania są systemowe; administrator może docelowo zmieniać etykietę, kolejność i aktywność. |
 | Podstawa liczenia terminu | Kod w UI i seedzie: `START_PROGRAMU`; identyfikator innego elementu jest zapisywany jako tekst | `app/ui/pathways_window.py`, `db/seed.sql`, `db/postgres/004_seed.sql`, kolumna `termin_od` | Nie jako zwykły słownik | Rozdzielić techniczny typ podstawy terminu od identyfikatora elementu. Wymaga zmiany modelu, dlatego nie obejmować pierwszą edycją słowników. |
 | Reguły aktywacji elementu | Kody generowane w UI: `PO_WYSTAWIENIU_W_ESKULAPIE`, `STATUS_EPIZODU`; równolegle istnieją wyzwalacze | `app/ui/pathways_window.py`, kolumna `warunek_aktywacji`, `pk_wyzwalacze` | Nie | Nie tworzyć drugiego edytowalnego słownika. Docelowo ujednolicić aktywację wokół `pk_wyzwalacze`; obecne wartości pokazać w audycie jako dane wymagające migracji. |
 | Źródła epizodów | Kod: `ESKULAP`, `WIZYTA_KWALIFIKACYJNA_PKK`; pola tekstowe bez ograniczeń | `app/repositories/qualification_repository.py`, `episode_generator.py`, kolumny `source_system`, `source_type` | Tylko podgląd | Zostawić jako zamknięte kody integracyjne. Administrator nie powinien tworzyć dowolnych systemów źródłowych. Dodać centralne enumy i walidację. |
@@ -53,8 +54,10 @@ edycji należy rozdzielić:
 ### Już przechowywane w bazie
 
 - Role: `ADMIN`, `KOORDYNATOR`, `KIEROWNIK`.
-- Typy elementów: `PKK`, `WIZYTA`, `SESJA`, `KONSULTACJA`, `LAB`,
-  `GENETYKA`, `OBRAZOWE`, `KONSYLIUM`, `RAPORT`, `ZAMKNIECIE`.
+- Typy elementów: `PKK`, `WIZYTA`, `SESJA`, `KONSULTACJA`,
+  `BADANIE_LAB`, `BADANIE_GEN`, `BADANIE_OBRAZOWE`, `KONSYLIUM`,
+  `DOKUMENT`, `RAPORT`, `ZAKONCZENIE`.
+- Grupy klocków i jednostki czasu.
 - Biblioteka klocków, m.in. kwalifikacja, wizyty, konsultacje, badania,
   konsylium, raport i zamknięcie programu.
 - Programy, ścieżki, elementy ścieżek i ich parametry.
@@ -71,7 +74,7 @@ zawiera wartości ról, klocków i wyzwalaczy.
 - Statusy epizodów i zadań oraz ich warianty pisowni.
 - Typy wyzwalaczy i zależności oraz ich polskie etykiety.
 - Specjalne znaczenie roli `ADMIN`.
-- Jednostki czasu i część sposobów liczenia terminu.
+- Część sposobów liczenia terminu; same jednostki czasu są już w bazie.
 - Kody aktywacji elementu.
 - System i typ źródła epizodu kwalifikacyjnego.
 - Typy zdarzeń Gateway, klasyfikacja badań oraz mapowanie klocków na zdarzenia.
@@ -94,11 +97,11 @@ To nie jest wyłącznie problem nazewnictwa. `task_repository.py` nie uznaje
 `ZREALIZOWANO` za status terminalny, mimo że synchronizacja właśnie taką
 wartość zapisuje. Zadanie może więc pozostać na liście aktywnych.
 
-### 2. `pk_typy_elementow` nie steruje typem klocka
+### 2. Typ klocka został znormalizowany
 
-Tabela słownikowa istnieje, ale `pk_klocki.typ` jest niezależnym polem
-tekstowym bez klucza obcego. Administrator mógłby zmienić słownik typów bez
-wpływu na bibliotekę klocków albo wpisać w klocku kod spoza słownika.
+`pk_klocki.typ_elementu_id` jest obowiązkowym kluczem obcym do
+`pk_typy_elementow`. Tekstowa kolumna `pk_klocki.typ` nie występuje już
+w schematach startowych. Każdy klocek ma również obowiązkową grupę.
 
 ### 3. Te same enumy są powielone
 
