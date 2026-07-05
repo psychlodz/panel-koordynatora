@@ -10,7 +10,6 @@ from PySide6.QtWidgets import (
     QMainWindow,
     QMessageBox,
     QPushButton,
-    QScrollArea,
     QSizePolicy,
     QStyle,
     QStyleOptionButton,
@@ -120,25 +119,21 @@ class MainWindow(QMainWindow):
         self.current_user = current_user
         self._windows = {}
         self.setWindowTitle(f"{APP_NAME} {VERSION}")
-        self.resize(920, 680)
-        self.setMinimumSize(720, 540)
+        self.resize(940, 680)
+        self.setMinimumSize(760, 600)
 
-        scroll_area = QScrollArea()
-        scroll_area.setWidgetResizable(True)
-        scroll_area.setFrameShape(QFrame.Shape.NoFrame)
-        self.setCentralWidget(scroll_area)
         central_widget = QWidget()
         central_widget.setObjectName("launcherRoot")
-        scroll_area.setWidget(central_widget)
+        self.setCentralWidget(central_widget)
         layout = QVBoxLayout(central_widget)
-        layout.setContentsMargins(32, 26, 32, 24)
-        layout.setSpacing(16)
+        layout.setContentsMargins(24, 18, 24, 18)
+        layout.setSpacing(12)
 
         header = QFrame()
         header.setProperty("card", True)
         header_layout = QVBoxLayout(header)
-        header_layout.setContentsMargins(32, 26, 32, 24)
-        header_layout.setSpacing(8)
+        header_layout.setContentsMargins(24, 16, 24, 16)
+        header_layout.setSpacing(6)
 
         title_row = QHBoxLayout()
         title = QLabel(APP_NAME)
@@ -172,7 +167,7 @@ class MainWindow(QMainWindow):
         unit_row.addStretch(1)
         unit_row.addWidget(QLabel("Aktualna jednostka:"))
         self.unit_combo = QComboBox()
-        self.unit_combo.setMinimumWidth(420)
+        self.unit_combo.setMinimumWidth(320)
         self.unit_combo.setToolTip(
             "Wybierz jednostkę używaną w tej sesji aplikacji."
         )
@@ -197,8 +192,8 @@ class MainWindow(QMainWindow):
         layout.addWidget(section_title)
 
         buttons = QGridLayout()
-        buttons.setHorizontalSpacing(16)
-        buttons.setVerticalSpacing(16)
+        buttons.setHorizontalSpacing(14)
+        buttons.setVerticalSpacing(12)
         buttons.setColumnStretch(0, 1)
         buttons.setColumnStretch(1, 1)
         self.schedule_button = ModuleTileButton(
@@ -262,7 +257,7 @@ class MainWindow(QMainWindow):
                 QSizePolicy.Policy.Expanding,
                 QSizePolicy.Policy.Expanding,
             )
-            button.setMinimumSize(280, 104)
+            button.setMinimumSize(250, 82)
 
         buttons.addWidget(self.schedule_button, 0, 0)
         buttons.addWidget(self.programs_button, 0, 1)
