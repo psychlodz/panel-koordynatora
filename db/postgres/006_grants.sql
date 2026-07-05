@@ -1,0 +1,23 @@
+\set ON_ERROR_STOP on
+
+-- Uruchom na bazie kompas jako administrator PostgreSQL (postgres).
+GRANT USAGE ON SCHEMA public TO kompas_app;
+
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON ALL TABLES IN SCHEMA public
+TO kompas_app;
+
+GRANT USAGE, SELECT, UPDATE
+ON ALL SEQUENCES IN SCHEMA public
+TO kompas_app;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT SELECT, INSERT, UPDATE, DELETE
+ON TABLES
+TO kompas_app;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT USAGE, SELECT, UPDATE
+ON SEQUENCES
+TO kompas_app;
+

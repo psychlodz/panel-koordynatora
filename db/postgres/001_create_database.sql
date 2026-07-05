@@ -11,6 +11,7 @@ WHERE NOT EXISTS (
 )
 \gexec
 
+ALTER ROLE kompas_app LOGIN;
 \password kompas_app
 
 -- CREATE DATABASE nie może działać wewnątrz bloku transakcyjnego.

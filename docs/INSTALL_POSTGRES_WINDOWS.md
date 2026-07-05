@@ -27,16 +27,31 @@ Skrypt utworzy rolę `kompas_app`, bezpiecznie zapyta o jej hasło i utworzy
 bazę `kompas`. Polecenia tworzenia roli i bazy wymagają
 uprawnień administratora PostgreSQL.
 
-## 3. Przygotowanie, schemat, dane i indeksy
+## 3. Schemat, dane, indeksy i uprawnienia
 
 Wykonuj skrypty w kolejności numerów:
 
 ```powershell
-psql -U postgres -d kompas -f db/postgres/002_extensions.sql
 psql -U kompas_app -d kompas -f db/postgres/003_schema.sql
 psql -U kompas_app -d kompas -f db/postgres/004_seed.sql
 psql -U kompas_app -d kompas -f db/postgres/005_indexes.sql
+psql -U postgres -d kompas -f db/postgres/006_grants.sql
 ```
+
+Pełna kolejność instalacji to:
+
+1. `001_create_database.sql` — jako `postgres`, na bazie `postgres`,
+2. `003_schema.sql` — jako `kompas_app`, na bazie `kompas`,
+3. `004_seed.sql` — jako `kompas_app`, na bazie `kompas`,
+4. `005_indexes.sql` — jako `kompas_app`, na bazie `kompas`,
+5. `006_grants.sql` — jako `postgres`, na bazie `kompas`.
+
+Plik `002_extensions.sql` pozostaje pustym punktem rozszerzeń i obecnie
+nie wymaga wykonania.
+
+Skrypt `006_grants.sql` należy uruchomić na bazie `kompas` jako użytkownik
+`postgres`. Nadaje `kompas_app` dostęp do istniejących tabel i sekwencji
+oraz ustawia uprawnienia domyślne dla przyszłych obiektów.
 
 Każdy skrypt ma włączone zatrzymanie po pierwszym błędzie. Nie przechodź
 do następnego kroku, dopóki bieżący skrypt nie zakończy się poprawnie.
@@ -130,6 +145,14 @@ Można także sprawdzić utworzone tabele:
 psql -U kompas_app -h SERVER -d kompas `
   -c "\dt pk_*"
 ```
+
+Po wykonaniu `006_grants.sql` sprawdź operacje aplikacyjne:
+
+```powershell
+python scripts/test_db_postgres.py
+```
+
+Test korzysta z DSN ustawionego w `KOMPAS_TEST_POSTGRES_DSN`.
 
 ## 8. Kopia zapasowa
 
