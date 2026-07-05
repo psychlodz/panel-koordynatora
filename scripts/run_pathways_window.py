@@ -7,10 +7,12 @@ from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.repositories.program_repository import list_programs
 from app.ui.pathways_window import PathwaysWindow
+from app.ui.theme import apply_theme
 
 
 def main():
     application = QApplication(sys.argv)
+    apply_theme(application)
     application.setApplicationName("KOMPAS")
 
     programs = list_programs()

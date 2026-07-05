@@ -178,9 +178,7 @@ class PlanPracyApp(QWidget):
                 "Tryb planowania zadania: wybierz komórkę dnia i przedziału "
                 "godzinowego."
             )
-            selection_hint.setStyleSheet(
-                "font-weight: bold; color: #1f5fbf;"
-            )
+            selection_hint.setObjectName("selectionHint")
             layout.addWidget(selection_hint)
 
         panel = QHBoxLayout()
@@ -252,7 +250,7 @@ class PlanPracyApp(QWidget):
         left_layout.setContentsMargins(4, 4, 4, 4)
 
         title = QLabel("Pracownicy / szybki filtr")
-        title.setStyleSheet("font-weight: bold;")
+        title.setObjectName("panelTitle")
         left_layout.addWidget(title)
 
         self.person_search = QLineEdit()
@@ -275,7 +273,7 @@ class PlanPracyApp(QWidget):
 
         hint = QLabel("Zaznacz osoby, aby filtrować. Brak zaznaczenia = wszyscy.\nKolor osoby jest stały wg nazwiska.")
         hint.setWordWrap(True)
-        hint.setStyleSheet("color: #666666; font-size: 10px;")
+        hint.setObjectName("secondaryText")
         left_layout.addWidget(hint)
 
         body.addWidget(left_panel)

@@ -88,7 +88,7 @@ class UsersWindow(QWidget):
 
         layout = QVBoxLayout(self)
         title = QLabel("Użytkownicy KOMPAS")
-        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title.setObjectName("windowTitle")
         layout.addWidget(title)
 
         self.table = QTableWidget(0, 6)

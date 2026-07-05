@@ -57,7 +57,7 @@ class TasksWindow(QWidget):
         layout.setMenuBar(menu_bar)
 
         title = QLabel("Aktywne zadania")
-        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title.setObjectName("windowTitle")
         layout.addWidget(title)
 
         filters = QHBoxLayout()

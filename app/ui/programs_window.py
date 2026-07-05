@@ -213,7 +213,7 @@ class ProgramDialog(QDialog):
         layout.addLayout(form)
 
         units_label = QLabel("Jednostki organizacyjne")
-        units_label.setStyleSheet("font-weight: bold;")
+        units_label.setObjectName("panelTitle")
         layout.addWidget(units_label)
         self.units_widget = ProgramUnitsChecklist(
             selected_units,
@@ -276,7 +276,7 @@ class ProgramsWindow(QWidget):
 
         layout = QVBoxLayout(self)
         title = QLabel("KOMPAS - Programy")
-        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title.setObjectName("windowTitle")
         layout.addWidget(title)
 
         self.table = QTableWidget(0, 6)

@@ -115,7 +115,6 @@ class SystemSettingsWindow(QWidget):
         layout = QVBoxLayout(self)
         title = QLabel("Ustawienia systemu")
         title.setObjectName("sectionTitle")
-        title.setStyleSheet("font-size: 20px; font-weight: bold;")
         layout.addWidget(title)
 
         subtitle = QLabel(
@@ -165,7 +164,7 @@ class SystemSettingsWindow(QWidget):
         layout.setSpacing(12)
 
         heading = QLabel(title)
-        heading.setStyleSheet("font-size: 17px; font-weight: bold;")
+        heading.setObjectName("windowTitle")
         layout.addWidget(heading)
 
         description_label = QLabel(description)

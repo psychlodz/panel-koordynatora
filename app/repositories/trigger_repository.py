@@ -62,16 +62,21 @@ def _ensure_unique_episode_start(
 ):
     if trigger_type != "START_EPIZODU":
         return
+    exclude_condition = ""
+    parameters = [element_id]
+    if exclude_trigger_id is not None:
+        exclude_condition = "AND trigger_id <> ?"
+        parameters.append(exclude_trigger_id)
     row = connection.execute(
-        """
+        f"""
         SELECT trigger_id
         FROM pk_wyzwalacze
         WHERE element_id = ?
           AND trigger_type = 'START_EPIZODU'
-          AND (? IS NULL OR trigger_id <> ?)
+          {exclude_condition}
         LIMIT 1
         """,
-        (element_id, exclude_trigger_id, exclude_trigger_id),
+        tuple(parameters),
     ).fetchone()
     if row is not None:
         raise ValueError(

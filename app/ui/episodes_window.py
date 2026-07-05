@@ -54,7 +54,7 @@ class EpisodesWindow(QWidget):
 
         layout = QVBoxLayout(self)
         title = QLabel("Pacjenci w programach")
-        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title.setObjectName("windowTitle")
         layout.addWidget(title)
 
         filters = QHBoxLayout()

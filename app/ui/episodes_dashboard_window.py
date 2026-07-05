@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QHeaderView,
     QLabel,
     QMessageBox,
+    QProgressBar,
     QPushButton,
     QTableWidget,
     QTableWidgetItem,
@@ -67,34 +68,14 @@ def _contact_value(patient, primary_field, guardian_field):
 
 
 class SummaryTile(QPushButton):
-    def __init__(self, title, parent=None):
+    def __init__(self, title, status_role="info", parent=None):
         super().__init__(parent)
         self.title = title
+        self.setObjectName("summaryTile")
+        self.setProperty("statusRole", status_role)
         self.setCheckable(True)
-        self.setMinimumHeight(92)
+        self.setMinimumHeight(78)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        self.setStyleSheet(
-            """
-            QPushButton {
-                background: #FFFFFF;
-                color: #17324A;
-                border: 2px solid #8FA2B2;
-                border-radius: 10px;
-                padding: 10px;
-                font-size: 10pt;
-                font-weight: 600;
-            }
-            QPushButton:hover {
-                background: #EAF4FB;
-                border-color: #23678F;
-            }
-            QPushButton:checked {
-                background: #D8ECF8;
-                border: 3px solid #0B5F8A;
-                color: #0B426B;
-            }
-            """
-        )
         self.set_value(0)
 
     def set_value(self, value):
@@ -126,7 +107,6 @@ class EpisodesDashboardWindow(QWidget):
         layout = QVBoxLayout(self)
         title = QLabel("Dashboard epizodów")
         title.setObjectName("sectionTitle")
-        title.setStyleSheet("font-size: 19px; font-weight: bold;")
         layout.addWidget(title)
 
         summary_layout = QGridLayout()
@@ -137,39 +117,50 @@ class EpisodesDashboardWindow(QWidget):
                 FILTER_ACTIVE,
                 "Aktywne epizody",
                 "active_episodes",
+                "info",
             ),
             (
                 FILTER_TO_PLAN,
                 "Do zaplanowania",
                 "episodes_to_plan",
+                "warning",
             ),
             (
                 FILTER_OVERDUE,
                 "Po terminie",
                 "overdue_episodes",
+                "danger",
             ),
             (
                 FILTER_SCHEDULED_TODAY,
                 "Zadania na dziś",
                 "tasks_scheduled_today",
+                "info",
             ),
             (
                 FILTER_WAITING_ESKULAP,
                 "Oczekujące na Eskulap",
                 "waiting_for_eskulap",
+                "info",
             ),
             (
                 FILTER_COMPLETED_MONTH,
                 "Zakończone w miesiącu",
                 "completed_this_month",
+                "success",
             ),
         )
         self.summary_tiles = {}
         self.summary_keys = {}
-        for index, (filter_key, label, summary_key) in enumerate(
+        for index, (
+            filter_key,
+            label,
+            summary_key,
+            status_role,
+        ) in enumerate(
             tile_definitions
         ):
-            tile = SummaryTile(label)
+            tile = SummaryTile(label, status_role)
             tile.setToolTip(
                 f"Pokaż w tabeli: {label.lower()}."
             )
@@ -483,6 +474,30 @@ class EpisodesDashboardWindow(QWidget):
                 ", ".join(episode["unit_symbols"]) or "Nie przypisano",
             )
             for column_index, value in enumerate(values):
+                if column_index == 6:
+                    progress = QProgressBar()
+                    progress.setRange(0, 100)
+                    progress_value = int(
+                        round(episode["procent_realizacji"])
+                    )
+                    progress.setValue(progress_value)
+                    progress.setFormat(f"{progress_value}%")
+                    progress.setProperty(
+                        "statusRole",
+                        (
+                            "success"
+                            if progress_value >= 100
+                            else "info"
+                            if progress_value > 0
+                            else "warning"
+                        ),
+                    )
+                    self.table.setCellWidget(
+                        row_index,
+                        column_index,
+                        progress,
+                    )
+                    continue
                 item = QTableWidgetItem(str(value))
                 if column_index == 0:
                     item.setData(

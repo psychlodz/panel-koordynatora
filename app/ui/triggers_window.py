@@ -119,7 +119,7 @@ class TriggersWindow(QWidget):
         title = QLabel(
             f"Wyzwalacze elementu: {element['lp']}. {element['nazwa_w_sciezce']}"
         )
-        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title.setObjectName("windowTitle")
         layout.addWidget(title)
 
         self.table = QTableWidget(0, 3)

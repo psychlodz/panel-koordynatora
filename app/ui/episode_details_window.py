@@ -31,12 +31,24 @@ from app.repositories.event_repository import (
     get_patient_visits,
 )
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
+from app.ui.theme.process_colors import task_status_colors
 
 
 WAITING_STATUS = "OCZEKUJE NA AKTYWACJĘ"
 CONTACT_TOOLTIP = (
     "Dane kontaktowe są pobierane z Eskulapa i nie są zapisywane w KOMPAS."
 )
+
+
+def _apply_task_status_colors(item, status):
+    if status == WAITING_STATUS:
+        item.setBackground(QColor("#E5E7EB"))
+        item.setForeground(QColor("#374151"))
+        return
+    colors = task_status_colors(status)
+    if colors:
+        item.setBackground(QColor(colors[0]))
+        item.setForeground(QColor(colors[1]))
 
 
 def _text(value):
@@ -119,7 +131,7 @@ class EpisodeDetailsDialog(QDialog):
 
         layout = QVBoxLayout(self)
         title = QLabel(f"Epizod #{epizod_id}")
-        title.setStyleSheet("font-size: 18px; font-weight: bold;")
+        title.setObjectName("windowTitle")
         layout.addWidget(title)
 
         top_splitter = QSplitter(Qt.Orientation.Horizontal)
@@ -155,7 +167,7 @@ class EpisodeDetailsDialog(QDialog):
                 "Nie udało się pobrać części danych Oracle. "
                 "Dane procesu lokalnego pozostają dostępne."
             )
-            warning.setStyleSheet("color: #a84300;")
+            warning.setObjectName("warningLabel")
             warning.setToolTip("\n".join(self.oracle_errors))
             layout.addWidget(warning)
 
@@ -184,7 +196,7 @@ class EpisodeDetailsDialog(QDialog):
         panel = QWidget()
         layout = QVBoxLayout(panel)
         heading = QLabel("Pacjent i program")
-        heading.setStyleSheet("font-weight: bold;")
+        heading.setObjectName("panelTitle")
         layout.addWidget(heading)
 
         form = QFormLayout()
@@ -277,7 +289,7 @@ class EpisodeDetailsDialog(QDialog):
         panel = QWidget()
         layout = QVBoxLayout(panel)
         heading = QLabel("Elementy procesu")
-        heading.setStyleSheet("font-weight: bold;")
+        heading.setObjectName("panelTitle")
         layout.addWidget(heading)
 
         table = QTableWidget(len(self.process_elements), 4)
@@ -305,6 +317,11 @@ class EpisodeDetailsDialog(QDialog):
                         item.setBackground(background)
                     if foreground.isValid():
                         item.setForeground(foreground)
+                elif column_index == 1:
+                    _apply_task_status_colors(
+                        item,
+                        element["status"] or WAITING_STATUS,
+                    )
                 table.setItem(
                     row_index,
                     column_index,
@@ -352,6 +369,8 @@ class EpisodeDetailsDialog(QDialog):
                         item.setBackground(background)
                     if foreground.isValid():
                         item.setForeground(foreground)
+                elif column_index == 1:
+                    _apply_task_status_colors(item, task["status"])
                 table.setItem(
                     row_index,
                     column_index,

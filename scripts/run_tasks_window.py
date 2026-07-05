@@ -6,10 +6,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from PySide6.QtWidgets import QApplication
 
 from app.ui.tasks_window import TasksWindow
+from app.ui.theme import apply_theme
 
 
 def main():
     application = QApplication(sys.argv)
+    apply_theme(application)
     application.setApplicationName("KOMPAS")
     window = TasksWindow()
     window.show()

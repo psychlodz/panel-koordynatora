@@ -127,7 +127,7 @@ class DependenciesWindow(QWidget):
 
         layout = QVBoxLayout(self)
         self.pathway_label = QLabel()
-        self.pathway_label.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.pathway_label.setObjectName("windowTitle")
         layout.addWidget(self.pathway_label)
 
         self.table = QTableWidget(0, 4)

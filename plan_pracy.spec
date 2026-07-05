@@ -28,7 +28,10 @@ a = Analysis(
     ['main.py'],
     pathex=[SPECPATH],
     binaries=[],
-    datas=[('config.ini', '.')],
+    datas=[
+        ('config.ini', '.'),
+        ('resources/styles/kompas.qss', 'resources/styles'),
+    ],
     hiddenimports=hidden,
     hookspath=[],
     hooksconfig={},

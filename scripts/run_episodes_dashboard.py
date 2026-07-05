@@ -9,10 +9,12 @@ if str(PROJECT_ROOT) not in sys.path:
 from PySide6.QtWidgets import QApplication
 
 from app.ui.episodes_dashboard_window import EpisodesDashboardWindow
+from app.ui.theme import apply_theme
 
 
 def main():
     application = QApplication(sys.argv)
+    apply_theme(application)
     application.setApplicationName("KOMPAS")
     window = EpisodesDashboardWindow()
     window.show()

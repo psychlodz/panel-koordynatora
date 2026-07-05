@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
 
 from app.ui.widgets.busy_indicator import busy_operation
 from app.ui.ui_helpers import create_help_button
+from app.ui.theme.style import PALETTE
 from version import APP_NAME, VERSION
 from app.services.work_context import work_context
 
@@ -69,11 +70,11 @@ class ModuleTileButton(QPushButton):
         )
 
         if not self.isEnabled():
-            color = QColor("#94A3B8")
+            color = QColor("#7B8D9D")
         elif option.state & QStyle.StateFlag.State_MouseOver:
-            color = QColor("#0B426B")
+            color = QColor(PALETTE["PRIMARY_HOVER"])
         else:
-            color = QColor("#17324A")
+            color = QColor(PALETTE["TEXT_PRIMARY"])
         painter.setPen(color)
 
         painter.setFont(title_font)
@@ -119,8 +120,8 @@ class MainWindow(QMainWindow):
         self.current_user = current_user
         self._windows = {}
         self.setWindowTitle(f"{APP_NAME} {VERSION}")
-        self.resize(940, 680)
-        self.setMinimumSize(760, 600)
+        self.resize(940, 600)
+        self.setMinimumSize(760, 540)
 
         central_widget = QWidget()
         central_widget.setObjectName("launcherRoot")
@@ -193,7 +194,7 @@ class MainWindow(QMainWindow):
 
         buttons = QGridLayout()
         buttons.setHorizontalSpacing(14)
-        buttons.setVerticalSpacing(12)
+        buttons.setVerticalSpacing(9)
         buttons.setColumnStretch(0, 1)
         buttons.setColumnStretch(1, 1)
         self.schedule_button = ModuleTileButton(
@@ -255,9 +256,10 @@ class MainWindow(QMainWindow):
             button.setCursor(Qt.CursorShape.PointingHandCursor)
             button.setSizePolicy(
                 QSizePolicy.Policy.Expanding,
-                QSizePolicy.Policy.Expanding,
+                QSizePolicy.Policy.Fixed,
             )
-            button.setMinimumSize(250, 82)
+            button.setMinimumSize(250, 58)
+            button.setMaximumHeight(62)
 
         buttons.addWidget(self.schedule_button, 0, 0)
         buttons.addWidget(self.programs_button, 0, 1)

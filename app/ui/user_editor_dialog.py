@@ -327,7 +327,7 @@ class UserEditorDialog(QDialog):
         layout.addLayout(form)
 
         units_label = QLabel("Jednostki organizacyjne")
-        units_label.setStyleSheet("font-weight: bold;")
+        units_label.setObjectName("panelTitle")
         layout.addWidget(units_label)
         self.units_widget = OrganizationalUnitsWidget(
             assigned_units,

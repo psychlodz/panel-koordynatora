@@ -349,7 +349,7 @@ class PathwaysWindow(QWidget):
 
         layout = QVBoxLayout(self)
         self.program_label = QLabel()
-        self.program_label.setStyleSheet("font-size: 18px; font-weight: bold;")
+        self.program_label.setObjectName("windowTitle")
         layout.addWidget(self.program_label)
 
         self.refresh_button = QPushButton("Odśwież")
@@ -404,6 +404,7 @@ class PathwaysWindow(QWidget):
         elements_layout.addWidget(self.elements_label)
 
         self.elements_tabs = QTabWidget()
+        self.elements_tabs.setObjectName("pathwayEditorTabs")
         self.tiles_widget = PathwayTilesWidget()
         self.elements_tabs.addTab(self.tiles_widget, "Kafelki")
 
@@ -445,7 +446,8 @@ class PathwaysWindow(QWidget):
         elements_layout.addLayout(element_buttons)
         splitter.addWidget(elements_panel)
         splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 2)
+        splitter.setStretchFactor(1, 3)
+        splitter.setSizes([300, 1000])
 
         self.refresh_button.clicked.connect(lambda: self.refresh_pathways())
         self.close_button.clicked.connect(self.close)

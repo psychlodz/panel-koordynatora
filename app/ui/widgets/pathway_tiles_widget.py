@@ -154,65 +154,6 @@ class PathwayTilesWidget(QListWidget):
         self._scroll_timer.timeout.connect(self._slow_auto_scroll)
         self.currentItemChanged.connect(self._selection_changed)
         self.itemDoubleClicked.connect(self._item_double_clicked)
-        self.setStyleSheet(
-            """
-            QListWidget#pathwayTiles {
-                background-color: #E9EFF5;
-                border: 2px solid #8FA2B2;
-                border-radius: 8px;
-                padding: 8px;
-            }
-            QListWidget#pathwayTiles::item {
-                background: transparent;
-                border: none;
-                padding: 0;
-            }
-            QListWidget#pathwayTiles::item:selected {
-                background: transparent;
-            }
-            QFrame#pathwayTile {
-                background-color: #FFFFFF;
-                border: 2px solid #A9BAC8;
-                border-radius: 10px;
-            }
-            QFrame#pathwayTile[selected="true"] {
-                background-color: #E2F1FC;
-                border: 3px solid #145A8D;
-            }
-            QLabel#tilePosition {
-                min-width: 34px;
-                min-height: 28px;
-                color: #FFFFFF;
-                background-color: #123B5D;
-                border-radius: 6px;
-                font-size: 11pt;
-                font-weight: 700;
-            }
-            QLabel#tileType {
-                min-width: 48px;
-                color: #145A8D;
-                background-color: #DCEAF5;
-                border: 1px solid #8FAFC7;
-                border-radius: 5px;
-                padding: 3px;
-                font-size: 8pt;
-                font-weight: 700;
-            }
-            QLabel#tileTitle {
-                color: #102A43;
-                font-size: 11pt;
-                font-weight: 700;
-            }
-            QLabel#tileMetadata {
-                color: #334E68;
-                font-size: 9pt;
-            }
-            QLabel#tileDetails {
-                color: #526777;
-                font-size: 9pt;
-            }
-            """
-        )
 
     def set_elements(self, elements, selected_element_id=None):
         if selected_element_id is None:

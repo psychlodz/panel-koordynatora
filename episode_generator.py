@@ -82,26 +82,32 @@ def _activate_triggered_tasks(
     if episode is None:
         raise ValueError(f"Nie znaleziono epizodu o ID {epizod_id}")
 
+    if trigger_element_id is None:
+        trigger_condition = "w.trigger_element_id IS NULL"
+        parameters = (
+            episode["sciezka_id"],
+            trigger_type,
+        )
+    else:
+        trigger_condition = "w.trigger_element_id = ?"
+        parameters = (
+            episode["sciezka_id"],
+            trigger_type,
+            trigger_element_id,
+        )
+
     elements = connection.execute(
-        """
-        SELECT DISTINCT e.element_id
+        f"""
+        SELECT DISTINCT e.element_id, e.lp
         FROM pk_wyzwalacze w
         JOIN pk_sciezka_elementy e ON e.element_id = w.element_id
         WHERE e.sciezka_id = ?
           AND e.czy_aktywny = 1
           AND w.trigger_type = ?
-          AND (
-              (? IS NULL AND w.trigger_element_id IS NULL)
-              OR w.trigger_element_id = ?
-          )
+          AND {trigger_condition}
         ORDER BY e.lp
         """,
-        (
-            episode["sciezka_id"],
-            trigger_type,
-            trigger_element_id,
-            trigger_element_id,
-        ),
+        parameters,
     ).fetchall()
 
     task_ids = []

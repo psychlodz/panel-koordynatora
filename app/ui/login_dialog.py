@@ -118,7 +118,7 @@ class LoginDialog(QDialog):
 
         layout = QVBoxLayout(self)
         title = QLabel(APP_NAME)
-        title.setStyleSheet("font-size: 22px; font-weight: bold;")
+        title.setObjectName("windowTitle")
         layout.addWidget(title)
 
         form = QFormLayout()

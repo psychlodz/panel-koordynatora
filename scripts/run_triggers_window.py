@@ -11,10 +11,12 @@ from app.repositories.pathway_repository import (
 )
 from app.repositories.program_repository import list_programs
 from app.ui.triggers_window import TriggersWindow
+from app.ui.theme import apply_theme
 
 
 def main():
     application = QApplication(sys.argv)
+    apply_theme(application)
     application.setApplicationName("KOMPAS")
 
     programs = list_programs()
