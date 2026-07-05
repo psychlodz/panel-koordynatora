@@ -1,4 +1,5 @@
 \set ON_ERROR_STOP on
+SET client_encoding = 'UTF8';
 
 -- Ten skrypt wykonuje administrator PostgreSQL (najczęściej użytkownik
 -- postgres) podczas połączenia z bazą postgres.

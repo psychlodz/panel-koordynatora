@@ -42,6 +42,12 @@ PostgreSQL jest centralną bazą danych procesowych KOMPAS i przechowuje:
 
 Nie zawiera kartoteki pacjentów ani kopii danych osobowych.
 
+Baza PostgreSQL KOMPAS musi być utworzona w kodowaniu `UTF8`. Skrypty
+instalacyjne ustawiają również `client_encoding = 'UTF8'`, aby nazwy
+programów, ścieżek, klocków i elementów były przesyłane bez konwersji
+zależnej od strony kodowej klienta. `lc_collate` i `lc_ctype` pozostają
+zgodne z lokalizacją wybraną podczas instalacji PostgreSQL na Windows.
+
 ```mermaid
 flowchart TB
     O[("Oracle / Eskulap\nSystem of Record")]

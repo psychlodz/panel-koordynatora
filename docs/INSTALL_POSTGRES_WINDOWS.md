@@ -73,7 +73,61 @@ oraz ustawia uprawnienia domyślne dla przyszłych obiektów.
 Każdy skrypt ma włączone zatrzymanie po pierwszym błędzie. Nie przechodź
 do następnego kroku, dopóki bieżący skrypt nie zakończy się poprawnie.
 
-## 4. Dostęp sieciowy
+## 4. Kodowanie UTF-8 i polskie znaki
+
+Baza KOMPAS musi używać kodowania `UTF8`. Przed uruchomieniem `psql`
+w PowerShell ustaw stronę kodową konsoli oraz kodowanie klienta:
+
+```powershell
+chcp 65001
+$env:PGCLIENTENCODING = "UTF8"
+```
+
+Skrypty `db/postgres/001-006` wykonują dodatkowo:
+
+```sql
+SET client_encoding = 'UTF8';
+```
+
+`001_create_database.sql` tworzy bazę z `ENCODING 'UTF8'`. Ustawienia
+`lc_collate` i `lc_ctype` zależą od lokalizacji wybranej podczas instalacji
+PostgreSQL na Windows. Powinny być zgodne z instalacją serwera i wymaganiami
+sortowania placówki. Ich zmiana wymaga ponownego utworzenia bazy.
+
+Sprawdzenie parametrów bazy:
+
+```sql
+SELECT datname, pg_encoding_to_char(encoding), datcollate, datctype
+FROM pg_database
+WHERE datname = 'kompas';
+```
+
+Sprawdzenie kodowania bieżącego połączenia:
+
+```sql
+SHOW client_encoding;
+```
+
+Kontrola nazw programów, ścieżek, klocków i elementów:
+
+```powershell
+python scripts/check_polish_chars.py
+```
+
+Skrypt kończy się kodem błędu, jeśli baza lub połączenie nie używa UTF-8
+albo dane zawierają podejrzane sekwencje `Å`, `Ä`, `Ã` lub `Â`.
+
+Opcjonalna naprawa danych słownikowych wymaga wcześniej wykonanej kopii
+zapasowej i jawnego parametru:
+
+```powershell
+python scripts/fix_polish_chars.py --apply
+```
+
+Skrypt najpierw wypisuje wszystkie proponowane zmiany, modyfikuje wyłącznie
+tabele programowe i słownikowe KOMPAS oraz nie łączy się z Oracle.
+
+## 5. Dostęp sieciowy
 
 Pliki konfiguracyjne znajdują się zwykle w katalogu danych instancji, np.
 `C:\Program Files\PostgreSQL\17\data`.
@@ -97,7 +151,7 @@ host    kompas    kompas_app    192.168.10.0/24    scram-sha-256
 Nie używaj `0.0.0.0/0`. Po zmianie konfiguracji uruchom ponownie usługę
 PostgreSQL.
 
-## 5. Zapora Windows
+## 6. Zapora Windows
 
 Otwórz port tylko dla zaufanej sieci klientów:
 
@@ -113,7 +167,7 @@ New-NetFirewallRule `
 
 Dostosuj `RemoteAddress` do rzeczywistej podsieci placówki.
 
-## 6. Konfiguracja aplikacji
+## 7. Konfiguracja aplikacji
 
 Na każdej stacji KOMPAS zainstaluj zależności aplikacji:
 
@@ -142,7 +196,7 @@ sqlite_path=kompas.db
 
 Brak sekcji `[kompas_database]` również oznacza domyślny tryb SQLite.
 
-## 7. Test z serwera i klienta
+## 8. Test z serwera i klienta
 
 Na serwerze:
 
@@ -171,7 +225,7 @@ python scripts/test_db_postgres.py
 
 Test korzysta z DSN ustawionego w `KOMPAS_TEST_POSTGRES_DSN`.
 
-## 8. Kopia zapasowa
+## 9. Kopia zapasowa
 
 Przykładowy backup w formacie archiwum:
 
@@ -183,7 +237,7 @@ pg_dump -U postgres -h localhost -d kompas -Fc `
 Backup zawiera dane procesowe KOMPAS i nadal wymaga ochrony dostępu oraz
 bezpiecznej retencji.
 
-## 9. Odtwarzanie
+## 10. Odtwarzanie
 
 Odtworzenie archiwum do pustej bazy:
 

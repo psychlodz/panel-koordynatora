@@ -1,4 +1,5 @@
 \set ON_ERROR_STOP on
+SET client_encoding = 'UTF8';
 
 -- Uruchom na bazie kompas jako administrator PostgreSQL (postgres).
 GRANT USAGE ON SCHEMA public TO kompas_app;
@@ -20,4 +21,3 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public
 GRANT USAGE, SELECT, UPDATE
 ON SEQUENCES
 TO kompas_app;
-
