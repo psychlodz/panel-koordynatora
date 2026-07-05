@@ -219,7 +219,7 @@ class MainWindow(QMainWindow):
         )
         self.users_button = ModuleTileButton(
             "Administracja",
-            "Użytkownicy i uprawnienia",
+            "Ustawienia systemu i uprawnienia",
         )
         self.exit_button = QPushButton("Zakończ")
         self.help_button = create_help_button(
@@ -227,7 +227,8 @@ class MainWindow(QMainWindow):
             "Pulpit główny",
             "To okno służy do uruchamiania modułów KOMPAS.\n\n"
             "Możesz otworzyć harmonogram, programy, epizody, wizyty "
-            "kwalifikacyjne oraz — jako administrator — użytkowników.\n\n"
+            "kwalifikacyjne oraz — jako administrator — ustawienia "
+            "systemu.\n\n"
             "Nie uruchamiaj ponownie modułu, który jest już otwarty.",
         )
 
@@ -244,7 +245,7 @@ class MainWindow(QMainWindow):
             "Pobierz wizyty kwalifikacyjne PKK i przypisz program."
         )
         self.users_button.setToolTip(
-            "Otwórz administrację użytkownikami i rolami."
+            "Otwórz Ustawienia systemu, słowniki i uprawnienia."
         )
         self.exit_button.setToolTip("Zamknij aplikację KOMPAS.")
 
@@ -290,7 +291,7 @@ class MainWindow(QMainWindow):
         self.qualification_button.clicked.connect(
             self.open_qualification_visits
         )
-        self.users_button.clicked.connect(self.open_users)
+        self.users_button.clicked.connect(self.open_system_settings)
         self.exit_button.clicked.connect(QApplication.instance().quit)
         self.unit_combo.currentIndexChanged.connect(
             self._current_unit_changed
@@ -373,17 +374,23 @@ class MainWindow(QMainWindow):
             "Trwa pobieranie wizyt kwalifikacyjnych...",
         )
 
-    def open_users(self):
+    def open_system_settings(self):
         if not self.current_user.is_admin:
             return
 
         def factory():
-            from app.ui.users_window import UsersWindow
+            from app.ui.system_settings_window import (
+                SystemSettingsWindow,
+            )
 
-            return UsersWindow(self.current_user)
+            return SystemSettingsWindow(self.current_user)
 
         self._show_window(
-            "users",
+            "system_settings",
             factory,
-            "Trwa otwieranie administracji...",
+            "Trwa otwieranie Ustawień systemu...",
         )
+
+    def open_users(self):
+        """Zgodność ze starszym wywołaniem modułu administracji."""
+        self.open_system_settings()
