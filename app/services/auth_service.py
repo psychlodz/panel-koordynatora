@@ -401,12 +401,84 @@ def _replace_roles(connection, user_id, role_codes):
     )
 
 
+def _unit_value(unit, field_name):
+    if isinstance(unit, dict):
+        return unit.get(field_name)
+    return getattr(unit, field_name, None)
+
+
+def _normalized_unit_assignments(units):
+    normalized = []
+    seen = set()
+    for unit in units or []:
+        jo_id = str(_unit_value(unit, "jo_id") or "").strip()
+        if not jo_id or jo_id in seen:
+            continue
+        seen.add(jo_id)
+        symbol = str(_unit_value(unit, "jo_symbol") or "").strip() or None
+        name = str(_unit_value(unit, "jo_nazwa") or "").strip() or None
+        normalized.append(
+            {
+                "jo_id": jo_id,
+                "jo_symbol": symbol,
+                "jo_nazwa": name,
+            }
+        )
+    return normalized
+
+
+def _replace_user_units(
+    connection,
+    user_id,
+    units,
+    default_unit_id=None,
+):
+    normalized = _normalized_unit_assignments(units)
+    if not normalized:
+        raise ValueError(
+            "Użytkownik musi mieć przypisaną co najmniej jedną jednostkę"
+        )
+    unit_ids = [unit["jo_id"] for unit in normalized]
+    default_id = str(default_unit_id or "").strip()
+    if default_id not in unit_ids:
+        default_id = unit_ids[0]
+
+    connection.execute(
+        "DELETE FROM pk_user_units WHERE user_id = ?",
+        (user_id,),
+    )
+    connection.executemany(
+        """
+        INSERT INTO pk_user_units(
+            user_id,
+            jo_id,
+            jo_symbol,
+            jo_nazwa,
+            is_default
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        [
+            (
+                user_id,
+                unit["jo_id"],
+                unit["jo_symbol"],
+                unit["jo_nazwa"],
+                1 if unit["jo_id"] == default_id else 0,
+            )
+            for unit in normalized
+        ],
+    )
+
+
 def create_user(
     admin_user_id,
     login,
     full_name,
     password,
     role_codes,
+    units=None,
+    default_unit_id=None,
 ) -> int:
     normalized_login = str(login or "").strip()
     normalized_name = str(full_name or "").strip()
@@ -437,7 +509,68 @@ def create_user(
             )
             user_id = int(cursor.lastrowid)
             _replace_roles(connection, user_id, role_codes)
+            if units is not None:
+                _replace_user_units(
+                    connection,
+                    user_id,
+                    units,
+                    default_unit_id,
+                )
     return user_id
+
+
+def update_user(
+    admin_user_id,
+    user_id,
+    login,
+    full_name,
+    role_codes,
+    units,
+    default_unit_id=None,
+) -> int:
+    normalized_login = str(login or "").strip()
+    normalized_name = str(full_name or "").strip()
+    if not normalized_login:
+        raise ValueError("Login jest wymagany")
+    if not normalized_name:
+        raise ValueError("Imię i nazwisko jest wymagane")
+    codes = _normalized_role_codes(role_codes)
+
+    initialize_local_db()
+    with closing(create_local_connection()) as connection:
+        with connection:
+            _require_admin(connection, admin_user_id)
+            exists = connection.execute(
+                "SELECT 1 FROM pk_users WHERE user_id = ?",
+                (user_id,),
+            ).fetchone()
+            if exists is None:
+                raise ValueError("Nie znaleziono użytkownika")
+            if "ADMIN" not in codes and _is_last_active_admin(
+                connection,
+                user_id,
+            ):
+                raise ValueError(
+                    "Nie można odebrać roli ostatniemu administratorowi"
+                )
+            connection.execute(
+                """
+                UPDATE pk_users
+                SET login = ?,
+                    full_name = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ?
+                """,
+                (normalized_login, normalized_name, user_id),
+            )
+            _replace_roles(connection, user_id, codes)
+            _replace_user_units(
+                connection,
+                user_id,
+                units,
+                default_unit_id,
+            )
+    return int(user_id)
 
 
 def set_user_roles(admin_user_id, user_id, role_codes) -> None:
