@@ -1,4 +1,5 @@
 from app.models.event import Event
+from app.models.visit import Visit
 from app.repositories.patient_repository import (
     CONSULTATIONS_VIEW,
     EXAMS_VIEW,
@@ -59,10 +60,12 @@ def _event(
     planned_date=None,
     description=None,
     status=None,
+    model_class=Event,
+    **model_fields,
 ) -> Event:
     oracle_id = _required_id(row, oracle_id_field)
     patient_id = _required_id(row, "pacjent_id")
-    return Event(
+    return model_class(
         event_id=f"{event_type}:{oracle_id}",
         patient_id=patient_id,
         event_type=event_type,
@@ -72,6 +75,7 @@ def _event(
         planned_date=planned_date,
         description=_optional_text(description),
         oracle_id=oracle_id,
+        **model_fields,
     )
 
 
@@ -79,7 +83,7 @@ def get_patient_visits(
     patient_id,
     date_from=None,
     date_to=None,
-) -> list[Event]:
+) -> list[Visit]:
     rows = _get_patient_visits(patient_id, date_from, date_to)
     return [
         _event(
@@ -95,6 +99,12 @@ def get_patient_visits(
                 "poradnia_nazwa",
             ),
             status=row.get("decyzja"),
+            model_class=Visit,
+            parametr_kod=_optional_text(row.get("parametr_kod")),
+            parametr_nazwa=_optional_text(row.get("parametr_nazwa")),
+            parametr_czy_aktualne=_optional_text(
+                row.get("parametr_czy_aktualne")
+            ),
         )
         for row in rows
     ]

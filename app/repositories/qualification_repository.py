@@ -14,8 +14,8 @@ from app.repositories.patient_repository import PATIENTS_VIEW, VISITS_VIEW
 
 SOURCE_SYSTEM = "ESKULAP"
 SOURCE_TYPE = "WIZYTA_KWALIFIKACYJNA_PKK"
-# F18 = rodzaj wizyty kwalifikacyjnej PKK w Eskulapie.
-QUALIFICATION_VISIT_TYPE = "F18"
+# F18 = rodzaj wizyty kwalifikacyjnej PKK zapisany w WP_PARAMETR.
+PKK_KWAL_PARAMETR_KOD = "F18"
 
 
 def _date_value(value, field_name):
@@ -87,14 +87,14 @@ def _with_assignment(visit, assignments):
 
 def _qualification_condition(alias="w"):
     return f"""
-        UPPER(TRIM(NVL({alias}.TYP_WIZYTY, ''))) =
-            UPPER(:qualification_visit_type)
+        UPPER(TRIM(NVL({alias}.PARAMETR_KOD, ''))) =
+            UPPER(:pkk_kwal_parametr_kod)
     """
 
 
 def _qualification_parameters():
     return {
-        "qualification_visit_type": QUALIFICATION_VISIT_TYPE,
+        "pkk_kwal_parametr_kod": PKK_KWAL_PARAMETR_KOD,
     }
 
 

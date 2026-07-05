@@ -10,6 +10,9 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from app.gateway.eskulap_gateway import EskulapGateway
 from app.repositories.patient_repository import EXAMS_VIEW, VISITS_VIEW
+from app.repositories.qualification_repository import (
+    PKK_KWAL_PARAMETR_KOD,
+)
 
 
 def _print_collection(label, items):
@@ -55,10 +58,19 @@ def main():
     print(asdict(patient) if patient else None)
 
     patient_id = patients[0].patient_id
-    _test_collection(
+    visits = _test_collection(
         "Wizyty",
         lambda: gateway.get_patient_visits(patient_id),
+        VISITS_VIEW,
     )
+    if visits is not None:
+        print("\nParametry rodzajów wizyt:")
+        for visit in visits:
+            print(
+                f"{visit.oracle_id}: "
+                f"parametr_kod={visit.parametr_kod!r}, "
+                f"parametr_nazwa={visit.parametr_nazwa!r}"
+            )
     _test_collection(
         "Konsultacje",
         lambda: gateway.get_patient_consultations(patient_id),
@@ -73,7 +85,7 @@ def main():
         lambda: gateway.get_patient_imaging_orders(patient_id),
         EXAMS_VIEW,
     )
-    _test_collection(
+    qualification_visits = _test_collection(
         "Wizyty kwalifikacyjne",
         lambda: gateway.get_patient_qualification_visits(
             date_from=args.date_from,
@@ -81,6 +93,22 @@ def main():
         ),
         VISITS_VIEW,
     )
+    if qualification_visits is not None:
+        invalid_codes = {
+            visit.parametr_kod
+            for visit in qualification_visits
+            if visit.parametr_kod != PKK_KWAL_PARAMETR_KOD
+        }
+        if invalid_codes:
+            raise AssertionError(
+                "Wynik wizyt kwalifikacyjnych zawiera kody inne niż "
+                f"{PKK_KWAL_PARAMETR_KOD}: "
+                f"{sorted(map(str, invalid_codes))}"
+            )
+        print(
+            "Filtr wizyt kwalifikacyjnych: "
+            f"parametr_kod = {PKK_KWAL_PARAMETR_KOD} (OK)"
+        )
 
 
 if __name__ == "__main__":

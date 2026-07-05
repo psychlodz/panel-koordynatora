@@ -16,6 +16,9 @@ class QualificationVisit:
     employee_id: str | int | None = None
     employee_name: str | None = None
     visit_type: str | None = None
+    parametr_kod: str | None = None
+    parametr_nazwa: str | None = None
+    parametr_czy_aktualne: str | None = None
     visit_status: str | None = None
     description: str | None = None
     episode_id: int | None = None

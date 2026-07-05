@@ -120,6 +120,21 @@ Ogólny historyczny klocek `PKK` jest nieaktywny i nie może być wybierany
 do nowych ścieżek. `PKK_KWAL` stanowi element kwalifikacyjny przykładowej
 ścieżki ADHD i jest podstawą utworzenia epizodu KOMPAS.
 
+Kod rodzaju wizyty znajduje się w
+`RI_WIZYTY_W_PORADNIACH.WP_PARAMETR`. Słownik Eskulapa
+`CG_REF_CODES`, ograniczony przez `RV_DOMAIN = 'PARAMETRY'`, opisuje go
+następująco:
+
+- `RV_LOW_VALUE` = kod użyty w `WP_PARAMETR`;
+- `RV_MEANING` = nazwa wizyty, porady, sesji lub terapii;
+- `RV_CZY_AKTUALNE` = aktualność kodu.
+
+Klocek `PKK_KWAL` mapuje się do `PARAMETR_KOD = 'F18'`. W przyszłości
+klocki typu wizyta, sesja i terapia będą mapowane do kodów udostępnianych
+przez tylko do odczytu widok `V_KOMPAS_PARAMETRY_WIZYT`. Słownik ten
+pozostaje danymi referencyjnymi Eskulapa i nie jest kopiowany do
+PostgreSQL.
+
 ### Ocena modelu obecnego
 
 Obecna tabela `pk_typy_elementow` zawiera tylko `typ_id`, `kod` i `nazwa`.

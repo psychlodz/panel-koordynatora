@@ -28,14 +28,32 @@ Minimalny kontrakt kolumn:
 
 - `PACJENT_ID`,
 - `DATA_WIZYTY`,
-- `TYP_WIZYTY` — wymagane do rozpoznania kwalifikacji PKK `F18`.
+- `PARAMETR_KOD` — kod rodzaju wizyty z `WP_PARAMETR`,
+- `PARAMETR_NAZWA` — nazwa ze słownika `CG_REF_CODES`,
+- `PARAMETR_CZY_AKTUALNE` — aktualność kodu słownikowego.
 
 Widok może udostępniać dodatkowe informacje, np. identyfikator wizyty,
 status, jednostkę organizacyjną, personel i rodzaj świadczenia.
 
 Wizyty kwalifikacyjne PKK są pobierane z `V_KOMPAS_WIZYTY`. Aplikacja
-rozpoznaje je po dokładnej wartości `TYP_WIZYTY = 'F18'`. `F18` oznacza
+rozpoznaje je po dokładnej wartości `PARAMETR_KOD = 'F18'`. `F18` oznacza
 rodzaj wizyty kwalifikacyjnej PKK. Nie wymagają osobnego widoku Oracle.
+
+`RI_WIZYTY_W_PORADNIACH.WP_PARAMETR` przechowuje kod rodzaju wizyty.
+Widok łączy go ze słownikiem `CG_REF_CODES` dla
+`RV_DOMAIN = 'PARAMETRY'`: `RV_LOW_VALUE` jest kodem, `RV_MEANING` nazwą
+wizyty/porady/sesji/terapii, a `RV_CZY_AKTUALNE` oznacza aktualność.
+
+### `ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT`
+
+Pomocniczy, tylko do odczytu słownik rodzajów wizyt. Zwraca:
+
+- `PARAMETR_KOD`,
+- `PARAMETR_NAZWA`,
+- `CZY_AKTUALNE`.
+
+Docelowo będzie źródłem kodów mapowanych do klocków typu wizyta, sesja
+i terapia.
 
 ### `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`
 
@@ -68,7 +86,7 @@ Widok nie korzysta z ogólnego źródła e-skierowań.
 ## Zasady dostępu
 
 Konto skonfigurowane w `config.ini` powinno mieć wyłącznie uprawnienie
-`SELECT` do czterech widoków. Repozytorium:
+`SELECT` do pięciu widoków. Repozytorium:
 
 - wykonuje tylko instrukcje `SELECT`,
 - używa parametrów wiązanych dla danych użytkownika,

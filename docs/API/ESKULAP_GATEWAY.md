@@ -41,14 +41,16 @@ Pobiera jednego pacjenta. Zwraca `Patient` albo `None`.
 
 ### `get_patient_visits(patient_id)`
 
-Pobiera wizyty pacjenta. Zwraca listę `Visit`.
+Pobiera wizyty pacjenta. Zwraca listę `Visit`. Model zawiera także pola
+`parametr_kod`, `parametr_nazwa` i `parametr_czy_aktualne`, mapowane
+odpowiednio z `WP_PARAMETR` i słownika `CG_REF_CODES`.
 
 ### `get_patient_qualification_visits(date_from=None, date_to=None, only_unassigned=True)`
 
 Pobiera wizyty kwalifikacyjne PKK z opcjonalnego okresu. Parametr
 `only_unassigned` ogranicza wynik do wizyt bez epizodu KOMPAS. Zwraca
 listę `QualificationVisit`. Wizyta kwalifikacyjna jest rozpoznawana po
-dokładnej wartości `TYP_WIZYTY = 'F18'`.
+dokładnej wartości `PARAMETR_KOD = 'F18'`.
 
 ### `get_patient_consultations(patient_id)`
 
@@ -94,21 +96,32 @@ Gateway wymaga widoków:
 
 - `ESK_RAPORTY.V_KOMPAS_PACJENCI`,
 - `ESK_RAPORTY.V_KOMPAS_WIZYTY`,
+- `ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT`,
 - `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`,
 - `ESK_RAPORTY.V_KOMPAS_BADANIA`.
 
 Badania laboratoryjne i obrazowe korzystają ze wspólnego widoku
 `V_KOMPAS_BADANIA` i są rozdzielane według typu badania.
 
+`RI_WIZYTY_W_PORADNIACH.WP_PARAMETR` przechowuje kod rodzaju wizyty.
+Słownik `CG_REF_CODES` dla `RV_DOMAIN = 'PARAMETRY'` opisuje te kody:
+`RV_LOW_VALUE` odpowiada wartości `WP_PARAMETR`, `RV_MEANING` jest nazwą
+wizyty, porady, sesji lub terapii, a `RV_CZY_AKTUALNE` określa aktualność
+kodu. Widok `V_KOMPAS_PARAMETRY_WIZYT` udostępnia ten słownik wyłącznie
+do odczytu.
+
 Wizyty kwalifikacyjne nie mają osobnego widoku. Gateway pobiera je
-z `V_KOMPAS_WIZYTY`, filtrując `TYP_WIZYTY` po wartości `F18`.
-`F18` jest Eskulapowym rodzajem wizyty kwalifikacyjnej PKK. Jedyna
-definicja tego filtra znajduje się jako `QUALIFICATION_VISIT_TYPE`
+z `V_KOMPAS_WIZYTY`, filtrując `PARAMETR_KOD` po wartości `F18`.
+`F18` jest kodem rodzaju wizyty kwalifikacyjnej PKK. Jedyna definicja
+tego filtra znajduje się jako `PKK_KWAL_PARAMETR_KOD`
 w `qualification_repository.py`.
 
 W modelu procesu `PKK` pozostaje typem elementu. Klocek `PKK_KWAL`
 reprezentuje wizytę kwalifikacyjną F18, a `PKK_WIZ` zwykłą wizytę lub
 czynność organizacyjną PKK w trakcie programu.
+Docelowo klocki typu wizyta, sesja i terapia będą mapowane do
+`parametr_kod` wybieranego z `V_KOMPAS_PARAMETRY_WIZYT`. Pełne mapowanie
+i jego interfejs administracyjny nie są jeszcze implementowane.
 Techniczna wartość `source_type = WIZYTA_KWALIFIKACYJNA_PKK` opisuje
 pochodzenie epizodu i nie jest kodem klocka.
 

@@ -37,6 +37,9 @@ SELECT
     wp.wp_data_wizyty_do AS data_wizyty_do,
     wp.wp_data_rejestracji AS data_rejestracji,
     wp.wp_typ_wizyty AS typ_wizyty,
+    wp.wp_parametr AS parametr_kod,
+    crc.rv_meaning AS parametr_nazwa,
+    crc.rv_czy_aktualne AS parametr_czy_aktualne,
     wp.wp_decyzja AS decyzja,
     wp.wp_program_leczenia AS program_leczenia,
     wp.wp_reskie_id AS eskierowanie_id,
@@ -45,8 +48,29 @@ FROM RI_OWNER.RI_WIZYTY_W_PORADNIACH wp
 LEFT JOIN RI_OWNER.SZ_JEDNOSTKI_ORGANIZACYJNE jo
     ON jo.jo_jednostka_id = wp.wp_pr_poradnia_id
 LEFT JOIN RI_OWNER.RI_PRACOWNICY pr
-    ON pr.prac_pracownik_id = wp.wp_l_lekarz_id;
+    ON pr.prac_pracownik_id = wp.wp_l_lekarz_id
+LEFT JOIN RI_OWNER.CG_REF_CODES crc
+    ON crc.rv_domain = 'PARAMETRY'
+   AND crc.rv_low_value = wp.wp_parametr;
 /
+
+-- TODO: jeżeli CG_REF_CODES nie znajduje się w schemacie RI_OWNER,
+-- administrator powinien zastąpić powyższy JOIN wariantem:
+-- LEFT JOIN CG_REF_CODES crc
+--     ON crc.rv_domain = 'PARAMETRY'
+--    AND crc.rv_low_value = wp.wp_parametr
+
+CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT AS
+SELECT
+    crc.rv_low_value AS parametr_kod,
+    crc.rv_meaning AS parametr_nazwa,
+    crc.rv_czy_aktualne AS czy_aktualne
+FROM RI_OWNER.CG_REF_CODES crc
+WHERE crc.rv_domain = 'PARAMETRY';
+/
+
+-- TODO: jeżeli CG_REF_CODES nie znajduje się w schemacie RI_OWNER,
+-- należy odtworzyć widok pomocniczy z FROM CG_REF_CODES crc.
 
 -- Kontrakt KOMPAS wymaga kolumny DATA_KONSULTACJI.
 -- Po zmianie SQL należy ręcznie wykonać poniższe CREATE OR REPLACE VIEW

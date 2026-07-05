@@ -26,7 +26,7 @@ from app.repositories.system_settings_repository import (
 )
 from app.repositories.trigger_repository import TRIGGER_TYPES
 from app.repositories.qualification_repository import (
-    QUALIFICATION_VISIT_TYPE,
+    PKK_KWAL_PARAMETR_KOD,
 )
 from app.ui.ui_helpers import create_help_button
 from app.ui.users_window import UsersWindow
@@ -410,11 +410,11 @@ class SystemSettingsWindow(QWidget):
         qualification_form = QFormLayout(qualification_group)
         qualification_form.addRow(
             "Pole Eskulapa:",
-            self._readonly_value("TYP_WIZYTY"),
+            self._readonly_value("WP_PARAMETR / PARAMETR_KOD"),
         )
         qualification_form.addRow(
             "Rodzaj wizyty:",
-            self._readonly_value(QUALIFICATION_VISIT_TYPE),
+            self._readonly_value(PKK_KWAL_PARAMETR_KOD),
         )
         qualification_form.addRow(
             "Znaczenie:",
@@ -442,6 +442,7 @@ class SystemSettingsWindow(QWidget):
         for view_name in (
             "ESK_RAPORTY.V_KOMPAS_PACJENCI",
             "ESK_RAPORTY.V_KOMPAS_WIZYTY",
+            "ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT",
             "ESK_RAPORTY.V_KOMPAS_KONSULTACJE",
             "ESK_RAPORTY.V_KOMPAS_BADANIA",
         ):

@@ -48,6 +48,9 @@ QUALIFICATION_VISIT_FIELDS = {
     "employee_id": "pracownik_id",
     "employee_name": "pracownik",
     "visit_type": "typ_wizyty",
+    "parametr_kod": "parametr_kod",
+    "parametr_nazwa": "parametr_nazwa",
+    "parametr_czy_aktualne": "parametr_czy_aktualne",
     "visit_status": ("status_wizyty", "decyzja"),
     "description": "opis",
     "episode_id": "epizod_id",
@@ -81,8 +84,8 @@ def _mapping_to_model(model_class, row, field_mapping):
 def _event_to_model(model_class, event: Event):
     return model_class(
         **{
-            field.name: getattr(event, field.name)
-            for field in fields(Event)
+            field.name: getattr(event, field.name, None)
+            for field in fields(model_class)
         }
     )
 
