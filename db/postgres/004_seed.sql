@@ -105,58 +105,116 @@ FROM (
             'PKK', 'WIZYTY', 'PKK', 0, 0, 20
         ),
         (
-            'WIZYTA_PSYCHIATRYCZNA', 'Wizyta psychiatryczna',
-            'Wizyta diagnostyczna lub kontrolna u psychiatry.',
-            'WIZYTA', 'WIZYTY', 'WIZ', 0, 1, 30
+            'KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA',
+            'Konsultacja psychiatryczna kompleksowa',
+            'Kompleksowa konsultacja psychiatryczna w programie.',
+            'KONSULTACJA', 'KONSULTACJE', 'PSY', 0, 1, 30
+        ),
+        (
+            'KONSULTACJA_PSYCHIATRYCZNA_DIAGNOSTYCZNA',
+            'Konsultacja psychiatryczna diagnostyczna',
+            'Konsultacja psychiatryczna służąca diagnostyce pacjenta.',
+            'KONSULTACJA', 'KONSULTACJE', 'PSY', 0, 0, 40
+        ),
+        (
+            'KONSULTACJA_PSYCHIATRYCZNA_TERAPEUTYCZNA',
+            'Konsultacja psychiatryczna terapeutyczna',
+            'Konsultacja psychiatryczna ukierunkowana terapeutycznie.',
+            'KONSULTACJA', 'KONSULTACJE', 'PSY', 0, 0, 50
+        ),
+        (
+            'KONSULTACJA_PSYCHOLOGICZNA_DIAGNOSTYCZNA',
+            'Konsultacja psychologiczna diagnostyczna',
+            'Konsultacja psychologiczna służąca diagnostyce pacjenta.',
+            'KONSULTACJA', 'DIAGNOSTYKA', 'PSY', 0, 0, 60
+        ),
+        (
+            'KONSULTACJA_PSYCHOLOGICZNA_TERAPEUTYCZNA',
+            'Konsultacja psychologiczna terapeutyczna',
+            'Konsultacja psychologiczna ukierunkowana terapeutycznie.',
+            'KONSULTACJA', 'KONSULTACJE', 'PSY', 0, 0, 70
+        ),
+        (
+            'KONSULTACJA_TERAPEUTY_SRODOWISKOWEGO',
+            'Konsultacja terapeuty środowiskowego',
+            'Konsultacja terapeuty środowiskowego wspierająca realizację programu.',
+            'KONSULTACJA', 'KONSULTACJE', 'TER', 0, 0, 80
         ),
         (
             'DIAGNOSTYKA_PSYCHOLOGICZNA', 'Diagnostyka psychologiczna',
             'Proces diagnostyki psychologicznej.',
-            'WIZYTA', 'DIAGNOSTYKA', 'PSY', 0, 1, 40
+            'KONSULTACJA', 'DIAGNOSTYKA', 'DIA', 0, 1, 90
+        ),
+        (
+            'SUPERWIZJA', 'Superwizja',
+            'Superwizja procesu terapeutycznego lub diagnostycznego.',
+            'KONSULTACJA', 'DIAGNOSTYKA', 'SUP', 0, 0, 100
         ),
         (
             'SESJA_TERAPEUTYCZNA', 'Sesja terapeutyczna',
             'Pojedyncza sesja terapeutyczna.',
-            'SESJA', 'PSYCHOTERAPIA', 'SES', 0, 0, 50
+            'SESJA', 'PSYCHOTERAPIA', 'SES', 0, 0, 110
         ),
         (
-            'PSYCHOTERAPIA', 'Psychoterapia', 'Cykl psychoterapii.',
-            'SESJA', 'PSYCHOTERAPIA', 'PSY', 0, 0, 60
+            'SESJA_TERAPEUTYCZNA_GRUPOWA', 'Sesja terapeutyczna grupowa',
+            'Grupowa sesja terapeutyczna.',
+            'SESJA', 'PSYCHOTERAPIA', 'SGR', 0, 0, 120
+        ),
+        (
+            'SESJA_PSYCHOLOGICZNA', 'Sesja psychologiczna',
+            'Indywidualna sesja psychologiczna.',
+            'SESJA', 'PSYCHOTERAPIA', 'SPS', 0, 0, 130
+        ),
+        (
+            'SESJA_PSYCHOLOGICZNA_GRUPOWA', 'Sesja psychologiczna grupowa',
+            'Grupowa sesja psychologiczna.',
+            'SESJA', 'PSYCHOTERAPIA', 'SPG', 0, 0, 140
+        ),
+        (
+            'SESJA_PSYCHOTERAPEUTYCZNA', 'Sesja psychoterapeutyczna',
+            'Indywidualna sesja psychoterapeutyczna.',
+            'SESJA', 'PSYCHOTERAPIA', 'SPT', 0, 0, 150
+        ),
+        (
+            'SESJA_PSYCHOTERAPEUTYCZNA_GRUPOWA',
+            'Sesja psychoterapeutyczna grupowa',
+            'Grupowa sesja psychoterapeutyczna; zastępuje ogólny klocek PSYCHOTERAPIA.',
+            'SESJA', 'PSYCHOTERAPIA', 'SPG', 0, 0, 160
         ),
         (
             'KONSULTACJA_SPECJALISTYCZNA', 'Konsultacja specjalistyczna',
             'Konsultacja u wskazanego specjalisty.',
-            'KONSULTACJA', 'KONSULTACJE', 'KON', 1, 0, 70
+            'KONSULTACJA', 'KONSULTACJE', 'KON', 1, 0, 170
         ),
         (
             'BADANIE_LAB', 'Badanie laboratoryjne',
             'Badanie laboratoryjne zlecone w programie.',
-            'BADANIE_LAB', 'BADANIA_LAB', 'LAB', 1, 0, 80
+            'BADANIE_LAB', 'BADANIA_LAB', 'LAB', 1, 0, 180
         ),
         (
             'BADANIE_GENETYCZNE', 'Badanie genetyczne',
             'Badanie genetyczne zlecone w programie.',
-            'BADANIE_GEN', 'DIAGNOSTYKA', 'GEN', 1, 0, 90
+            'BADANIE_GEN', 'DIAGNOSTYKA', 'GEN', 1, 0, 190
         ),
         (
             'BADANIE_OBRAZOWE', 'Badanie obrazowe',
             'Badanie obrazowe zlecone w programie.',
-            'BADANIE_OBRAZOWE', 'BADANIA_OBRAZOWE', 'OBR', 1, 0, 100
+            'BADANIE_OBRAZOWE', 'BADANIA_OBRAZOWE', 'OBR', 1, 0, 200
         ),
         (
             'KONSYLIUM', 'Konsylium',
             'Konsylium zespołu prowadzącego program.',
-            'KONSYLIUM', 'DIAGNOSTYKA', 'KON', 0, 1, 110
+            'KONSYLIUM', 'DIAGNOSTYKA', 'KON', 0, 1, 210
         ),
         (
             'RAPORT_KONCOWY', 'Raport końcowy',
             'Raport końcowy i plan dalszego postępowania.',
-            'RAPORT', 'RAPORTY', 'RAP', 0, 1, 120
+            'RAPORT', 'RAPORTY', 'RAP', 0, 1, 220
         ),
         (
             'ZAMKNIECIE_PROGRAMU', 'Zamknięcie programu',
             'Formalne zakończenie udziału w programie.',
-            'ZAKONCZENIE', 'ZAKONCZENIE_PROGRAMU', 'KON', 0, 1, 130
+            'ZAKONCZENIE', 'ZAKONCZENIE_PROGRAMU', 'KON', 0, 1, 230
         )
 ) AS dane(
     kod, nazwa, opis, typ_kod, grupa_kod, ikona,
@@ -241,10 +299,10 @@ CROSS JOIN (
             'Wizyta F18 w Eskulapie będąca podstawą utworzenia epizodu.'
         ),
         (
-            'WIZYTA_PSYCHIATRYCZNA', 2,
-            'Porady psychiatryczne diagnostyczne',
+            'KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA', 2,
+            'Konsultacja psychiatryczna kompleksowa',
             1, 3, 1, 0, NULL, NULL, NULL,
-            'Do 3 porad psychiatrycznych diagnostycznych w programie.'
+            'Do 3 kompleksowych konsultacji psychiatrycznych w programie.'
         ),
         (
             'DIAGNOSTYKA_PSYCHOLOGICZNA', 3,
@@ -313,7 +371,7 @@ JOIN pk_programy p ON p.program_id = s.program_id
 JOIN pk_klocki k ON k.klocek_id = e.klocek_id
 WHERE p.kod = 'ADHD_DZ_ML'
   AND s.kod = 'PODSTAWOWA'
-  AND k.kod IN ('PKK_KWAL', 'WIZYTA_PSYCHIATRYCZNA')
+  AND k.kod IN ('PKK_KWAL', 'KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA')
   AND NOT EXISTS (
       SELECT 1
       FROM pk_wyzwalacze w
@@ -345,7 +403,7 @@ JOIN pk_klocki k_psychiatra
 WHERE p.kod = 'ADHD_DZ_ML'
   AND s.kod = 'PODSTAWOWA'
   AND k_psycholog.kod = 'DIAGNOSTYKA_PSYCHOLOGICZNA'
-  AND k_psychiatra.kod = 'WIZYTA_PSYCHIATRYCZNA'
+  AND k_psychiatra.kod = 'KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA'
   AND NOT EXISTS (
       SELECT 1
       FROM pk_wyzwalacze w

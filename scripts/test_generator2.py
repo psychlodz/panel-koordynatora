@@ -56,7 +56,10 @@ def main():
 
     tasks = _print_tasks("Zadania po utworzeniu epizodu:", epizod_id)
     initial_codes = {task["klocek_kod"] for task in tasks}
-    expected_initial = {"PKK_KWAL", "WIZYTA_PSYCHIATRYCZNA"}
+    expected_initial = {
+        "PKK_KWAL",
+        "KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA",
+    }
     if initial_codes != expected_initial:
         raise AssertionError(
             f"Oczekiwano {expected_initial}, otrzymano {initial_codes}"
@@ -65,7 +68,7 @@ def main():
     psychiatry_task = next(
         task
         for task in tasks
-        if task["klocek_kod"] == "WIZYTA_PSYCHIATRYCZNA"
+        if task["klocek_kod"] == "KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA"
     )
     complete_task(psychiatry_task["zadanie_id"])
 

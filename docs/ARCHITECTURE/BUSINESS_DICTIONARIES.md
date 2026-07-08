@@ -223,6 +223,36 @@ Przykładem rozdzielenia typu od klocka jest typ `PKK`, do którego należą
 dwa różne wzorce: `PKK_KWAL` oraz `PKK_WIZ`. Kod typu nie może być używany
 zamiennie z kodem klocka.
 
+### Aktualne klocki kliniczne
+
+Od DICT-BLOCKS-1 biblioteka rozróżnia bardziej precyzyjne kody kliniczne.
+Stare kody `WIZYTA_PSYCHIATRYCZNA` oraz `PSYCHOTERAPIA` nie są używane
+przez aktualne seedy do tworzenia nowych ścieżek. Zastąpiono je
+odpowiednio:
+
+- `KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA`;
+- `SESJA_PSYCHOTERAPEUTYCZNA_GRUPOWA`.
+
+Aktualny zestaw klocków konsultacji i sesji obejmuje:
+
+| Kod klocka | Nazwa prezentacyjna | Typ | Grupa |
+|---|---|---|---|
+| `KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA` | Konsultacja psychiatryczna kompleksowa | `KONSULTACJA` | `KONSULTACJE` |
+| `KONSULTACJA_PSYCHIATRYCZNA_DIAGNOSTYCZNA` | Konsultacja psychiatryczna diagnostyczna | `KONSULTACJA` | `KONSULTACJE` |
+| `KONSULTACJA_PSYCHIATRYCZNA_TERAPEUTYCZNA` | Konsultacja psychiatryczna terapeutyczna | `KONSULTACJA` | `KONSULTACJE` |
+| `KONSULTACJA_PSYCHOLOGICZNA_DIAGNOSTYCZNA` | Konsultacja psychologiczna diagnostyczna | `KONSULTACJA` | `DIAGNOSTYKA` |
+| `KONSULTACJA_PSYCHOLOGICZNA_TERAPEUTYCZNA` | Konsultacja psychologiczna terapeutyczna | `KONSULTACJA` | `KONSULTACJE` |
+| `KONSULTACJA_TERAPEUTY_SRODOWISKOWEGO` | Konsultacja terapeuty środowiskowego | `KONSULTACJA` | `KONSULTACJE` |
+| `SUPERWIZJA` | Superwizja | `KONSULTACJA` | `DIAGNOSTYKA` |
+| `SESJA_TERAPEUTYCZNA_GRUPOWA` | Sesja terapeutyczna grupowa | `SESJA` | `PSYCHOTERAPIA` |
+| `SESJA_PSYCHOLOGICZNA` | Sesja psychologiczna | `SESJA` | `PSYCHOTERAPIA` |
+| `SESJA_PSYCHOLOGICZNA_GRUPOWA` | Sesja psychologiczna grupowa | `SESJA` | `PSYCHOTERAPIA` |
+| `SESJA_PSYCHOTERAPEUTYCZNA` | Sesja psychoterapeutyczna | `SESJA` | `PSYCHOTERAPIA` |
+| `SESJA_PSYCHOTERAPEUTYCZNA_GRUPOWA` | Sesja psychoterapeutyczna grupowa | `SESJA` | `PSYCHOTERAPIA` |
+
+Kody systemowe klocków pozostają ASCII: bez polskich znaków, spacji i znaków
+diakrytycznych. Nazwa prezentacyjna może zawierać polskie znaki.
+
 ### Zasada kopiowania domyślnych wartości
 
 Przy dodaniu klocka do ścieżki aplikacja kopiuje:
