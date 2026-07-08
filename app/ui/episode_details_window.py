@@ -16,7 +16,6 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor
 
 from app.gateway.eskulap_gateway import EskulapGateway
 from app.repositories.episode_repository import (
@@ -31,23 +30,12 @@ from app.repositories.event_repository import (
     get_patient_visits,
 )
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
-from app.ui.theme.color_utils import apply_readable_item_colors
-from app.ui.theme.process_colors import task_status_colors
 
 
 WAITING_STATUS = "OCZEKUJE NA AKTYWACJĘ"
 CONTACT_TOOLTIP = (
     "Dane kontaktowe są pobierane z Eskulapa i nie są zapisywane w KOMPAS."
 )
-
-
-def _apply_task_status_colors(item, status):
-    if status == WAITING_STATUS:
-        apply_readable_item_colors(item, QColor("#E5E7EB"), QColor("#374151"))
-        return
-    colors = task_status_colors(status)
-    if colors:
-        apply_readable_item_colors(item, QColor(colors[0]), QColor(colors[1]))
 
 
 def _text(value):
@@ -311,19 +299,6 @@ class EpisodeDetailsDialog(QDialog):
             ]
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(_text(value))
-                if column_index == 0:
-                    background = QColor(
-                        str(element.get("klocek_kolor") or "")
-                    )
-                    foreground = QColor(
-                        str(element.get("klocek_kolor_tekstu") or "")
-                    )
-                    apply_readable_item_colors(item, background, foreground)
-                elif column_index == 1:
-                    _apply_task_status_colors(
-                        item,
-                        element["status"] or WAITING_STATUS,
-                    )
                 if column_index in (1, 2, 3):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
@@ -368,16 +343,6 @@ class EpisodeDetailsDialog(QDialog):
             ]
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(_text(value))
-                if column_index == 0:
-                    background = QColor(
-                        str(task.get("klocek_kolor") or "")
-                    )
-                    foreground = QColor(
-                        str(task.get("klocek_kolor_tekstu") or "")
-                    )
-                    apply_readable_item_colors(item, background, foreground)
-                elif column_index == 1:
-                    _apply_task_status_colors(item, task["status"])
                 if column_index in (1, 2, 3, 4, 5):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
