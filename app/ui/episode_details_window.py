@@ -89,12 +89,18 @@ def _configure_table(table, stretch_column=1):
     table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
     table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
     table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+    table.setAlternatingRowColors(True)
+    table.setWordWrap(True)
     table.verticalHeader().setVisible(False)
+    table.verticalHeader().setDefaultSectionSize(54)
     table.horizontalHeader().setSectionResizeMode(
         QHeaderView.ResizeMode.ResizeToContents
     )
     table.horizontalHeader().setSectionResizeMode(
         stretch_column, QHeaderView.ResizeMode.Stretch
+    )
+    table.horizontalHeader().setDefaultAlignment(
+        Qt.AlignmentFlag.AlignCenter
     )
 
 
@@ -322,6 +328,14 @@ class EpisodeDetailsDialog(QDialog):
                         item,
                         element["status"] or WAITING_STATUS,
                     )
+                if column_index in (1, 2, 3):
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                else:
+                    item.setTextAlignment(
+                        Qt.AlignmentFlag.AlignLeft
+                        | Qt.AlignmentFlag.AlignVCenter
+                    )
+                    item.setToolTip(_text(value))
                 table.setItem(
                     row_index,
                     column_index,
@@ -371,6 +385,14 @@ class EpisodeDetailsDialog(QDialog):
                         item.setForeground(foreground)
                 elif column_index == 1:
                     _apply_task_status_colors(item, task["status"])
+                if column_index in (1, 2, 3, 4, 5):
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                else:
+                    item.setTextAlignment(
+                        Qt.AlignmentFlag.AlignLeft
+                        | Qt.AlignmentFlag.AlignVCenter
+                    )
+                    item.setToolTip(_text(value))
                 table.setItem(
                     row_index,
                     column_index,
@@ -434,10 +456,19 @@ class EpisodeDetailsDialog(QDialog):
                 event.source,
             ]
             for column_index, value in enumerate(values):
+                item = QTableWidgetItem(_text(value))
+                if column_index in (0, 1, 2, 3, 5):
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                else:
+                    item.setTextAlignment(
+                        Qt.AlignmentFlag.AlignLeft
+                        | Qt.AlignmentFlag.AlignVCenter
+                    )
+                    item.setToolTip(_text(value))
                 table.setItem(
                     row_index,
                     column_index,
-                    QTableWidgetItem(_text(value)),
+                    item,
                 )
         layout.addWidget(table)
         return tab

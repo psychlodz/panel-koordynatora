@@ -207,9 +207,9 @@ QDateEdit:disabled, QDateTimeEdit:disabled {
 
 QComboBox::drop-down, QDateEdit::drop-down, QDateTimeEdit::drop-down {
     width: 34px;
-    background-color: #DCE8F1;
+    background-color: ${PRIMARY};
     border: none;
-    border-left: 1px solid #91A6B7;
+    border-left: 1px solid ${PRIMARY_PRESSED};
     border-top-right-radius: 5px;
     border-bottom-right-radius: 5px;
 }
@@ -217,7 +217,7 @@ QComboBox::drop-down, QDateEdit::drop-down, QDateTimeEdit::drop-down {
 QComboBox::drop-down:hover,
 QDateEdit::drop-down:hover,
 QDateTimeEdit::drop-down:hover {
-    background-color: #C8DCEB;
+    background-color: ${PRIMARY_HOVER};
 }
 
 QComboBox QAbstractItemView {
@@ -239,14 +239,14 @@ QSpinBox::up-button, QDoubleSpinBox::up-button,
 QSpinBox::down-button, QDoubleSpinBox::down-button {
     subcontrol-origin: border;
     width: 34px;
-    background-color: #DCE8F1;
-    border-left: 1px solid #7E97AA;
+    background-color: ${PRIMARY};
+    border-left: 1px solid ${PRIMARY_PRESSED};
 }
 
 QSpinBox::up-button, QDoubleSpinBox::up-button {
     subcontrol-position: top right;
     border-top-right-radius: 5px;
-    border-bottom: 1px solid #7E97AA;
+    border-bottom: 1px solid ${PRIMARY_PRESSED};
 }
 
 QSpinBox::down-button, QDoubleSpinBox::down-button {
@@ -256,7 +256,7 @@ QSpinBox::down-button, QDoubleSpinBox::down-button {
 
 QSpinBox::up-button:hover, QDoubleSpinBox::up-button:hover,
 QSpinBox::down-button:hover, QDoubleSpinBox::down-button:hover {
-    background-color: #BFD5E5;
+    background-color: ${PRIMARY_HOVER};
 }
 
 QSpinBox::up-arrow, QDoubleSpinBox::up-arrow,
@@ -321,6 +321,10 @@ QTableView, QTableWidget {
     selection-background-color: ${SELECTION};
     qproperty-alternatingRowColors: true;
     outline: none;
+}
+
+QTableView::item, QTableWidget::item {
+    white-space: normal;
 }
 
 QListView::item, QListWidget::item,
@@ -425,13 +429,13 @@ QCheckBox::indicator:unchecked, QRadioButton::indicator:unchecked {
 
 /* === Dashboard i postęp === */
 QPushButton#summaryTile {
-    min-height: 78px;
-    padding: 9px;
+    min-height: 96px;
+    padding: 12px;
     color: #17324A;
     background-color: ${SURFACE};
     border: 2px solid ${BORDER};
     border-radius: 10px;
-    font-size: 10pt;
+    font-size: 20pt;
     font-weight: 700;
 }
 
@@ -446,37 +450,51 @@ QPushButton#summaryTile:checked {
     border: 3px solid #082D48;
 }
 
-QPushButton#summaryTile[statusRole="danger"] {
-    border-color: ${STATUS_OVERDUE};
+QPushButton#summaryTile[statusRole="active"] {
+    color: #123B5D;
+    background-color: #DCEEFF;
+    border-color: #8BBCE8;
 }
 
-QPushButton#summaryTile[statusRole="warning"] {
-    border-color: ${STATUS_TO_PLAN};
+QPushButton#summaryTile[statusRole="toPlan"] {
+    color: #7A3E00;
+    background-color: #FFE4C2;
+    border-color: #F2A64B;
 }
 
-QPushButton#summaryTile[statusRole="info"] {
-    border-color: ${STATUS_PLANNED};
+QPushButton#summaryTile[statusRole="overdue"] {
+    color: #8A1F1F;
+    background-color: #FFDADA;
+    border-color: #E18A8A;
 }
 
-QPushButton#summaryTile[statusRole="success"] {
-    border-color: ${STATUS_COMPLETED};
+QPushButton#summaryTile[statusRole="today"] {
+    color: #6B5200;
+    background-color: #FFF5B8;
+    border-color: #E6CC4F;
 }
 
-QPushButton#summaryTile[statusRole="danger"]:checked {
-    background-color: ${STATUS_OVERDUE};
+QPushButton#summaryTile[statusRole="waiting"] {
+    color: #4A2B7A;
+    background-color: #E9DDFF;
+    border-color: #B99BE8;
 }
 
-QPushButton#summaryTile[statusRole="warning"]:checked {
-    color: #1F2937;
-    background-color: ${STATUS_TO_PLAN};
+QPushButton#summaryTile[statusRole="completedMonth"] {
+    color: #1F6B45;
+    background-color: #DDF7E7;
+    border-color: #83C99F;
 }
 
-QPushButton#summaryTile[statusRole="info"]:checked {
-    background-color: ${STATUS_PLANNED};
-}
-
-QPushButton#summaryTile[statusRole="success"]:checked {
-    background-color: ${STATUS_COMPLETED};
+QPushButton#summaryTile[statusRole="active"]:checked,
+QPushButton#summaryTile[statusRole="toPlan"]:checked,
+QPushButton#summaryTile[statusRole="overdue"]:checked,
+QPushButton#summaryTile[statusRole="today"]:checked,
+QPushButton#summaryTile[statusRole="waiting"]:checked,
+QPushButton#summaryTile[statusRole="completedMonth"]:checked {
+    color: #FFFFFF;
+    background-color: ${PRIMARY};
+    border: 3px solid #082D48;
 }
 
 QProgressBar {

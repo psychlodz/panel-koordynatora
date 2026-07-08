@@ -74,7 +74,7 @@ class SummaryTile(QPushButton):
         self.setObjectName("summaryTile")
         self.setProperty("statusRole", status_role)
         self.setCheckable(True)
-        self.setMinimumHeight(78)
+        self.setMinimumHeight(96)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
         self.set_value(0)
 
@@ -117,37 +117,37 @@ class EpisodesDashboardWindow(QWidget):
                 FILTER_ACTIVE,
                 "Aktywne epizody",
                 "active_episodes",
-                "info",
+                "active",
             ),
             (
                 FILTER_TO_PLAN,
                 "Do zaplanowania",
                 "episodes_to_plan",
-                "warning",
+                "toPlan",
             ),
             (
                 FILTER_OVERDUE,
                 "Po terminie",
                 "overdue_episodes",
-                "danger",
+                "overdue",
             ),
             (
                 FILTER_SCHEDULED_TODAY,
                 "Zadania na dziś",
                 "tasks_scheduled_today",
-                "info",
+                "today",
             ),
             (
                 FILTER_WAITING_ESKULAP,
                 "Oczekujące na Eskulap",
                 "waiting_for_eskulap",
-                "info",
+                "waiting",
             ),
             (
                 FILTER_COMPLETED_MONTH,
                 "Zakończone w miesiącu",
                 "completed_this_month",
-                "success",
+                "completedMonth",
             ),
         )
         self.summary_tiles = {}
@@ -225,9 +225,15 @@ class EpisodesDashboardWindow(QWidget):
         self.table.setEditTriggers(
             QAbstractItemView.EditTrigger.NoEditTriggers
         )
+        self.table.setAlternatingRowColors(True)
+        self.table.setWordWrap(True)
         self.table.verticalHeader().setVisible(False)
+        self.table.verticalHeader().setDefaultSectionSize(54)
         self.table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.ResizeToContents
+        )
+        self.table.horizontalHeader().setDefaultAlignment(
+            Qt.AlignmentFlag.AlignCenter
         )
         for column in (0, 7):
             self.table.horizontalHeader().setSectionResizeMode(
@@ -504,6 +510,14 @@ class EpisodesDashboardWindow(QWidget):
                         Qt.ItemDataRole.UserRole,
                         episode["epizod_id"],
                     )
+                if column_index in (6, 8, 9):
+                    item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                else:
+                    item.setTextAlignment(
+                        Qt.AlignmentFlag.AlignLeft
+                        | Qt.AlignmentFlag.AlignVCenter
+                    )
+                    item.setToolTip(str(value))
                 if column_index in (1, 2):
                     item.setToolTip(CONTACT_TOOLTIP)
                 if column_index == 7:

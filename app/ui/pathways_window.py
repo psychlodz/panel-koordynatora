@@ -14,8 +14,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
+    QSizePolicy,
     QSpinBox,
-    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -135,7 +135,7 @@ class PathwayElementDialog(QDialog):
         self.max_spin.setRange(-1, 9999)
         self.max_spin.setSpecialValueText("Brak")
         self.max_spin.setValue(-1)
-        self.required_checkbox = QCheckBox("Element obowiązkowy")
+        self.required_checkbox = QCheckBox("Element wymagany")
         self.order_checkbox = QCheckBox("Wymaga zlecenia lekarza")
         self.required_checkbox.setChecked(True)
         self.order_checkbox.setChecked(True)
@@ -198,7 +198,7 @@ class PathwayElementDialog(QDialog):
         form.addRow("Lp:", self.position_spin)
         form.addRow("Minimalna liczba:", self.min_spin)
         form.addRow("Maksymalna liczba:", self.max_spin)
-        form.addRow("Obowiązkowość:", self.required_checkbox)
+        form.addRow("Wymagany:", self.required_checkbox)
         form.addRow("Zlecenie:", self.order_checkbox)
         form.addRow("Termin — liczba:", self.deadline_spin)
         form.addRow("Termin — jednostka:", self.deadline_unit_combo)
@@ -373,10 +373,11 @@ class PathwaysWindow(QWidget):
         top_actions.addWidget(self.close_button)
         layout.addLayout(top_actions)
 
-        splitter = QSplitter(Qt.Orientation.Horizontal)
-        layout.addWidget(splitter, 1)
-
         pathways_panel = QWidget()
+        pathways_panel.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Fixed,
+        )
         pathways_layout = QVBoxLayout(pathways_panel)
         pathways_layout.addWidget(QLabel("Ścieżki programu"))
         self.pathways_table = QTableWidget(0, 4)
@@ -387,6 +388,14 @@ class PathwaysWindow(QWidget):
         self.pathways_table.horizontalHeader().setSectionResizeMode(
             2, QHeaderView.ResizeMode.Stretch
         )
+        self.pathways_table.setMinimumHeight(176)
+        self.pathways_table.setMaximumHeight(210)
+        self.pathways_table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAsNeeded
+        )
+        self.pathways_table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         pathways_layout.addWidget(self.pathways_table, 1)
         pathway_buttons = QHBoxLayout()
         self.new_pathway_button = QPushButton("Nowa ścieżka")
@@ -396,7 +405,10 @@ class PathwaysWindow(QWidget):
         pathway_buttons.addWidget(self.new_pathway_button)
         pathway_buttons.addWidget(self.edit_pathway_button)
         pathways_layout.addLayout(pathway_buttons)
-        splitter.addWidget(pathways_panel)
+        pathways_row = QHBoxLayout()
+        pathways_row.addWidget(pathways_panel, 1)
+        pathways_row.addStretch(1)
+        layout.addLayout(pathways_row)
 
         elements_panel = QWidget()
         elements_layout = QVBoxLayout(elements_panel)
@@ -416,12 +428,13 @@ class PathwaysWindow(QWidget):
                 "Nazwa w ścieżce",
                 "Min.",
                 "Maks.",
-                "Obowiązkowy",
-                "Wymaga zlecenia",
+                "Wymagany",
+                "Wymaga\nzlecenia",
                 "Termin",
             ]
         )
         self._configure_table(self.elements_table)
+        self._configure_elements_table()
         self.elements_table.horizontalHeader().setSectionResizeMode(
             2, QHeaderView.ResizeMode.Stretch
         )
@@ -444,10 +457,10 @@ class PathwaysWindow(QWidget):
         element_buttons.addWidget(self.edit_element_button)
         element_buttons.addWidget(self.delete_element_button)
         elements_layout.addLayout(element_buttons)
-        splitter.addWidget(elements_panel)
-        splitter.setStretchFactor(0, 1)
-        splitter.setStretchFactor(1, 3)
-        splitter.setSizes([300, 1000])
+        elements_row = QHBoxLayout()
+        elements_row.addWidget(elements_panel, 9)
+        elements_row.addStretch(1)
+        layout.addLayout(elements_row, 1)
 
         self.refresh_button.clicked.connect(lambda: self.refresh_pathways())
         self.close_button.clicked.connect(self.close)
@@ -476,9 +489,30 @@ class PathwaysWindow(QWidget):
         table.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
         table.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
         table.setEditTriggers(QAbstractItemView.EditTrigger.NoEditTriggers)
+        table.setAlternatingRowColors(True)
+        table.setWordWrap(True)
         table.verticalHeader().setVisible(False)
         table.horizontalHeader().setSectionResizeMode(
             QHeaderView.ResizeMode.ResizeToContents
+        )
+        table.horizontalHeader().setDefaultAlignment(
+            Qt.AlignmentFlag.AlignCenter
+        )
+
+    def _configure_elements_table(self):
+        header = self.elements_table.horizontalHeader()
+        header.setSectionResizeMode(QHeaderView.ResizeMode.Interactive)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.Stretch)
+        self.elements_table.setColumnWidth(0, 56)
+        self.elements_table.setColumnWidth(1, 132)
+        self.elements_table.setColumnWidth(3, 64)
+        self.elements_table.setColumnWidth(4, 64)
+        self.elements_table.setColumnWidth(5, 84)
+        self.elements_table.setColumnWidth(6, 96)
+        self.elements_table.setColumnWidth(7, 96)
+        self.elements_table.verticalHeader().setDefaultSectionSize(54)
+        self.elements_table.verticalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Fixed
         )
 
     def _show_error(self, message, exc):
@@ -633,6 +667,14 @@ class PathwaysWindow(QWidget):
                         item.setData(
                             Qt.ItemDataRole.UserRole, element["element_id"]
                         )
+                    if column_index in (0, 3, 4, 5, 6, 7):
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
+                    elif column_index == 2:
+                        item.setTextAlignment(
+                            Qt.AlignmentFlag.AlignLeft
+                            | Qt.AlignmentFlag.AlignVCenter
+                        )
+                        item.setToolTip(str(value))
                     self.elements_table.setItem(row_index, column_index, item)
                 if element["element_id"] == selected_element_id:
                     self.elements_table.selectRow(row_index)
