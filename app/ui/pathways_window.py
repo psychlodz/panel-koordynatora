@@ -14,8 +14,8 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QPushButton,
-    QSizePolicy,
     QSpinBox,
+    QSplitter,
     QTableWidget,
     QTableWidgetItem,
     QTabWidget,
@@ -373,11 +373,10 @@ class PathwaysWindow(QWidget):
         top_actions.addWidget(self.close_button)
         layout.addLayout(top_actions)
 
+        splitter = QSplitter(Qt.Orientation.Horizontal)
+        layout.addWidget(splitter, 1)
+
         pathways_panel = QWidget()
-        pathways_panel.setSizePolicy(
-            QSizePolicy.Policy.Expanding,
-            QSizePolicy.Policy.Fixed,
-        )
         pathways_layout = QVBoxLayout(pathways_panel)
         pathways_layout.addWidget(QLabel("Ścieżki programu"))
         self.pathways_table = QTableWidget(0, 4)
@@ -388,8 +387,10 @@ class PathwaysWindow(QWidget):
         self.pathways_table.horizontalHeader().setSectionResizeMode(
             2, QHeaderView.ResizeMode.Stretch
         )
-        self.pathways_table.setMinimumHeight(176)
-        self.pathways_table.setMaximumHeight(210)
+        self.pathways_table.verticalHeader().setDefaultSectionSize(54)
+        self.pathways_table.verticalHeader().setSectionResizeMode(
+            QHeaderView.ResizeMode.Fixed
+        )
         self.pathways_table.setVerticalScrollBarPolicy(
             Qt.ScrollBarPolicy.ScrollBarAsNeeded
         )
@@ -405,10 +406,7 @@ class PathwaysWindow(QWidget):
         pathway_buttons.addWidget(self.new_pathway_button)
         pathway_buttons.addWidget(self.edit_pathway_button)
         pathways_layout.addLayout(pathway_buttons)
-        pathways_row = QHBoxLayout()
-        pathways_row.addWidget(pathways_panel, 1)
-        pathways_row.addStretch(1)
-        layout.addLayout(pathways_row)
+        splitter.addWidget(pathways_panel)
 
         elements_panel = QWidget()
         elements_layout = QVBoxLayout(elements_panel)
@@ -457,10 +455,10 @@ class PathwaysWindow(QWidget):
         element_buttons.addWidget(self.edit_element_button)
         element_buttons.addWidget(self.delete_element_button)
         elements_layout.addLayout(element_buttons)
-        elements_row = QHBoxLayout()
-        elements_row.addWidget(elements_panel, 9)
-        elements_row.addStretch(1)
-        layout.addLayout(elements_row, 1)
+        splitter.addWidget(elements_panel)
+        splitter.setStretchFactor(0, 3)
+        splitter.setStretchFactor(1, 7)
+        splitter.setSizes([390, 910])
 
         self.refresh_button.clicked.connect(lambda: self.refresh_pathways())
         self.close_button.clicked.connect(self.close)
@@ -607,6 +605,14 @@ class PathwaysWindow(QWidget):
                         item.setData(
                             Qt.ItemDataRole.UserRole, pathway["sciezka_id"]
                         )
+                    if column_index == 2:
+                        item.setTextAlignment(
+                            Qt.AlignmentFlag.AlignLeft
+                            | Qt.AlignmentFlag.AlignVCenter
+                        )
+                        item.setToolTip(str(value))
+                    else:
+                        item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                     self.pathways_table.setItem(row_index, column_index, item)
                 if pathway["sciezka_id"] == select_id:
                     selected_row = row_index

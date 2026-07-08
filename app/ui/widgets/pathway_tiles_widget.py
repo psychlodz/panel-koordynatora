@@ -48,7 +48,7 @@ class PathwayTile(QFrame):
         content.setSpacing(4)
         title = QLabel(element["nazwa_w_sciezce"])
         title.setObjectName("tileTitle")
-        title.setWordWrap(True)
+        title.setWordWrap(False)
         content.addWidget(title)
 
         block = QLabel(
@@ -58,6 +58,7 @@ class PathwayTile(QFrame):
             f"{element.get('klocek_grupa_nazwa') or 'bez grupy'}"
         )
         block.setObjectName("tileMetadata")
+        block.setWordWrap(False)
         color = element.get("klocek_kolor")
         if color:
             block.setStyleSheet(
@@ -79,6 +80,7 @@ class PathwayTile(QFrame):
             f"Min./maks.: {element['min_liczba']}/{maximum} • {requirement}"
         )
         details.setObjectName("tileDetails")
+        details.setWordWrap(False)
         content.addWidget(details)
         layout.addLayout(content, 1)
 
