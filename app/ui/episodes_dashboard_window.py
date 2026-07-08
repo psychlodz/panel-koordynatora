@@ -29,6 +29,7 @@ from app.repositories.episode_dashboard_repository import (
 )
 from app.services.work_context import work_context
 from app.ui.episode_details_window import EpisodeDetailsDialog
+from app.ui.theme.color_utils import apply_readable_item_colors
 from app.ui.theme.process_colors import task_status_colors
 from app.ui.ui_helpers import create_help_button
 from app.ui.widgets.busy_indicator import busy_operation
@@ -527,18 +528,18 @@ class EpisodesDashboardWindow(QWidget):
                     foreground = QColor(
                         str(episode.get("next_task_text_color") or "")
                     )
-                    if background.isValid():
-                        item.setBackground(background)
-                    if foreground.isValid():
-                        item.setForeground(foreground)
+                    apply_readable_item_colors(item, background, foreground)
                 if column_index in (8, 9):
                     colors = task_status_colors(
                         episode["next_task_status"],
                         overdue=bool(episode["has_overdue"]),
                     )
                     if colors:
-                        item.setBackground(QColor(colors[0]))
-                        item.setForeground(QColor(colors[1]))
+                        apply_readable_item_colors(
+                            item,
+                            QColor(colors[0]),
+                            QColor(colors[1]),
+                        )
                 self.table.setItem(row_index, column_index, item)
 
         info = (

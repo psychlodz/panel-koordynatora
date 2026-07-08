@@ -31,6 +31,7 @@ from app.repositories.event_repository import (
     get_patient_visits,
 )
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
+from app.ui.theme.color_utils import apply_readable_item_colors
 from app.ui.theme.process_colors import task_status_colors
 
 
@@ -40,55 +41,13 @@ CONTACT_TOOLTIP = (
 )
 
 
-def _relative_luminance(color):
-    def channel(value):
-        value = value / 255
-        if value <= 0.03928:
-            return value / 12.92
-        return ((value + 0.055) / 1.055) ** 2.4
-
-    return (
-        0.2126 * channel(color.red())
-        + 0.7152 * channel(color.green())
-        + 0.0722 * channel(color.blue())
-    )
-
-
-def _contrast_ratio(first, second):
-    first_luminance = _relative_luminance(first)
-    second_luminance = _relative_luminance(second)
-    lighter = max(first_luminance, second_luminance)
-    darker = min(first_luminance, second_luminance)
-    return (lighter + 0.05) / (darker + 0.05)
-
-
-def _readable_foreground(background, preferred=None):
-    dark = QColor("#111827")
-    light = QColor("#FFFFFF")
-    if preferred is not None and preferred.isValid():
-        if _contrast_ratio(background, preferred) >= 4.5:
-            return preferred
-    return (
-        dark
-        if _contrast_ratio(background, dark) >= _contrast_ratio(background, light)
-        else light
-    )
-
-
-def _apply_cell_colors(item, background, preferred_foreground=None):
-    if not background.isValid():
-        return
-    item.setBackground(background)
-    item.setForeground(_readable_foreground(background, preferred_foreground))
-
-
 def _apply_task_status_colors(item, status):
     if status == WAITING_STATUS:
-        _apply_cell_colors(item, QColor("#E5E7EB"), QColor("#374151"))
+        apply_readable_item_colors(item, QColor("#E5E7EB"), QColor("#374151"))
         return
     colors = task_status_colors(status)
     if colors:
-        _apply_cell_colors(item, QColor(colors[0]), QColor(colors[1]))
+        apply_readable_item_colors(item, QColor(colors[0]), QColor(colors[1]))
 
 
 def _text(value):
@@ -359,7 +318,7 @@ class EpisodeDetailsDialog(QDialog):
                     foreground = QColor(
                         str(element.get("klocek_kolor_tekstu") or "")
                     )
-                    _apply_cell_colors(item, background, foreground)
+                    apply_readable_item_colors(item, background, foreground)
                 elif column_index == 1:
                     _apply_task_status_colors(
                         item,
@@ -416,7 +375,7 @@ class EpisodeDetailsDialog(QDialog):
                     foreground = QColor(
                         str(task.get("klocek_kolor_tekstu") or "")
                     )
-                    _apply_cell_colors(item, background, foreground)
+                    apply_readable_item_colors(item, background, foreground)
                 elif column_index == 1:
                     _apply_task_status_colors(item, task["status"])
                 if column_index in (1, 2, 3, 4, 5):

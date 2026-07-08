@@ -24,6 +24,7 @@ from app.repositories.visit_mapping_repository import (
     list_mapping_blocks,
     list_visit_mappings,
 )
+from app.ui.theme.color_utils import apply_readable_item_colors
 from app.ui.ui_helpers import create_help_button
 from app.ui.widgets.busy_indicator import busy_operation
 
@@ -239,10 +240,7 @@ class VisitMappingsWidget(QWidget):
                     foreground = QColor(
                         str(block.get("kolor_tekstu") or "")
                     )
-                    if background.isValid():
-                        item.setBackground(background)
-                    if foreground.isValid():
-                        item.setForeground(foreground)
+                    apply_readable_item_colors(item, background, foreground)
                 self.table.setItem(row, column, item)
 
     def apply_filter(self):

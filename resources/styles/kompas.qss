@@ -116,29 +116,41 @@ QScrollArea {
 
 /* === Przyciski === */
 QPushButton, QToolButton {
-    min-height: 34px;
-    padding: 6px 15px;
+    min-height: 36px;
+    padding: 7px 16px;
     color: #FFFFFF;
     background-color: ${PRIMARY};
     border: 2px solid ${PRIMARY};
-    border-radius: 7px;
+    border-radius: 8px;
     font-weight: 600;
 }
 
 QPushButton:hover, QToolButton:hover {
+    color: #FFFFFF;
     background-color: ${PRIMARY_HOVER};
     border-color: ${PRIMARY_HOVER};
 }
 
 QPushButton:pressed, QToolButton:pressed {
+    color: #FFFFFF;
     background-color: ${PRIMARY_PRESSED};
     border-color: ${PRIMARY_PRESSED};
+}
+
+QPushButton:focus, QToolButton:focus {
+    border-color: #082D48;
 }
 
 QPushButton:disabled, QToolButton:disabled {
     color: #7B8D9D;
     background-color: #DDE4EA;
     border-color: #C8D1DA;
+}
+
+QDialogButtonBox QPushButton,
+QMessageBox QPushButton {
+    min-width: 96px;
+    min-height: 36px;
 }
 
 QPushButton[role="secondary"], QToolButton[role="secondary"] {
@@ -323,6 +335,10 @@ QTableView, QTableWidget {
     outline: none;
 }
 
+QTableView, QTableWidget {
+    qproperty-showGrid: true;
+}
+
 QTableView::item, QTableWidget::item {
     white-space: normal;
 }
@@ -338,6 +354,13 @@ QTableView::item, QTableWidget::item {
     border-bottom: 1px solid #D4DDE5;
 }
 
+QListView::item:hover, QListWidget::item:hover,
+QTreeView::item:hover, QTreeWidget::item:hover,
+QTableView::item:hover, QTableWidget::item:hover {
+    color: ${TEXT_PRIMARY};
+    background-color: #DCEAF5;
+}
+
 QListView::item:selected, QListWidget::item:selected,
 QTreeView::item:selected, QTreeWidget::item:selected,
 QTableView::item:selected, QTableWidget::item:selected {
@@ -348,19 +371,23 @@ QTableView::item:selected, QTableWidget::item:selected {
 QListView::item:selected:!active, QListWidget::item:selected:!active,
 QTreeView::item:selected:!active, QTreeWidget::item:selected:!active,
 QTableView::item:selected:!active, QTableWidget::item:selected:!active {
-    color: ${TEXT_PRIMARY};
-    background-color: #BFD5E5;
+    color: #0B2239;
+    background-color: #CFE2F1;
 }
 
 QHeaderView::section {
-    min-height: 30px;
-    padding: 8px;
+    min-height: 34px;
+    padding: 8px 9px;
     color: #FFFFFF;
     background-color: #123B5D;
     border: none;
     border-right: 1px solid #7890A2;
     border-bottom: 2px solid #082D48;
     font-weight: 700;
+}
+
+QHeaderView::section:hover {
+    background-color: #174B73;
 }
 
 QTableCornerButton::section {
