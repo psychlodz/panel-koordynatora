@@ -57,7 +57,7 @@ if not exist "%RELEASE_DIR%" mkdir "%RELEASE_DIR%"
 xcopy "dist\%APP_NAME%\*" "%RELEASE_DIR%\" /E /I /Y >nul
 if errorlevel 1 goto error
 
-copy /Y "config.ini" "%RELEASE_DIR%\config.ini" >nul
+copy /Y "config.example.ini" "%RELEASE_DIR%\config.example.ini" >nul
 if errorlevel 1 goto error
 
 (

@@ -25,7 +25,7 @@ Name: "desktopicon"; Description: "Utwórz ikonę na pulpicie"; GroupDescription
 
 [Files]
 Source: "dist\KOMPAS\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
-Source: "config.ini"; DestDir: "{app}"; Flags: onlyifdoesntexist
+Source: "config.example.ini"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{group}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"

@@ -65,3 +65,31 @@ Budowanie wydania:
 ```text
 build_exe.bat
 ```
+
+## Budowanie instalatora Windows
+
+Instalator Windows jest przygotowywany przez Inno Setup na podstawie katalogu
+wydania `release/KOMPAS_<wersja>/`.
+
+Pełny proces:
+
+```text
+build_installer.bat
+```
+
+Skrypt buduje aplikację przez `build_exe.bat`, a następnie kompiluje:
+
+```text
+installer/KOMPAS.iss
+```
+
+Wynik:
+
+```text
+release/installers/KOMPAS_Setup_<wersja>.exe
+```
+
+Szczegóły:
+
+- [budowanie instalatora](docs/BUILD_INSTALLER.md),
+- [instalacja klienta Windows](docs/INSTALL_CLIENT_WINDOWS.md).

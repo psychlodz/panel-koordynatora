@@ -29,7 +29,7 @@ a = Analysis(
     pathex=[SPECPATH],
     binaries=[],
     datas=[
-        ('config.ini', '.'),
+        ('config.example.ini', '.'),
         ('resources/styles/kompas.qss', 'resources/styles'),
     ],
     hiddenimports=hidden,
