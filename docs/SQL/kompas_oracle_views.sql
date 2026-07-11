@@ -73,46 +73,97 @@ WHERE crc.rv_domain = 'PARAMETRY';
 -- należy odtworzyć widok pomocniczy z FROM CG_REF_CODES crc.
 
 CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ AS
-WITH warunki AS (
+WITH dni AS (
+    SELECT TRUNC(SYSDATE) - 365 + LEVEL - 1 AS data_dnia
+    FROM dual
+    CONNECT BY LEVEL <= 365 * 3
+),
+warunki_szczegoly AS (
+    SELECT DISTINCT
+        plw.plw_pln_id,
+        plw.plw_wp_parametr,
+        NVL(pw.parametr_nazwa, plw.plw_wp_parametr) AS parametr_nazwa
+    FROM RI_OWNER.RI_PLAN_PRACY_WARUNKI_NEW plw
+    LEFT JOIN ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT pw
+        ON pw.parametr_kod = plw.plw_wp_parametr
+    WHERE plw.plw_wp_parametr IS NOT NULL
+      AND NVL(plw.plw_typ, 'W') = 'W'
+),
+warunki AS (
     SELECT
         plw_pln_id,
-        LISTAGG(
-            plw_wp_parametr,
-            ', ' ON OVERFLOW TRUNCATE '...' WITH COUNT
-        ) WITHIN GROUP (ORDER BY plw_wp_parametr)
-            AS rodzaje_wizyt_kody
-    FROM (
-        SELECT DISTINCT
-            plw_pln_id,
-            plw_wp_parametr
-        FROM RI_OWNER.RI_PLAN_PRACY_WARUNKI_NEW
-        WHERE plw_wp_parametr IS NOT NULL
-          AND NVL(plw_typ, 'W') = 'W'
-    )
+        LISTAGG(plw_wp_parametr, ', ')
+            WITHIN GROUP (
+                ORDER BY plw_wp_parametr
+            ) AS rodzaje_wizyt_kody,
+        LISTAGG(parametr_nazwa, '; ')
+            WITHIN GROUP (
+                ORDER BY parametr_nazwa
+            ) AS rodzaje_wizyt
+    FROM warunki_szczegoly
     GROUP BY plw_pln_id
 )
 SELECT
     pln.pln_jo_jednostka_id AS jo_id,
     jo.jo_symbol AS jo_symbol,
     jo.jo_nazwa AS jo_nazwa,
-    TRUNC(pln.pln_data) AS data_dnia,
-    TO_CHAR(TRUNC(pln.pln_data), 'YYYY-MM-DD') AS data_tekst,
-    TO_CHAR(TRUNC(pln.pln_data), 'DY', 'NLS_DATE_LANGUAGE=POLISH')
-        AS dzien_tyg,
+    d.data_dnia AS data_dnia,
+    TO_CHAR(d.data_dnia, 'YYYY-MM-DD') AS data_tekst,
+    TO_CHAR(
+        d.data_dnia,
+        'DY',
+        'NLS_DATE_LANGUAGE=POLISH'
+    ) AS dzien_tyg,
     pln.pln_prac_pracownik_id AS pracownik_id,
     prac.prac_nazwisko || ' ' || prac.prac_imie AS pracownik,
     TO_CHAR(pln.pln_godz_od, 'HH24:MI') AS godz_od,
     TO_CHAR(pln.pln_godz_do, 'HH24:MI') AS godz_do,
     pln.pln_id AS pln_id,
     pln.pln_opis AS pln_opis,
-    warunki.rodzaje_wizyt_kody AS rodzaje_wizyt_kody
+    warunki.rodzaje_wizyt_kody AS rodzaje_wizyt_kody,
+    warunki.rodzaje_wizyt AS rodzaje_wizyt
 FROM RI_OWNER.RI_PLAN_PRACY_NEW pln
-LEFT JOIN RI_OWNER.SZ_JEDNOSTKI_ORGANIZACYJNE jo
-    ON jo.jo_jednostka_id = pln.pln_jo_jednostka_id
+JOIN dni d
+    ON d.data_dnia BETWEEN TRUNC(pln.pln_data_od)
+                       AND TRUNC(NVL(pln.pln_data_do, d.data_dnia))
 LEFT JOIN RI_OWNER.RI_PRACOWNICY prac
     ON prac.prac_pracownik_id = pln.pln_prac_pracownik_id
+LEFT JOIN RI_OWNER.SZ_JEDNOSTKI_ORGANIZACYJNE jo
+    ON jo.jo_jednostka_id = pln.pln_jo_jednostka_id
 LEFT JOIN warunki
-    ON warunki.plw_pln_id = pln.pln_id;
+    ON warunki.plw_pln_id = pln.pln_id
+WHERE NVL(pln.pln_czy_aktualny, 'T') = 'T'
+  AND NVL(pln.pln_czy_wolne, 'N') = 'N'
+  AND (
+        (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 0
+            AND NVL(pln.pln_po, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 1
+            AND NVL(pln.pln_wt, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 2
+            AND NVL(pln.pln_sr, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 3
+            AND NVL(pln.pln_cz, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 4
+            AND NVL(pln.pln_pi, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 5
+            AND NVL(pln.pln_so, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 6
+            AND NVL(pln.pln_ni, 'N') = 'T'
+        )
+  );
 /
 
 -- Widok zgodności dla starej nazwy. Nazwa jest przestarzała i powinna zostać

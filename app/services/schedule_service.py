@@ -85,6 +85,7 @@ class ScheduleService:
             visit_types_text, visit_types_tooltip = self._visit_type_display(
                 entry.rodzaje_wizyt_lista,
                 visit_type_names,
+                entry.rodzaje_wizyt_nazwy_lista,
             )
             rows.append(
                 {
@@ -101,6 +102,7 @@ class ScheduleService:
                     "PLN_ID": entry.pln_id,
                     "PLN_OPIS": entry.pln_opis,
                     "RODZAJE_WIZYT_KODY": entry.rodzaje_wizyt_kody,
+                    "RODZAJE_WIZYT": entry.rodzaje_wizyt,
                     "RODZAJE_WIZYT_LISTA": entry.rodzaje_wizyt_lista,
                     "RODZAJE_WIZYT_NAZWY": visit_types_text,
                     "RODZAJE_WIZYT_TOOLTIP": visit_types_tooltip,
@@ -122,6 +124,7 @@ class ScheduleService:
                 "PLN_ID",
                 "PLN_OPIS",
                 "RODZAJE_WIZYT_KODY",
+                "RODZAJE_WIZYT",
                 "RODZAJE_WIZYT_LISTA",
                 "RODZAJE_WIZYT_NAZWY",
                 "RODZAJE_WIZYT_TOOLTIP",
@@ -156,7 +159,18 @@ class ScheduleService:
         return self._visit_type_names[key]
 
     @staticmethod
-    def _visit_type_display(codes, names):
+    def _visit_type_display(codes, names, oracle_names=None):
+        oracle_names = [
+            str(name or "").strip()
+            for name in (oracle_names or [])
+            if str(name or "").strip()
+        ]
+        if oracle_names:
+            display = "; ".join(
+                sorted(dict.fromkeys(oracle_names), key=str.casefold)
+            )
+            return display, display
+
         codes = [
             str(code or "").strip().upper()
             for code in (codes or [])

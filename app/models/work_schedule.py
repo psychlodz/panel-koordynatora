@@ -13,6 +13,18 @@ def _split_visit_type_codes(value):
     return result
 
 
+def _split_visit_type_names(value):
+    result = []
+    seen = set()
+    for part in str(value or "").split(";"):
+        name = part.strip()
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        result.append(name)
+    return result
+
+
 @dataclass(frozen=True)
 class WorkScheduleEntry:
     """Pojedynczy rekord planu pracy pobrany z Eskulapa."""
@@ -30,7 +42,9 @@ class WorkScheduleEntry:
     pln_id: object = None
     pln_opis: str | None = None
     rodzaje_wizyt_kody: str | None = None
+    rodzaje_wizyt: str | None = None
     rodzaje_wizyt_lista: list[str] = field(default_factory=list)
+    rodzaje_wizyt_nazwy_lista: list[str] = field(default_factory=list)
 
     def __post_init__(self):
         if not self.rodzaje_wizyt_lista:
@@ -38,4 +52,10 @@ class WorkScheduleEntry:
                 self,
                 "rodzaje_wizyt_lista",
                 _split_visit_type_codes(self.rodzaje_wizyt_kody),
+            )
+        if not self.rodzaje_wizyt_nazwy_lista:
+            object.__setattr__(
+                self,
+                "rodzaje_wizyt_nazwy_lista",
+                _split_visit_type_names(self.rodzaje_wizyt),
             )

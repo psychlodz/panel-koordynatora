@@ -71,6 +71,8 @@ Repozytorium `work_schedule_repository` pobiera z widoku następujące kolumny:
 - `PLN_ID` — identyfikator pozycji planu,
 - `PLN_OPIS` — opis pozycji planu,
 - `RODZAJE_WIZYT_KODY` — zagregowana lista kodów rodzajów wizyt.
+- `RODZAJE_WIZYT` — zagregowana lista nazw rodzajów wizyt z
+  `V_KOMPAS_PARAMETRY_WIZYT`.
 
 `RODZAJE_WIZYT_KODY` pochodzi z
 `RI_OWNER.RI_PLAN_PRACY_WARUNKI_NEW.PLW_WP_PARAMETR`. Widok agreguje kody

@@ -137,13 +137,16 @@ domyślna oraz wartość udokumentowana dla KOMPAS to
 - `GODZ_DO`,
 - `PLN_ID`,
 - `PLN_OPIS`,
-- `RODZAJE_WIZYT_KODY`.
+- `RODZAJE_WIZYT_KODY`,
+- `RODZAJE_WIZYT`.
 
 Filtrowanie odbywa się po `JO_ID`, zakresie `DATA_DNIA` oraz opcjonalnie po
 `PRACOWNIK_ID`. KOMPAS wykonuje wyłącznie `SELECT`; żadne dane planu pracy
 nie są zapisywane do Oracle.
 
 `RODZAJE_WIZYT_KODY` zawiera zagregowane, unikalne kody
+`WP_PARAMETR`, a `RODZAJE_WIZYT` zawiera odpowiadające im nazwy z
+`V_KOMPAS_PARAMETRY_WIZYT`.
 `RI_PLAN_PRACY_WARUNKI_NEW.PLW_WP_PARAMETR` dla danego `PLN_ID`.
 Gateway rozdziela tekst na `rodzaje_wizyt_lista`, ale nie dekoduje nazw
 z PostgreSQL. Nazwy do prezentacji uzupełnia `ScheduleService` na podstawie

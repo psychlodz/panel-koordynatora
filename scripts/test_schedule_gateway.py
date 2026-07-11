@@ -26,7 +26,9 @@ REQUIRED_FIELDS = [
     "pln_id",
     "pln_opis",
     "rodzaje_wizyt_kody",
+    "rodzaje_wizyt",
     "rodzaje_wizyt_lista",
+    "rodzaje_wizyt_nazwy_lista",
 ]
 
 

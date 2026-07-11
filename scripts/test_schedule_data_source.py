@@ -17,6 +17,7 @@ REQUIRED_COLUMNS = [
     "PLN_ID",
     "PLN_OPIS",
     "RODZAJE_WIZYT_KODY",
+    "RODZAJE_WIZYT",
 ]
 
 
@@ -103,6 +104,10 @@ def main():
     require(
         "rodzaje_wizyt_lista" in read("app/models/work_schedule.py"),
         "Model harmonogramu nie rozdziela kodów rodzajów wizyt.",
+    )
+    require(
+        "rodzaje_wizyt_nazwy_lista" in read("app/models/work_schedule.py"),
+        "Model harmonogramu nie rozdziela nazw rodzajów wizyt.",
     )
 
     for doc_path in (

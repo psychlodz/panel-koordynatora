@@ -51,7 +51,10 @@ def _is_missing_visit_types_column_error(error) -> bool:
     text = " ".join(parts).upper()
     return (
         "ORA-00904" in text
-        and "RODZAJE_WIZYT_KODY" in text
+        and (
+            "RODZAJE_WIZYT_KODY" in text
+            or "RODZAJE_WIZYT" in text
+        )
     )
 
 
@@ -86,11 +89,21 @@ def _view_has_column(cursor, view_name, column_name):
     return cursor.fetchone() is not None
 
 
-def _work_schedule_sql(view_name, conditions, include_visit_types=True):
-    visit_types_expression = (
+def _work_schedule_sql(
+    view_name,
+    conditions,
+    include_visit_type_codes=True,
+    include_visit_type_names=True,
+):
+    visit_type_codes_expression = (
         "p.RODZAJE_WIZYT_KODY"
-        if include_visit_types
+        if include_visit_type_codes
         else "CAST(NULL AS VARCHAR2(4000)) AS RODZAJE_WIZYT_KODY"
+    )
+    visit_type_names_expression = (
+        "p.RODZAJE_WIZYT"
+        if include_visit_type_names
+        else "CAST(NULL AS VARCHAR2(4000)) AS RODZAJE_WIZYT"
     )
     return f"""
         SELECT
@@ -106,7 +119,8 @@ def _work_schedule_sql(view_name, conditions, include_visit_types=True):
             p.GODZ_DO,
             p.PLN_ID,
             p.PLN_OPIS,
-            {visit_types_expression}
+            {visit_type_codes_expression},
+            {visit_type_names_expression}
         FROM {view_name} p
         WHERE {" AND ".join(conditions)}
         ORDER BY p.DATA_DNIA, p.GODZ_OD, p.PRACOWNIK
@@ -169,10 +183,15 @@ def list_work_schedule(
     ) as connection:
         with closing(connection.cursor()) as cursor:
             try:
-                include_visit_types = _view_has_column(
+                include_visit_type_codes = _view_has_column(
                     cursor,
                     view_name,
                     "RODZAJE_WIZYT_KODY",
+                )
+                include_visit_type_names = _view_has_column(
+                    cursor,
+                    view_name,
+                    "RODZAJE_WIZYT",
                 )
             except Exception:
                 logger.exception(
@@ -180,9 +199,10 @@ def list_work_schedule(
                     "Próba pobrania harmonogramu z RODZAJE_WIZYT_KODY.",
                     view_name,
                 )
-                include_visit_types = True
+                include_visit_type_codes = True
+                include_visit_type_names = True
             if (
-                not include_visit_types
+                not include_visit_type_codes
                 and view_name.upper() != _canonical_view_name().upper()
             ):
                 canonical_view = _canonical_view_name()
@@ -207,9 +227,17 @@ def list_work_schedule(
                         canonical_view,
                     )
                     view_name = canonical_view
-                    include_visit_types = True
+                    include_visit_type_codes = True
+                    try:
+                        include_visit_type_names = _view_has_column(
+                            cursor,
+                            view_name,
+                            "RODZAJE_WIZYT",
+                        )
+                    except Exception:
+                        include_visit_type_names = True
 
-            if not include_visit_types:
+            if not include_visit_type_codes:
                 logger.warning(
                     "Widok harmonogramu %s nie zawiera kolumny "
                     "RODZAJE_WIZYT_KODY. Harmonogram zostanie pobrany bez "
@@ -219,7 +247,8 @@ def list_work_schedule(
             sql = _work_schedule_sql(
                 view_name,
                 conditions,
-                include_visit_types=include_visit_types,
+                include_visit_type_codes=include_visit_type_codes,
+                include_visit_type_names=include_visit_type_names,
             )
             try:
                 return _fetch_schedule_rows(cursor, sql, parameters)
@@ -236,7 +265,8 @@ def list_work_schedule(
                 fallback_sql = _work_schedule_sql(
                     view_name,
                     conditions,
-                    include_visit_types=False,
+                    include_visit_type_codes=False,
+                    include_visit_type_names=False,
                 )
                 return _fetch_schedule_rows(cursor, fallback_sql, parameters)
 

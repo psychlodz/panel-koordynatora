@@ -52,7 +52,7 @@ danych dostępowych i nie wykonuje SQL.
 `ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`. Moduł używa kolumn `JO_ID`,
 `JO_SYMBOL`, `JO_NAZWA`, `DATA_DNIA`, `DATA_TEKST`, `DZIEN_TYG`,
 `PRACOWNIK_ID`, `PRACOWNIK`, `GODZ_OD`, `GODZ_DO`, `PLN_ID`, `PLN_OPIS`
-i `RODZAJE_WIZYT_KODY`.
+i `RODZAJE_WIZYT_KODY` oraz `RODZAJE_WIZYT`.
 
 ### Programy
 

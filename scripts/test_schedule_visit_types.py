@@ -60,6 +60,7 @@ def main():
         print(
             f"PLN_ID={row.pln_id}; pracownik={row.pracownik}; "
             f"kody={', '.join(codes) if codes else 'brak'}; "
+            f"oracle_nazwy={row.rodzaje_wizyt or 'brak'}; "
             f"lokalny_słownik={'; '.join(decoded) if decoded else 'brak'}"
         )
 

@@ -75,6 +75,7 @@ WORK_SCHEDULE_FIELDS = {
     "pln_id": "pln_id",
     "pln_opis": "pln_opis",
     "rodzaje_wizyt_kody": "rodzaje_wizyt_kody",
+    "rodzaje_wizyt": "rodzaje_wizyt",
 }
 
 
