@@ -44,6 +44,9 @@ pobierane na żądanie przez Gateway Eskulap.
 
 Prezentuje plan pracy i umożliwia wybór terminów dla zadań koordynatora.
 Nie przejmuje odpowiedzialności za stan epizodu ani definicję ścieżki.
+Moduł pobiera dane Eskulapa wyłącznie przez `ScheduleService`, który korzysta
+z `EskulapGateway`. UI harmonogramu nie otwiera połączeń Oracle, nie zna
+danych dostępowych i nie wykonuje SQL.
 
 ### Programy
 
@@ -110,6 +113,7 @@ kontekstowe i dokumentację użytkową. Nie zawiera logiki biznesowej.
    nie jest wspierany i nie uczestniczy w działaniu aplikacji.
 7. UI nie odwołuje się bezpośrednio do Oracle. Dostęp do Eskulapa odbywa
    się przez `EskulapGateway`.
+   Dotyczy to również modułu Harmonogram pracy.
 8. Repozytoria danych procesowych KOMPAS nie przechowują PESEL-u, imienia,
    nazwiska ani danych kontaktowych pacjenta.
 9. Moduły UI nie powinny zawierać SQL ani szczegółów konkretnego silnika
@@ -127,6 +131,22 @@ flowchart LR
     O -->|"wyłącznie odczyt"| G
     G -->|"DTO"| UI
     UI <-->|"repozytoria KOMPAS"| P
+```
+
+Przepływ danych Harmonogramu pracy:
+
+```mermaid
+flowchart LR
+    H["Harmonogram pracy UI"]
+    S["ScheduleService"]
+    G["EskulapGateway"]
+    R["work_schedule_repository"]
+    O[("Oracle / V_PLAN_PRACY_KALENDARZ")]
+
+    H --> S
+    S --> G
+    G --> R
+    R --> O
 ```
 
 Oracle nie jest modyfikowany przez KOMPAS. PostgreSQL nie jest źródłem

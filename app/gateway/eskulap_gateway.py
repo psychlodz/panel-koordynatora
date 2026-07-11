@@ -9,12 +9,14 @@ from app.models.patient import Patient
 from app.models.qualification_visit import QualificationVisit
 from app.models.visit import Visit
 from app.models.visit_parameter import VisitParameter
+from app.models.work_schedule import WorkScheduleEntry
 from app.repositories import (
     event_repository,
     organizational_unit_repository,
     patient_repository,
     qualification_repository,
     visit_parameter_repository,
+    work_schedule_repository,
 )
 
 
@@ -57,6 +59,19 @@ QUALIFICATION_VISIT_FIELDS = {
     "description": "opis",
     "episode_id": "epizod_id",
     "assignment_status": "assignment_status",
+}
+
+WORK_SCHEDULE_FIELDS = {
+    "jo_id": "jo_id",
+    "jo_symbol": "jo_symbol",
+    "jo_nazwa": "jo_nazwa",
+    "data_dnia": "data_dnia",
+    "dzien_tyg": "dzien_tyg",
+    "pracownik_id": "pracownik_id",
+    "pracownik": "pracownik",
+    "godz_od": "godz_od",
+    "godz_do": "godz_do",
+    "pln_id": "pln_id",
 }
 
 
@@ -102,6 +117,7 @@ class EskulapGateway:
         events=event_repository,
         units=organizational_unit_repository,
         visit_parameters=visit_parameter_repository,
+        work_schedule=work_schedule_repository,
     ):
         # Repozytoria korzystają z fabryki połączeń z db.py. Gateway nie
         # otwiera połączeń i nie zna SQL ani nazw widoków Oracle.
@@ -110,6 +126,7 @@ class EskulapGateway:
         self._events = events
         self._units = units
         self._visit_parameters = visit_parameters
+        self._work_schedule = work_schedule
 
     def search_patients(self, search_text) -> list[Patient]:
         rows = self._patients.search_patients(search_text)
@@ -205,6 +222,28 @@ class EskulapGateway:
                 code=str(row["parametr_kod"]),
                 name=_source_value(row, "parametr_nazwa"),
                 is_active=_source_value(row, "czy_aktualne"),
+            )
+            for row in rows
+        ]
+
+    def get_work_schedule(
+        self,
+        jo_id,
+        date_from,
+        date_to,
+        employee_ids=None,
+    ) -> list[WorkScheduleEntry]:
+        rows = self._work_schedule.list_work_schedule(
+            jo_id=jo_id,
+            date_from=date_from,
+            date_to=date_to,
+            employee_ids=employee_ids,
+        )
+        return [
+            _mapping_to_model(
+                WorkScheduleEntry,
+                row,
+                WORK_SCHEDULE_FIELDS,
             )
             for row in rows
         ]

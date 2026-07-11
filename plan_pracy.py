@@ -13,8 +13,8 @@ from calendar_logic import (
     safe_int,
 )
 from config import app_dir, load_config
-from db import create_connection
 from excel_export import export_table_to_excel
+from app.services.schedule_service import ScheduleService
 from app.ui.widgets.busy_indicator import busy_operation
 from app.services.work_context import initialize_work_context, work_context
 from version import APP_NAME, VERSION
@@ -144,6 +144,7 @@ class PlanPracyApp(QWidget):
         self.current_end = None
         self._updating_filters = False
         self.person_color_map: dict[str, str] = {}
+        self.schedule_service = ScheduleService()
 
         self.setWindowTitle(
             f"{APP_NAME} - Harmonogram pracy - wybór terminu"
@@ -162,7 +163,6 @@ class PlanPracyApp(QWidget):
         self.slot_minutes = self.cfg.slot_minutes
         self.hour_start = self.cfg.hour_start
         self.hour_end = self.cfg.hour_end
-        self.view_name = self.cfg.view_name
 
         layout = QVBoxLayout(self)
 
@@ -304,27 +304,14 @@ class PlanPracyApp(QWidget):
         return val
 
     def pobierz_jednostki(self) -> pd.DataFrame:
-        db_user = self.cfg.database_user
-        db_password = self.cfg.database_password
-        db_dsn = self.cfg.database_dsn
-        sql = f"""
-            SELECT DISTINCT
-                jo_id,
-                jo_symbol,
-                jo_nazwa
-            FROM {self.view_name}
-            WHERE jo_id IS NOT NULL
-            ORDER BY jo_symbol, jo_nazwa, jo_id
-        """
-        with create_connection(user=db_user, password=db_password, dsn=db_dsn) as conn:
-            return pd.read_sql(sql, conn)
+        return self.schedule_service.list_organizational_units()
 
     def odswiez_jednostki(self, show_errors: bool = True):
         try:
             self.info.setText("Pobieranie listy jednostek...")
             with busy_operation(
                 self,
-                "Trwa pobieranie listy jednostek z Oracle...",
+                "Trwa pobieranie listy jednostek z Eskulapa...",
             ):
                 df = self.pobierz_jednostki()
             current = str(self.current_jo_id())
@@ -347,30 +334,21 @@ class PlanPracyApp(QWidget):
         except Exception as exc:
             logging.exception("Błąd pobierania listy jednostek")
             if show_errors:
-                QMessageBox.warning(self, "Jednostki", f"Nie udało się pobrać listy jednostek:\n\n{exc}")
+                QMessageBox.warning(
+                    self,
+                    "Jednostki",
+                    "Nie udało się pobrać listy jednostek z Eskulapa.\n\n"
+                    "Szczegóły zapisano w logs\\plan_pracy.log",
+                )
             self.info.setText("Nie pobrano listy jednostek")
 
     def pobierz_plan(self, jo_id: int, data_od: str, data_do: str) -> pd.DataFrame:
-        db_user = self.cfg.database_user
-        db_password = self.cfg.database_password
-        db_dsn = self.cfg.database_dsn
-
-        sql = f"""
-            SELECT
-                data_dnia,
-                pracownik,
-                godz_od,
-                godz_do
-            FROM {self.view_name}
-            WHERE jo_id = :jo_id
-              AND data_dnia BETWEEN TO_DATE(:data_od, 'YYYY-MM-DD')
-                                AND TO_DATE(:data_do, 'YYYY-MM-DD')
-            ORDER BY data_dnia, godz_od, pracownik
-        """
-
         logging.info("Pobieranie planu: jo_id=%s, data_od=%s, data_do=%s", jo_id, data_od, data_do)
-        with create_connection(user=db_user, password=db_password, dsn=db_dsn) as conn:
-            return pd.read_sql(sql, conn, params={"jo_id": jo_id, "data_od": data_od, "data_do": data_do})
+        return self.schedule_service.get_work_schedule(
+            jo_id=jo_id,
+            date_from=data_od,
+            date_to=data_do,
+        )
 
     def zaladuj(self):
         try:
@@ -387,7 +365,7 @@ class PlanPracyApp(QWidget):
             self.info.setText("Pobieranie danych...")
             with busy_operation(
                 self,
-                "Trwa pobieranie i przygotowywanie harmonogramu...",
+                "Pobieranie harmonogramu pracy z Eskulapa...",
             ):
                 df = self.pobierz_plan(
                     jo_id,
@@ -404,7 +382,12 @@ class PlanPracyApp(QWidget):
             self.info.setText(f"Wczytano {len(df)} pozycji planu.")
         except Exception as exc:
             logging.exception("Błąd podczas ładowania danych")
-            QMessageBox.critical(self, "Błąd", f"Nie udało się pobrać lub wyświetlić danych:\n\n{exc}\n\nSzczegóły zapisano w logs\\plan_pracy.log")
+            QMessageBox.critical(
+                self,
+                "Błąd",
+                "Nie udało się pobrać lub wyświetlić harmonogramu pracy.\n\n"
+                "Szczegóły zapisano w logs\\plan_pracy.log",
+            )
             self.info.setText("Błąd")
 
     def update_person_colors(self, df: pd.DataFrame):

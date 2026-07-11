@@ -29,6 +29,10 @@ Oracle jest systemem źródłowym dla:
 UI nie łączy się z Oracle bezpośrednio. Odczyt odbywa się przez
 `EskulapGateway`. KOMPAS nie zapisuje nic do Oracle.
 
+Moduł Harmonogram pracy również podlega tej zasadzie: pobiera plan pracy
+z Eskulapa przez `ScheduleService` i `EskulapGateway`, a nie przez
+bezpośrednie połączenie z Oracle w warstwie UI.
+
 ## PostgreSQL
 
 PostgreSQL przechowuje:
@@ -51,9 +55,12 @@ flowchart TB
     G["Eskulap Gateway\nwyłącznie SELECT"]
     UI["UI KOMPAS"]
     P[("PostgreSQL\njedyna baza procesowa")]
+    S["ScheduleService\nHarmonogram pracy"]
 
     O --> G
     G -->|"aktualne dane pacjenta"| UI
+    G -->|"plan pracy"| S
+    S --> UI
     P -->|"programy, epizody, zadania"| UI
     UI -->|"zapis danych procesowych"| P
 ```

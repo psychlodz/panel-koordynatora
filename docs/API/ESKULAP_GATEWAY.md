@@ -22,10 +22,12 @@ flowchart LR
     G --> Q["qualification_repository"]
     G --> E["event_repository"]
     G --> V["visit_parameter_repository"]
+    G --> S["work_schedule_repository"]
     P --> D["db.py"]
     Q --> D
     E --> P
     V --> D
+    S --> D
     D --> O[("Oracle / Eskulap")]
     G --> M["Modele dataclass"]
 ```
@@ -84,6 +86,27 @@ z kodem, nazwą i informacją o aktualności. Dane słownika nie są kopiowane
 do PostgreSQL; KOMPAS zapisuje wyłącznie wybrane przypisania kodów do
 klocków.
 
+### `get_work_schedule(jo_id, date_from, date_to, employee_ids=None)`
+
+Pobiera plan pracy z Eskulapa dla wskazanej jednostki i zakresu dat.
+Opcjonalnie ogranicza wynik do listy pracowników. Zwraca listę
+`WorkScheduleEntry` z polami:
+
+- `jo_id`,
+- `jo_symbol`,
+- `jo_nazwa`,
+- `data_dnia`,
+- `dzien_tyg`,
+- `pracownik_id`,
+- `pracownik`,
+- `godz_od`,
+- `godz_do`,
+- `pln_id`.
+
+Metoda korzysta z widoku `ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ` przez
+wewnętrzne repozytorium Gateway. Moduł Harmonogram pracy nie łączy się
+bezpośrednio z Oracle i nie zna danych połączenia.
+
 ## Użycie
 
 ```python
@@ -110,6 +133,10 @@ Gateway wymaga widoków:
 - `ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT`,
 - `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`,
 - `ESK_RAPORTY.V_KOMPAS_BADANIA`.
+
+Moduł Harmonogram pracy wymaga dodatkowo widoku:
+
+- `ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ`.
 
 Badania laboratoryjne i obrazowe korzystają ze wspólnego widoku
 `V_KOMPAS_BADANIA` i są rozdzielane według typu badania.
