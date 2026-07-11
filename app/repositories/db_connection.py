@@ -32,6 +32,8 @@ INSERT_IDS = {
     "pk_sciezka_zaleznosci": "zaleznosc_id",
     "pk_wyzwalacze": "trigger_id",
     "pk_epizody": "epizod_id",
+    "pk_epizod_elementy": "epizod_element_id",
+    "pk_epizod_elementy_historia": "historia_id",
     "pk_zadania": "zadanie_id",
 }
 

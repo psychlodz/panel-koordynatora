@@ -62,6 +62,21 @@ WHERE source_system IS NOT NULL
   AND source_type IS NOT NULL
   AND source_id IS NOT NULL;
 
+CREATE INDEX IF NOT EXISTS idx_pk_epizod_elementy_epizod
+ON pk_epizod_elementy(epizod_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_epizod_elementy_sciezka_element
+ON pk_epizod_elementy(sciezka_element_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_epizod_elementy_source
+ON pk_epizod_elementy(element_zrodlowy_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_epizod_elementy_hist_element
+ON pk_epizod_elementy_historia(epizod_element_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_epizod_elementy_hist_episode
+ON pk_epizod_elementy_historia(epizod_id);
+
 CREATE INDEX IF NOT EXISTS idx_pk_zadania_status
 ON pk_zadania(status);
 
@@ -70,5 +85,8 @@ ON pk_zadania(epizod_id);
 
 CREATE INDEX IF NOT EXISTS idx_pk_zadania_element
 ON pk_zadania(element_id);
+
+CREATE INDEX IF NOT EXISTS idx_pk_zadania_epizod_element
+ON pk_zadania(epizod_element_id);
 
 COMMIT;

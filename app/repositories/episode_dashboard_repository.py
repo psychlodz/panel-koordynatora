@@ -170,24 +170,31 @@ def _load_dashboard_episodes(current_user=None, current_unit=None):
                     z.zadanie_id,
                     z.epizod_id,
                     z.element_id,
+                    z.epizod_element_id,
                     z.status,
                     z.data_wymagana_do,
                     z.data_zaplanowana,
                     z.data_realizacji,
                     z.eskulap_system,
                     z.eskulap_id,
-                    el.lp,
-                    el.nazwa_w_sciezce,
-                    el.czy_wymaga_zlecenia,
-                    el.czy_aktywny,
+                    COALESCE(ee.lp, el.lp) AS lp,
+                    COALESCE(ee.nazwa, el.nazwa_w_sciezce) AS nazwa_w_sciezce,
+                    COALESCE(
+                        ee.czy_wymaga_zlecenia,
+                        el.czy_wymaga_zlecenia
+                    ) AS czy_wymaga_zlecenia,
+                    COALESCE(ee.czy_aktywny, el.czy_aktywny, 1) AS czy_aktywny,
                     k.nazwa AS klocek_nazwa,
                     k.kolor AS klocek_kolor,
                     k.kolor_tekstu AS klocek_kolor_tekstu
                 FROM pk_zadania z
+                LEFT JOIN pk_epizod_elementy ee
+                    ON ee.epizod_element_id = z.epizod_element_id
                 LEFT JOIN pk_sciezka_elementy el
                     ON el.element_id = z.element_id
-                LEFT JOIN pk_klocki k ON k.klocek_id = el.klocek_id
-                ORDER BY z.epizod_id, el.lp, z.zadanie_id
+                LEFT JOIN pk_klocki k
+                    ON k.klocek_id = COALESCE(ee.klocek_id, el.klocek_id)
+                ORDER BY z.epizod_id, COALESCE(ee.lp, el.lp), z.zadanie_id
                 """
             ).fetchall()
         ]

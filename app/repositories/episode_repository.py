@@ -117,8 +117,9 @@ def list_episode_tasks(epizod_id) -> list[dict]:
                 z.zadanie_id,
                 z.epizod_id,
                 z.element_id,
-                e.lp,
-                e.nazwa_w_sciezce,
+                z.epizod_element_id,
+                COALESCE(ee.lp, e.lp) AS lp,
+                COALESCE(ee.nazwa, e.nazwa_w_sciezce) AS nazwa_w_sciezce,
                 k.kod AS klocek_kod,
                 k.nazwa AS klocek_nazwa,
                 k.kolor AS klocek_kolor,
@@ -132,11 +133,14 @@ def list_episode_tasks(epizod_id) -> list[dict]:
                 z.eskulap_system,
                 z.eskulap_id
             FROM pk_zadania z
+            LEFT JOIN pk_epizod_elementy ee
+                ON ee.epizod_element_id = z.epizod_element_id
             LEFT JOIN pk_sciezka_elementy e
                 ON e.element_id = z.element_id
-            LEFT JOIN pk_klocki k ON k.klocek_id = e.klocek_id
+            LEFT JOIN pk_klocki k
+                ON k.klocek_id = COALESCE(ee.klocek_id, e.klocek_id)
             WHERE z.epizod_id = ?
-            ORDER BY e.lp, z.zadanie_id
+            ORDER BY COALESCE(ee.lp, e.lp), z.zadanie_id
             """,
             (epizod_id,),
         ).fetchall()
@@ -149,9 +153,13 @@ def list_episode_process_elements(epizod_id) -> list[dict]:
         rows = connection.execute(
             """
             SELECT
-                e.element_id,
-                e.lp,
-                e.nazwa_w_sciezce,
+                ee.epizod_element_id,
+                ee.sciezka_element_id AS element_id,
+                ee.lp,
+                ee.nazwa AS nazwa_w_sciezce,
+                ee.czy_aktywny,
+                ee.typ_pochodzenia,
+                ee.powod_modyfikacji,
                 k.kod AS klocek_kod,
                 k.nazwa AS klocek_nazwa,
                 k.kolor AS klocek_kolor,
@@ -166,15 +174,14 @@ def list_episode_process_elements(epizod_id) -> list[dict]:
                 z.eskulap_id,
                 z.uwagi
             FROM pk_epizody ep
-            JOIN pk_sciezka_elementy e
-                ON e.sciezka_id = ep.sciezka_id
-               AND e.czy_aktywny = 1
-            JOIN pk_klocki k ON k.klocek_id = e.klocek_id
+            JOIN pk_epizod_elementy ee
+                ON ee.epizod_id = ep.epizod_id
+            JOIN pk_klocki k ON k.klocek_id = ee.klocek_id
             LEFT JOIN pk_zadania z
                 ON z.epizod_id = ep.epizod_id
-               AND z.element_id = e.element_id
+               AND z.epizod_element_id = ee.epizod_element_id
             WHERE ep.epizod_id = ?
-            ORDER BY e.lp, z.zadanie_id
+            ORDER BY ee.lp, ee.epizod_element_id, z.zadanie_id
             """,
             (epizod_id,),
         ).fetchall()

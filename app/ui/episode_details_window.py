@@ -2,12 +2,19 @@ from datetime import date, datetime
 
 from PySide6.QtWidgets import (
     QAbstractItemView,
+    QCheckBox,
     QDialog,
     QDialogButtonBox,
     QFormLayout,
     QGroupBox,
     QHeaderView,
+    QHBoxLayout,
+    QInputDialog,
     QLabel,
+    QLineEdit,
+    QMessageBox,
+    QPushButton,
+    QSpinBox,
     QSplitter,
     QTabWidget,
     QTableWidget,
@@ -30,6 +37,8 @@ from app.repositories.event_repository import (
     get_patient_visits,
 )
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
+from app.services import episode_path_service
+from app.services.work_context import work_context
 
 
 WAITING_STATUS = "OCZEKUJE NA AKTYWACJĘ"
@@ -100,6 +109,94 @@ def _event_date_key(event):
     return datetime.min
 
 
+class EpisodeElementDuplicateDialog(QDialog):
+    def __init__(self, element, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("KOMPAS — Powiel element procesu")
+        self.resize(520, 420)
+
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        self.name_edit = QLineEdit(
+            _text(element.get("nazwa_w_sciezce") or element.get("nazwa"))
+        )
+        self.lp_spin = QSpinBox()
+        self.lp_spin.setRange(1, 999)
+        self.lp_spin.setValue(int(element.get("lp") or 0) + 1)
+
+        self.min_spin = QSpinBox()
+        self.min_spin.setRange(0, 999)
+        self.min_spin.setValue(1)
+
+        self.max_spin = QSpinBox()
+        self.max_spin.setRange(0, 999)
+        self.max_spin.setSpecialValueText("brak")
+        self.max_spin.setValue(1)
+
+        self.term_spin = QSpinBox()
+        self.term_spin.setRange(0, 999)
+        self.term_spin.setSpecialValueText("brak")
+        self.term_spin.setValue(
+            int(element.get("termin_liczba") or 0)
+        )
+
+        self.required_check = QCheckBox("Wymagany")
+        self.required_check.setChecked(bool(element.get("czy_wymagany", 1)))
+
+        self.order_check = QCheckBox("Wymaga zlecenia lekarza")
+        self.order_check.setChecked(
+            bool(element.get("czy_wymaga_zlecenia", 0))
+        )
+
+        self.reason_edit = QLineEdit()
+        self.reason_edit.setPlaceholderText(
+            "Np. konieczne dodatkowe wykonanie elementu"
+        )
+
+        form.addRow("Nazwa elementu:", self.name_edit)
+        form.addRow("Pozycja w procesie:", self.lp_spin)
+        form.addRow("Min.:", self.min_spin)
+        form.addRow("Maks.:", self.max_spin)
+        form.addRow("Termin liczba:", self.term_spin)
+        form.addRow("", self.required_check)
+        form.addRow("", self.order_check)
+        form.addRow("Przyczyna:", self.reason_edit)
+        layout.addLayout(form)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Ok
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        polish_dialog_buttons(buttons)
+        buttons.accepted.connect(self.accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def values(self):
+        reason = self.reason_edit.text().strip()
+        return (
+            {
+                "nazwa": self.name_edit.text().strip(),
+                "lp": self.lp_spin.value(),
+                "min_liczba": self.min_spin.value(),
+                "max_liczba": (
+                    None if self.max_spin.value() == 0 else self.max_spin.value()
+                ),
+                "termin_liczba": (
+                    None
+                    if self.term_spin.value() == 0
+                    else self.term_spin.value()
+                ),
+                "czy_wymagany": 1 if self.required_check.isChecked() else 0,
+                "czy_wymaga_zlecenia": (
+                    1 if self.order_check.isChecked() else 0
+                ),
+            },
+            reason,
+        )
+
+
 class EpisodeDetailsDialog(QDialog):
     def __init__(self, epizod_id, patient=None, parent=None):
         super().__init__(parent)
@@ -113,6 +210,9 @@ class EpisodeDetailsDialog(QDialog):
         self.tasks = list_episode_tasks(epizod_id)
         self.patient = patient
         self.oracle_errors = []
+        self.current_user = work_context.current_user
+        self._process_overview_table = None
+        self._process_tasks_table = None
 
         if self.patient is None:
             try:
@@ -174,9 +274,11 @@ class EpisodeDetailsDialog(QDialog):
             "To okno przedstawia dane epizodu, zadania i zdarzenia "
             "medyczne z Eskulapa.\n\n"
             "Możesz przeglądać proces, konsultacje, badania, wizyty i "
-            "historię.\n\n"
-            "Nie traktuj tego widoku jako miejsca do edycji danych "
-            "źródłowych — jest przeznaczony wyłącznie do odczytu.",
+            "historię. Uprawnieni użytkownicy mogą także powielić, "
+            "dezaktywować albo reaktywować element procesu wyłącznie w tym "
+            "epizodzie.\n\n"
+            "Nie zmieniaj tutaj danych źródłowych Eskulapa ani wzorcowej "
+            "ścieżki programu.",
         )
         buttons.addButton(
             self.help_button,
@@ -286,19 +388,38 @@ class EpisodeDetailsDialog(QDialog):
         layout.addWidget(heading)
 
         table = QTableWidget(len(self.process_elements), 4)
+        self._process_overview_table = table
         table.setHorizontalHeaderLabels(
             ["Element procesu", "Status", "Termin", "Realizacja"]
         )
         _configure_table(table, 0)
+        self._populate_process_overview_table()
+        layout.addWidget(table)
+        return panel
+
+    def _populate_process_overview_table(self):
+        table = self._process_overview_table
+        if table is None:
+            return
+        table.setRowCount(len(self.process_elements))
         for row_index, element in enumerate(self.process_elements):
+            name = element["nazwa_w_sciezce"] or element["klocek_nazwa"]
+            if not element.get("czy_aktywny", 1):
+                name = f"{name} [Dezaktywowany]"
+            elif element.get("typ_pochodzenia") == "POWIELENIE":
+                name = f"{name} [Powielenie]"
             values = [
-                element["nazwa_w_sciezce"] or element["klocek_nazwa"],
+                name,
                 element["status"] or WAITING_STATUS,
                 element["data_wymagana_do"] or element["data_zaplanowana"],
                 element["data_realizacji"],
             ]
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(_text(value))
+                item.setData(
+                    Qt.ItemDataRole.UserRole,
+                    element.get("epizod_element_id"),
+                )
                 if column_index in (1, 2, 3):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
@@ -312,13 +433,44 @@ class EpisodeDetailsDialog(QDialog):
                     column_index,
                     item,
                 )
-        layout.addWidget(table)
-        return panel
 
     def _process_tab(self):
         tab = QWidget()
         layout = QVBoxLayout(tab)
+
+        actions = QHBoxLayout()
+        self.btn_duplicate_element = QPushButton("Powiel element")
+        self.btn_duplicate_element.setToolTip(
+            "Utwórz dodatkowe wykonanie wybranego elementu tylko w tym epizodzie."
+        )
+        self.btn_deactivate_element = QPushButton("Dezaktywuj element")
+        self.btn_deactivate_element.setToolTip(
+            "Wyłącz wybrany element w tym epizodzie bez usuwania go z historii."
+        )
+        self.btn_reactivate_element = QPushButton("Reaktywuj element")
+        self.btn_reactivate_element.setToolTip(
+            "Przywróć dezaktywowany element w tym epizodzie."
+        )
+        self.btn_history_element = QPushButton("Historia zmian")
+        self.btn_history_element.setToolTip(
+            "Pokaż historię zmian wybranego elementu epizodu."
+        )
+        self.btn_duplicate_element.clicked.connect(self.duplicate_selected_element)
+        self.btn_deactivate_element.clicked.connect(self.deactivate_selected_element)
+        self.btn_reactivate_element.clicked.connect(self.reactivate_selected_element)
+        self.btn_history_element.clicked.connect(self.show_selected_element_history)
+        for button in (
+            self.btn_duplicate_element,
+            self.btn_deactivate_element,
+            self.btn_reactivate_element,
+            self.btn_history_element,
+        ):
+            actions.addWidget(button)
+        actions.addStretch(1)
+        layout.addLayout(actions)
+
         table = QTableWidget(len(self.tasks), 7)
+        self._process_tasks_table = table
         table.setHorizontalHeaderLabels(
             [
                 "Nazwa elementu",
@@ -331,6 +483,17 @@ class EpisodeDetailsDialog(QDialog):
             ]
         )
         _configure_table(table, 0)
+        table.itemSelectionChanged.connect(self.update_episode_path_buttons)
+        self._populate_tasks_table()
+        layout.addWidget(table)
+        self.update_episode_path_buttons()
+        return tab
+
+    def _populate_tasks_table(self):
+        table = self._process_tasks_table
+        if table is None:
+            return
+        table.setRowCount(len(self.tasks))
         for row_index, task in enumerate(self.tasks):
             values = [
                 task["nazwa_w_sciezce"] or task["klocek_nazwa"],
@@ -343,6 +506,10 @@ class EpisodeDetailsDialog(QDialog):
             ]
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(_text(value))
+                item.setData(
+                    Qt.ItemDataRole.UserRole,
+                    task.get("epizod_element_id"),
+                )
                 if column_index in (1, 2, 3, 4, 5):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
@@ -356,8 +523,186 @@ class EpisodeDetailsDialog(QDialog):
                     column_index,
                     item,
                 )
-        layout.addWidget(table)
-        return tab
+
+    def _selected_episode_element_id(self):
+        for table in (
+            self._process_tasks_table,
+            self._process_overview_table,
+        ):
+            if table is None:
+                continue
+            row = table.currentRow()
+            if row < 0:
+                continue
+            item = table.item(row, 0)
+            if item is None:
+                continue
+            value = item.data(Qt.ItemDataRole.UserRole)
+            if value is not None:
+                return value
+        return None
+
+    def _selected_episode_element(self):
+        element_id = self._selected_episode_element_id()
+        if element_id is None:
+            return None
+        return next(
+            (
+                element
+                for element in self.process_elements
+                if element.get("epizod_element_id") == element_id
+            ),
+            None,
+        )
+
+    def update_episode_path_buttons(self):
+        element = self._selected_episode_element()
+        can_edit = episode_path_service.can_edit_episode_path(
+            self.current_user
+        )
+        selected = element is not None
+        for button in (
+            self.btn_duplicate_element,
+            self.btn_deactivate_element,
+            self.btn_reactivate_element,
+            self.btn_history_element,
+        ):
+            button.setEnabled(selected and can_edit)
+        self.btn_history_element.setEnabled(selected)
+        if not can_edit:
+            tooltip = "Operacja wymaga uprawnienia EPISODE_PATH_EDIT."
+            self.btn_duplicate_element.setToolTip(tooltip)
+            self.btn_deactivate_element.setToolTip(tooltip)
+            self.btn_reactivate_element.setToolTip(tooltip)
+            return
+        if element:
+            is_active = bool(element.get("czy_aktywny", 1))
+            self.btn_deactivate_element.setEnabled(is_active)
+            self.btn_reactivate_element.setEnabled(not is_active)
+
+    def _refresh_process(self):
+        self.process_elements = list_episode_process_elements(
+            self.episode["epizod_id"]
+        )
+        self.tasks = list_episode_tasks(self.episode["epizod_id"])
+        self._populate_process_overview_table()
+        self._populate_tasks_table()
+        self.update_episode_path_buttons()
+
+    def _ask_reason(self, title, label):
+        value, accepted = QInputDialog.getMultiLineText(
+            self,
+            title,
+            label,
+        )
+        if not accepted:
+            return None
+        return value.strip()
+
+    def deactivate_selected_element(self):
+        element_id = self._selected_episode_element_id()
+        if element_id is None:
+            return
+        check = episode_path_service.can_deactivate_element(element_id)
+        if not check.get("allowed"):
+            QMessageBox.warning(
+                self,
+                "KOMPAS",
+                check.get("reason") or "Elementu nie można dezaktywować.",
+            )
+            return
+        reason = self._ask_reason(
+            "Dezaktywuj element",
+            "Podaj przyczynę dezaktywacji elementu:",
+        )
+        if reason is None:
+            return
+        if QMessageBox.question(
+            self,
+            "KOMPAS",
+            "Niezrealizowane zadania powiązane z elementem zostaną anulowane. "
+            "Kontynuować?",
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            episode_path_service.deactivate_element(
+                element_id,
+                reason,
+                self.current_user,
+            )
+            self._refresh_process()
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "KOMPAS",
+                f"Nie udało się dezaktywować elementu:\n\n{exc}",
+            )
+
+    def reactivate_selected_element(self):
+        element_id = self._selected_episode_element_id()
+        if element_id is None:
+            return
+        reason = self._ask_reason(
+            "Reaktywuj element",
+            "Podaj przyczynę reaktywacji elementu:",
+        )
+        if reason is None:
+            return
+        create_task = QMessageBox.question(
+            self,
+            "KOMPAS",
+            "Czy utworzyć nowe zadanie dla reaktywowanego elementu?",
+        ) == QMessageBox.StandardButton.Yes
+        try:
+            episode_path_service.reactivate_element(
+                element_id,
+                reason,
+                self.current_user,
+                create_task=create_task,
+            )
+            self._refresh_process()
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "KOMPAS",
+                f"Nie udało się reaktywować elementu:\n\n{exc}",
+            )
+
+    def duplicate_selected_element(self):
+        element = self._selected_episode_element()
+        if element is None:
+            return
+        dialog = EpisodeElementDuplicateDialog(element, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        values, reason = dialog.values()
+        try:
+            episode_path_service.duplicate_element(
+                element["epizod_element_id"],
+                values,
+                reason,
+                self.current_user,
+            )
+            self._refresh_process()
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "KOMPAS",
+                f"Nie udało się powielić elementu:\n\n{exc}",
+            )
+
+    def show_selected_element_history(self):
+        element_id = self._selected_episode_element_id()
+        if element_id is None:
+            return
+        rows = episode_path_service.list_element_history(element_id)
+        text = "\n\n".join(
+            f"{row['changed_at']} — {row['operacja']}\n"
+            f"Użytkownik: {row['changed_by'] or 'brak'}\n"
+            f"Powód: {row['powod'] or 'brak'}"
+            for row in rows
+        ) or "Brak historii zmian."
+        QMessageBox.information(self, "Historia zmian elementu", text)
 
     def _safe_events(self, label, loader):
         try:

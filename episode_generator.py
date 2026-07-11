@@ -7,6 +7,9 @@ from app.repositories.db_connection import (
     initialize_database,
     patient_id_column,
 )
+from app.repositories.episode_element_repository import (
+    copy_pathway_elements_for_episode,
+)
 
 
 TASK_STATUS_PENDING = "DO_ZAPLANOWANIA"
@@ -37,15 +40,30 @@ def _validate_episode_data(connection, pacjent_id, program_id, sciezka_id):
 
 
 def _insert_task_if_missing(connection, epizod_id, element_id):
+    episode_element = connection.execute(
+        """
+        SELECT epizod_element_id
+        FROM pk_epizod_elementy
+        WHERE epizod_id = ?
+          AND sciezka_element_id = ?
+          AND czy_aktywny = 1
+        ORDER BY lp, epizod_element_id
+        LIMIT 1
+        """,
+        (epizod_id, element_id),
+    ).fetchone()
+    if episode_element is None:
+        return None
+
     existing = connection.execute(
         """
         SELECT zadanie_id
         FROM pk_zadania
         WHERE epizod_id = ?
-          AND element_id = ?
+          AND epizod_element_id = ?
         LIMIT 1
         """,
-        (epizod_id, element_id),
+        (epizod_id, episode_element["epizod_element_id"]),
     ).fetchone()
     if existing is not None:
         return None
@@ -55,12 +73,18 @@ def _insert_task_if_missing(connection, epizod_id, element_id):
         INSERT INTO pk_zadania(
             epizod_id,
             element_id,
+            epizod_element_id,
             status,
             zrodlo
         )
-        VALUES (?, ?, ?, 'PROGRAM')
+        VALUES (?, ?, ?, ?, 'PROGRAM')
         """,
-        (epizod_id, element_id, TASK_STATUS_PENDING),
+        (
+            epizod_id,
+            element_id,
+            episode_element["epizod_element_id"],
+            TASK_STATUS_PENDING,
+        ),
     )
     return int(cursor.lastrowid)
 
@@ -173,6 +197,12 @@ def create_episode_with_tasks(
             )
             epizod_id = int(cursor.lastrowid)
             logger.debug("EPIZOD_CREATED epizod_id=%s", epizod_id)
+            copy_pathway_elements_for_episode(
+                connection,
+                epizod_id,
+                sciezka_id,
+                user_id=koordynator_id,
+            )
             task_ids = _activate_triggered_tasks(
                 connection,
                 epizod_id,
@@ -225,7 +255,12 @@ def complete_task(
         with connection:
             task = connection.execute(
                 """
-                SELECT zadanie_id, epizod_id, element_id, status
+                SELECT
+                    zadanie_id,
+                    epizod_id,
+                    element_id,
+                    epizod_element_id,
+                    status
                 FROM pk_zadania
                 WHERE zadanie_id = ?
                 """,
