@@ -8,6 +8,7 @@ from db import create_connection
 
 
 SQL_IDENTIFIER = re.compile(r"^[A-Za-z0-9_$#.]+$")
+CANONICAL_WORK_SCHEDULE_VIEW = "ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ"
 logger = logging.getLogger(__name__)
 
 
@@ -31,6 +32,12 @@ def _configured_view_name() -> str:
     if not SQL_IDENTIFIER.fullmatch(view_name):
         raise ValueError("Nieprawidłowa nazwa widoku harmonogramu")
     return view_name
+
+
+def _canonical_view_name():
+    if not SQL_IDENTIFIER.fullmatch(CANONICAL_WORK_SCHEDULE_VIEW):
+        raise ValueError("Nieprawidłowa nazwa kanonicznego widoku harmonogramu")
+    return CANONICAL_WORK_SCHEDULE_VIEW
 
 
 def _is_missing_visit_types_column_error(error) -> bool:
@@ -174,6 +181,34 @@ def list_work_schedule(
                     view_name,
                 )
                 include_visit_types = True
+            if (
+                not include_visit_types
+                and view_name.upper() != _canonical_view_name().upper()
+            ):
+                canonical_view = _canonical_view_name()
+                try:
+                    canonical_has_column = _view_has_column(
+                        cursor,
+                        canonical_view,
+                        "RODZAJE_WIZYT_KODY",
+                    )
+                except Exception:
+                    logger.exception(
+                        "Nie udało się sprawdzić metadanych kanonicznego "
+                        "widoku %s.",
+                        canonical_view,
+                    )
+                    canonical_has_column = False
+                if canonical_has_column:
+                    logger.warning(
+                        "Widok skonfigurowany jako %s nie zawiera kolumny "
+                        "RODZAJE_WIZYT_KODY. Używam kanonicznego widoku %s.",
+                        view_name,
+                        canonical_view,
+                    )
+                    view_name = canonical_view
+                    include_visit_types = True
+
             if not include_visit_types:
                 logger.warning(
                     "Widok harmonogramu %s nie zawiera kolumny "
