@@ -2,18 +2,21 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EXPECTED_VIEW = "ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ"
+EXPECTED_VIEW = "ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ"
 REQUIRED_COLUMNS = [
     "JO_ID",
     "JO_SYMBOL",
     "JO_NAZWA",
     "DATA_DNIA",
+    "DATA_TEKST",
     "DZIEN_TYG",
     "PRACOWNIK_ID",
     "PRACOWNIK",
     "GODZ_OD",
     "GODZ_DO",
     "PLN_ID",
+    "PLN_OPIS",
+    "RODZAJE_WIZYT_KODY",
 ]
 
 
@@ -47,7 +50,7 @@ def main():
         "from db import create_connection",
         "import oracledb",
         "oracledb.connect",
-        "V_PLAN_PRACY_KALENDARZ",
+        "V_KOMPAS_PLAN_PRACY_KALENDARZ",
     ):
         require(
             forbidden not in plan,
@@ -92,6 +95,15 @@ def main():
             column in module_doc,
             f"Dokumentacja źródła harmonogramu nie opisuje kolumny {column}.",
         )
+
+    require(
+        "p.RODZAJE_WIZYT_KODY" in repository,
+        "Repozytorium harmonogramu nie pobiera RODZAJE_WIZYT_KODY.",
+    )
+    require(
+        "rodzaje_wizyt_lista" in read("app/models/work_schedule.py"),
+        "Model harmonogramu nie rozdziela kodów rodzajów wizyt.",
+    )
 
     for doc_path in (
         "docs/API/ESKULAP_GATEWAY.md",

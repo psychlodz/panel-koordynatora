@@ -75,12 +75,15 @@ def list_work_schedule(
             p.JO_SYMBOL,
             p.JO_NAZWA,
             p.DATA_DNIA,
+            p.DATA_TEKST,
             p.DZIEN_TYG,
             p.PRACOWNIK_ID,
             p.PRACOWNIK,
             p.GODZ_OD,
             p.GODZ_DO,
-            p.PLN_ID
+            p.PLN_ID,
+            p.PLN_OPIS,
+            p.RODZAJE_WIZYT_KODY
         FROM {view_name} p
         WHERE {" AND ".join(conditions)}
         ORDER BY p.DATA_DNIA, p.GODZ_OD, p.PRACOWNIK

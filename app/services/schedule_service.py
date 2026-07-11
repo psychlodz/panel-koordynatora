@@ -4,6 +4,7 @@ from datetime import date, datetime
 import pandas as pd
 
 from app.gateway.eskulap_gateway import EskulapGateway
+from app.repositories.visit_mapping_repository import list_visit_mappings
 
 
 logger = logging.getLogger(__name__)
@@ -14,6 +15,7 @@ class ScheduleService:
 
     def __init__(self, gateway=None):
         self.gateway = gateway or EskulapGateway()
+        self._visit_type_names = None
 
     def list_organizational_units(self, search_text=None) -> pd.DataFrame:
         try:
@@ -71,12 +73,19 @@ class ScheduleService:
                 "JO_SYMBOL": entry.jo_symbol,
                 "JO_NAZWA": entry.jo_nazwa,
                 "DATA_DNIA": entry.data_dnia,
+                "DATA_TEKST": entry.data_tekst,
                 "DZIEN_TYG": entry.dzien_tyg,
                 "PRACOWNIK_ID": entry.pracownik_id,
                 "PRACOWNIK": entry.pracownik,
                 "GODZ_OD": entry.godz_od,
                 "GODZ_DO": entry.godz_do,
                 "PLN_ID": entry.pln_id,
+                "PLN_OPIS": entry.pln_opis,
+                "RODZAJE_WIZYT_KODY": entry.rodzaje_wizyt_kody,
+                "RODZAJE_WIZYT_LISTA": entry.rodzaje_wizyt_lista,
+                "RODZAJE_WIZYT_NAZWY": self._visit_type_display_text(
+                    entry.rodzaje_wizyt_lista
+                ),
             }
             for entry in entries
         ]
@@ -87,12 +96,17 @@ class ScheduleService:
                 "JO_SYMBOL",
                 "JO_NAZWA",
                 "DATA_DNIA",
+                "DATA_TEKST",
                 "DZIEN_TYG",
                 "PRACOWNIK_ID",
                 "PRACOWNIK",
                 "GODZ_OD",
                 "GODZ_DO",
                 "PLN_ID",
+                "PLN_OPIS",
+                "RODZAJE_WIZYT_KODY",
+                "RODZAJE_WIZYT_LISTA",
+                "RODZAJE_WIZYT_NAZWY",
             ],
         )
 
@@ -108,3 +122,41 @@ class ScheduleService:
             raise ValueError(
                 f"Pole {field_name} musi mieć format RRRR-MM-DD"
             ) from exc
+
+    def _visit_type_name_map(self):
+        if self._visit_type_names is None:
+            names = {}
+            try:
+                for row in list_visit_mappings(only_active=True):
+                    code = str(row.get("parametr_kod") or "").strip().upper()
+                    name = str(
+                        row.get("parametr_nazwa_cache") or ""
+                    ).strip()
+                    if code and name:
+                        names[code] = name
+            except Exception:
+                logger.exception(
+                    "Nie udało się pobrać lokalnego słownika rodzajów wizyt"
+                )
+                names = {}
+            self._visit_type_names = names
+        return self._visit_type_names
+
+    def _visit_type_display_text(self, codes):
+        codes = [
+            str(code or "").strip().upper()
+            for code in (codes or [])
+            if str(code or "").strip()
+        ]
+        if not codes:
+            return "Brak określonych rodzajów wizyt"
+        names = self._visit_type_name_map()
+        labels = []
+        seen = set()
+        for code in codes:
+            label = names.get(code) or f"{code} — brak nazwy w słowniku"
+            if label in seen:
+                continue
+            seen.add(label)
+            labels.append(label)
+        return "; ".join(sorted(labels, key=str.casefold))

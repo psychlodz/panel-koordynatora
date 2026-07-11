@@ -523,6 +523,43 @@ class PlanPracyApp(QWidget):
             .reset_index(drop=True)
         )
 
+    def detail_visit_type_rows_for_cell(self, rows: pd.DataFrame) -> pd.DataFrame:
+        """Dane do popupu: osoby i rodzaje wizyt możliwe w danym planie."""
+        if rows.empty:
+            return rows
+        result = []
+        for person, group in rows.groupby("PRACOWNIK", dropna=False):
+            labels = []
+            seen = set()
+            for value in group.get(
+                "RODZAJE_WIZYT_NAZWY",
+                pd.Series(dtype=str),
+            ).dropna():
+                text = str(value).strip()
+                if not text:
+                    continue
+                parts = [
+                    part.strip()
+                    for part in text.split(";")
+                    if part.strip()
+                ]
+                for part in parts:
+                    if part in seen:
+                        continue
+                    seen.add(part)
+                    labels.append(part)
+            if not labels:
+                labels = ["Brak określonych rodzajów wizyt"]
+            result.append(
+                {
+                    "PRACOWNIK": str(person or "[bez pracownika]"),
+                    "RODZAJE_WIZYT": "; ".join(
+                        sorted(labels, key=str.casefold)
+                    ),
+                }
+            )
+        return pd.DataFrame(result).sort_values("PRACOWNIK")
+
     def rysuj_tabele(self, df: pd.DataFrame, start, end):
         dni = pd.date_range(start=start, end=end, freq="D")
         sloty = make_slots()
@@ -581,12 +618,14 @@ class PlanPracyApp(QWidget):
 
         day_date = dni[col].date()
         slot_start, slot_end, slot = sloty[row]
-        rows = self.detail_rows_for_cell(rows_for_cell(self.df_view, day_date, slot_start, slot_end))
+        cell_rows = rows_for_cell(self.df_view, day_date, slot_start, slot_end)
+        rows = self.detail_rows_for_cell(cell_rows)
         if self.selection_mode:
             self.select_schedule_slot(day_date, slot_start, slot_end, slot, rows)
             return
         if rows.empty:
             return
+        visit_type_rows = self.detail_visit_type_rows_for_cell(cell_rows)
 
         dlg = QDialog(self)
         dlg.setWindowTitle(f"{APP_NAME} — {day_date.isoformat()} {DNI_TYG[day_date.weekday()]}, godz. {slot}")
@@ -596,20 +635,25 @@ class PlanPracyApp(QWidget):
         layout.addWidget(title)
 
         tbl = QTableWidget()
-        tbl.setColumnCount(3)
-        tbl.setHorizontalHeaderLabels(["Pracownik", "Od", "Do"])
-        tbl.setRowCount(len(rows))
-        for r_idx, (_, rec) in enumerate(rows.iterrows()):
+        tbl.setColumnCount(2)
+        tbl.setHorizontalHeaderLabels(["Pracownik", "Rodzaje wizyt"])
+        tbl.setRowCount(len(visit_type_rows))
+        tbl.setWordWrap(True)
+        for r_idx, (_, rec) in enumerate(visit_type_rows.iterrows()):
             person = str(rec["PRACOWNIK"])
             color = QColor(self.color_for_person(person))
-            vals = [person, str(rec["GODZ_OD"]), str(rec["GODZ_DO"])]
+            visit_types = str(rec["RODZAJE_WIZYT"])
+            vals = [person, visit_types]
             for c_idx, val in enumerate(vals):
                 it = QTableWidgetItem(val)
                 if c_idx == 0:
                     it.setForeground(QBrush(color))
+                if c_idx == 1:
+                    it.setToolTip(visit_types)
                 tbl.setItem(r_idx, c_idx, it)
         tbl.resizeColumnsToContents()
         tbl.horizontalHeader().setStretchLastSection(True)
+        tbl.resizeRowsToContents()
         layout.addWidget(tbl)
 
         btn_close = QPushButton("Zamknij")

@@ -35,8 +35,9 @@ Plan Pracy v1.0.1 - zmiany:
 - eksport do Excela pozostaje bez zmian.
 
 Wazne:
-Widok ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ musi zawierac co najmniej pola:
-jo_id, jo_symbol, jo_nazwa, data_dnia, pracownik, godz_od, godz_do.
+Widok ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ musi zawierac co najmniej pola:
+jo_id, jo_symbol, jo_nazwa, data_dnia, dzien_tyg, pracownik_id, pracownik,
+godz_od, godz_do, pln_id, pln_opis, rodzaje_wizyt_kody.
 
 Logi aplikacji:
 logs\plan_pracy.log

@@ -38,7 +38,7 @@ bezpośrednie połączenie z Oracle w warstwie UI.
 Harmonogram pracy korzysta z widoku Oracle:
 
 ```text
-ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ
+ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ
 ```
 
 Widok jest tylko do odczytu i służy do prezentowania planu pracy jednostki
@@ -48,14 +48,19 @@ organizacyjnej w kalendarzu. Przepływ danych:
 UI Harmonogramu
 → ScheduleService
 → EskulapGateway
-→ ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ
+→ ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ
 → Oracle / Eskulap
 ```
 
 Używane kolumny widoku: `JO_ID`, `JO_SYMBOL`, `JO_NAZWA`, `DATA_DNIA`,
-`DZIEN_TYG`, `PRACOWNIK_ID`, `PRACOWNIK`, `GODZ_OD`, `GODZ_DO`, `PLN_ID`.
+`DATA_TEKST`, `DZIEN_TYG`, `PRACOWNIK_ID`, `PRACOWNIK`, `GODZ_OD`,
+`GODZ_DO`, `PLN_ID`, `PLN_OPIS`, `RODZAJE_WIZYT_KODY`.
 Filtrowanie odbywa się po `JO_ID`, zakresie `DATA_DNIA` oraz opcjonalnie po
 `PRACOWNIK_ID`.
+
+Widok łączy `RI_OWNER.RI_PLAN_PRACY_NEW` z zagregowanymi warunkami z
+`RI_OWNER.RI_PLAN_PRACY_WARUNKI_NEW`. Warunki są agregowane po `PLN_ID`,
+aby wiele kodów `PLW_WP_PARAMETR` nie zwielokrotniało rekordów harmonogramu.
 
 ## PostgreSQL
 
@@ -83,7 +88,7 @@ flowchart TB
 
     O --> G
     G -->|"aktualne dane pacjenta"| UI
-    G -->|"plan pracy z V_PLAN_PRACY_KALENDARZ"| S
+    G -->|"plan pracy z V_KOMPAS_PLAN_PRACY_KALENDARZ"| S
     S --> UI
     P -->|"programy, epizody, zadania"| UI
     UI -->|"zapis danych procesowych"| P

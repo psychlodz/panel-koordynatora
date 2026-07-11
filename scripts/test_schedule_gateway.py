@@ -17,12 +17,16 @@ REQUIRED_FIELDS = [
     "jo_symbol",
     "jo_nazwa",
     "data_dnia",
+    "data_tekst",
     "dzien_tyg",
     "pracownik_id",
     "pracownik",
     "godz_od",
     "godz_do",
     "pln_id",
+    "pln_opis",
+    "rodzaje_wizyt_kody",
+    "rodzaje_wizyt_lista",
 ]
 
 
@@ -59,7 +63,7 @@ def main():
         date_to=args.date_to,
     )
 
-    print("Widok Oracle: ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ")
+    print("Widok Oracle: ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ")
     print(
         f"Zakres: jo_id={args.jo_id}, "
         f"od={args.date_from}, do={args.date_to}"
@@ -80,6 +84,12 @@ def main():
         print("Pierwszy rekord:")
         for field in REQUIRED_FIELDS:
             print(f"  {field}: {getattr(first, field)}")
+        codes = getattr(first, "rodzaje_wizyt_lista")
+        if len(codes) != len(set(codes)):
+            raise AssertionError(
+                "Lista rodzajów wizyt zawiera duplikaty: "
+                + ", ".join(codes)
+            )
     else:
         print(
             "Brak rekordów w podanym zakresie; połączenie i wywołanie Gateway "

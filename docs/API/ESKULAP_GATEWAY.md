@@ -96,14 +96,18 @@ Opcjonalnie ogranicza wynik do listy pracowników. Zwraca listę
 - `jo_symbol`,
 - `jo_nazwa`,
 - `data_dnia`,
+- `data_tekst`,
 - `dzien_tyg`,
 - `pracownik_id`,
 - `pracownik`,
 - `godz_od`,
 - `godz_do`,
-- `pln_id`.
+- `pln_id`,
+- `pln_opis`,
+- `rodzaje_wizyt_kody`,
+- `rodzaje_wizyt_lista`.
 
-Metoda korzysta z widoku `ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ` przez
+Metoda korzysta z widoku `ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ` przez
 wewnętrzne repozytorium Gateway. Moduł Harmonogram pracy nie łączy się
 bezpośrednio z Oracle i nie zna danych połączenia.
 
@@ -112,12 +116,12 @@ bezpośrednio z Oracle i nie zna danych połączenia.
 Zatwierdzonym źródłem danych harmonogramu jest widok tylko do odczytu:
 
 ```text
-ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ
+ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ
 ```
 
 Widok jest wskazywany przez `application.view_name` w `config.ini`; wartość
 domyślna oraz wartość udokumentowana dla KOMPAS to
-`ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ`.
+`ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`.
 
 `work_schedule_repository` używa kolumn:
 
@@ -125,16 +129,25 @@ domyślna oraz wartość udokumentowana dla KOMPAS to
 - `JO_SYMBOL`,
 - `JO_NAZWA`,
 - `DATA_DNIA`,
+- `DATA_TEKST`,
 - `DZIEN_TYG`,
 - `PRACOWNIK_ID`,
 - `PRACOWNIK`,
 - `GODZ_OD`,
 - `GODZ_DO`,
-- `PLN_ID`.
+- `PLN_ID`,
+- `PLN_OPIS`,
+- `RODZAJE_WIZYT_KODY`.
 
 Filtrowanie odbywa się po `JO_ID`, zakresie `DATA_DNIA` oraz opcjonalnie po
 `PRACOWNIK_ID`. KOMPAS wykonuje wyłącznie `SELECT`; żadne dane planu pracy
 nie są zapisywane do Oracle.
+
+`RODZAJE_WIZYT_KODY` zawiera zagregowane, unikalne kody
+`RI_PLAN_PRACY_WARUNKI_NEW.PLW_WP_PARAMETR` dla danego `PLN_ID`.
+Gateway rozdziela tekst na `rodzaje_wizyt_lista`, ale nie dekoduje nazw
+z PostgreSQL. Nazwy do prezentacji uzupełnia `ScheduleService` na podstawie
+lokalnego cache mapowania rodzajów wizyt.
 
 ## Użycie
 
@@ -165,7 +178,7 @@ Gateway wymaga widoków:
 
 Moduł Harmonogram pracy wymaga dodatkowo widoku:
 
-- `ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ`.
+- `ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`.
 
 Badania laboratoryjne i obrazowe korzystają ze wspólnego widoku
 `V_KOMPAS_BADANIA` i są rozdzielane według typu badania.

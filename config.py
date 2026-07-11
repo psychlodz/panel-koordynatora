@@ -60,6 +60,6 @@ def load_config() -> AppConfig:
         view_name=parser.get(
             "application",
             "view_name",
-            fallback="ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ",
+            fallback="ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ",
         ),
     )

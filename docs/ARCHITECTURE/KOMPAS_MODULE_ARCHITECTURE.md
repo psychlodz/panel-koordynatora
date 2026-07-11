@@ -49,9 +49,10 @@ z `EskulapGateway`. UI harmonogramu nie otwiera połączeń Oracle, nie zna
 danych dostępowych i nie wykonuje SQL.
 
 Źródłem danych harmonogramu jest widok tylko do odczytu
-`ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ`. Moduł używa kolumn `JO_ID`,
-`JO_SYMBOL`, `JO_NAZWA`, `DATA_DNIA`, `DZIEN_TYG`, `PRACOWNIK_ID`,
-`PRACOWNIK`, `GODZ_OD`, `GODZ_DO` i `PLN_ID`.
+`ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`. Moduł używa kolumn `JO_ID`,
+`JO_SYMBOL`, `JO_NAZWA`, `DATA_DNIA`, `DATA_TEKST`, `DZIEN_TYG`,
+`PRACOWNIK_ID`, `PRACOWNIK`, `GODZ_OD`, `GODZ_DO`, `PLN_ID`, `PLN_OPIS`
+i `RODZAJE_WIZYT_KODY`.
 
 ### Programy
 
@@ -146,7 +147,7 @@ flowchart LR
     S["ScheduleService"]
     G["EskulapGateway"]
     R["work_schedule_repository"]
-    O[("Oracle / ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ")]
+    O[("Oracle / ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ")]
 
     H --> S
     S --> G

@@ -104,7 +104,7 @@ begin
     'slot_minutes=180' + #13#10 +
     'hour_start=7' + #13#10 +
     'hour_end=22' + #13#10 +
-    'view_name=ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ' + #13#10 +
+    'view_name=ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ' + #13#10 +
     #13#10 +
     '[kompas_db]' + #13#10 +
     'engine=postgres' + #13#10 +

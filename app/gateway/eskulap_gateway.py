@@ -66,12 +66,15 @@ WORK_SCHEDULE_FIELDS = {
     "jo_symbol": "jo_symbol",
     "jo_nazwa": "jo_nazwa",
     "data_dnia": "data_dnia",
+    "data_tekst": "data_tekst",
     "dzien_tyg": "dzien_tyg",
     "pracownik_id": "pracownik_id",
     "pracownik": "pracownik",
     "godz_od": "godz_od",
     "godz_do": "godz_do",
     "pln_id": "pln_id",
+    "pln_opis": "pln_opis",
+    "rodzaje_wizyt_kody": "rodzaje_wizyt_kody",
 }
 
 
