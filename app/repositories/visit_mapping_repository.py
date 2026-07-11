@@ -34,7 +34,7 @@ def list_mapping_blocks(only_active=True) -> list[dict]:
                 ON grupa.grupa_id = k.grupa_id
             LEFT JOIN pk_mapowanie_wizyt m
                 ON m.klocek_id = k.klocek_id
-               AND m.czy_aktywny = 1
+               AND m.czy_aktywne = 1
             {condition}
             GROUP BY
                 k.klocek_id, k.kod, k.nazwa, k.ikona,
@@ -58,7 +58,7 @@ def list_visit_mappings(
         conditions.append("m.klocek_id = ?")
         parameters.append(int(klocek_id))
     if only_active:
-        conditions.append("m.czy_aktywny = 1")
+        conditions.append("m.czy_aktywne = 1")
     where_clause = (
         "WHERE " + " AND ".join(conditions)
         if conditions
@@ -72,19 +72,55 @@ def list_visit_mappings(
                 m.klocek_id,
                 k.kod AS klocek_kod,
                 k.nazwa AS klocek_nazwa,
-                m.parametr_kod,
-                m.parametr_nazwa_cache,
-                m.czy_aktywny,
+                r.rodzaj_wizyty_id,
+                r.parametr_kod,
+                r.parametr_nazwa,
+                r.parametr_nazwa AS parametr_nazwa_cache,
+                r.czy_aktualny_eskulap,
+                r.czy_aktywny_kompas,
+                m.czy_aktywne,
+                m.czy_aktywne AS czy_aktywny,
                 m.created_at,
                 m.updated_at
             FROM pk_mapowanie_wizyt m
             JOIN pk_klocki k ON k.klocek_id = m.klocek_id
+            JOIN pk_rodzaje_wizyt_eskulap r
+                ON r.rodzaj_wizyty_id = m.rodzaj_wizyty_id
             {where_clause}
-            ORDER BY k.nazwa, m.parametr_nazwa_cache, m.parametr_kod
+            ORDER BY k.nazwa, r.parametr_nazwa, r.parametr_kod
             """,
             tuple(parameters),
         ).fetchall()
     return [dict(row) for row in rows]
+
+
+def _ensure_visit_type(connection, parametr_kod, parametr_nazwa=None):
+    code = _required_text(parametr_kod, "parametr_kod").upper()
+    name = str(parametr_nazwa or "").strip() or code
+    row = connection.execute(
+        """
+        SELECT rodzaj_wizyty_id
+        FROM pk_rodzaje_wizyt_eskulap
+        WHERE UPPER(parametr_kod) = ?
+        """,
+        (code,),
+    ).fetchone()
+    if row is not None:
+        return int(row["rodzaj_wizyty_id"])
+
+    cursor = connection.execute(
+        """
+        INSERT INTO pk_rodzaje_wizyt_eskulap(
+            parametr_kod,
+            parametr_nazwa,
+            czy_aktualny_eskulap,
+            czy_aktywny_kompas
+        )
+        VALUES (?, ?, 0, 1)
+        """,
+        (code, name),
+    )
+    return int(cursor.lastrowid)
 
 
 def assign_visit_parameter(
@@ -93,7 +129,6 @@ def assign_visit_parameter(
     parametr_nazwa=None,
 ) -> int:
     code = _required_text(parametr_kod, "parametr_kod").upper()
-    name = str(parametr_nazwa or "").strip() or None
     initialize_database()
     with closing(create_connection()) as connection:
         with connection:
@@ -109,31 +144,42 @@ def assign_visit_parameter(
             if block is None:
                 raise ValueError("Wybrany klocek nie istnieje lub jest nieaktywny")
 
+            visit_type_id = _ensure_visit_type(
+                connection,
+                code,
+                parametr_nazwa,
+            )
+
+            connection.execute(
+                """
+                UPDATE pk_mapowanie_wizyt
+                SET czy_aktywne = 0,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE rodzaj_wizyty_id = ?
+                  AND czy_aktywne = 1
+                  AND klocek_id <> ?
+                """,
+                (visit_type_id, int(klocek_id)),
+            )
+
             existing = connection.execute(
                 """
                 SELECT mapowanie_id
                 FROM pk_mapowanie_wizyt
-                WHERE UPPER(parametr_kod) = ?
+                WHERE klocek_id = ?
+                  AND rodzaj_wizyty_id = ?
                 """,
-                (code,),
+                (int(klocek_id), visit_type_id),
             ).fetchone()
             if existing is not None:
                 connection.execute(
                     """
                     UPDATE pk_mapowanie_wizyt
-                    SET klocek_id = ?,
-                        parametr_kod = ?,
-                        parametr_nazwa_cache = ?,
-                        czy_aktywny = 1,
+                    SET czy_aktywne = 1,
                         updated_at = CURRENT_TIMESTAMP
                     WHERE mapowanie_id = ?
                     """,
-                    (
-                        int(klocek_id),
-                        code,
-                        name,
-                        existing["mapowanie_id"],
-                    ),
+                    (existing["mapowanie_id"],),
                 )
                 return int(existing["mapowanie_id"])
 
@@ -141,13 +187,12 @@ def assign_visit_parameter(
                 """
                 INSERT INTO pk_mapowanie_wizyt(
                     klocek_id,
-                    parametr_kod,
-                    parametr_nazwa_cache,
-                    czy_aktywny
+                    rodzaj_wizyty_id,
+                    czy_aktywne
                 )
-                VALUES (?, ?, ?, 1)
+                VALUES (?, ?, 1)
                 """,
-                (int(klocek_id), code, name),
+                (int(klocek_id), visit_type_id),
             )
             return int(cursor.lastrowid)
 
@@ -173,13 +218,16 @@ def get_active_parameter_codes_for_block(klocek_kod) -> tuple[str, ...]:
     with closing(create_connection()) as connection:
         rows = connection.execute(
             """
-            SELECT m.parametr_kod
+            SELECT r.parametr_kod
             FROM pk_mapowanie_wizyt m
             JOIN pk_klocki k ON k.klocek_id = m.klocek_id
+            JOIN pk_rodzaje_wizyt_eskulap r
+                ON r.rodzaj_wizyty_id = m.rodzaj_wizyty_id
             WHERE UPPER(k.kod) = ?
               AND k.czy_aktywny = 1
-              AND m.czy_aktywny = 1
-            ORDER BY m.parametr_kod
+              AND m.czy_aktywne = 1
+              AND r.czy_aktywny_kompas = 1
+            ORDER BY r.parametr_kod
             """,
             (code,),
         ).fetchall()
@@ -199,13 +247,18 @@ def get_block_for_visit_parameter(parametr_kod):
                 k.kolor,
                 k.kolor_tekstu,
                 m.mapowanie_id,
-                m.parametr_kod,
-                m.parametr_nazwa_cache
+                r.rodzaj_wizyty_id,
+                r.parametr_kod,
+                r.parametr_nazwa,
+                r.parametr_nazwa AS parametr_nazwa_cache
             FROM pk_mapowanie_wizyt m
             JOIN pk_klocki k ON k.klocek_id = m.klocek_id
-            WHERE UPPER(m.parametr_kod) = ?
-              AND m.czy_aktywny = 1
+            JOIN pk_rodzaje_wizyt_eskulap r
+                ON r.rodzaj_wizyty_id = m.rodzaj_wizyty_id
+            WHERE UPPER(r.parametr_kod) = ?
+              AND m.czy_aktywne = 1
               AND k.czy_aktywny = 1
+              AND r.czy_aktywny_kompas = 1
             """,
             (code,),
         ).fetchone()

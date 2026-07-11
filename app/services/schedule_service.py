@@ -4,7 +4,9 @@ from datetime import date, datetime
 import pandas as pd
 
 from app.gateway.eskulap_gateway import EskulapGateway
-from app.repositories.visit_mapping_repository import list_visit_mappings
+from app.repositories.visit_type_dictionary_repository import (
+    get_visit_type_names,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,8 @@ class ScheduleService:
         date_to = self._date_value(date_to, "date_to")
         if date_from > date_to:
             raise ValueError(
-                "Data końcowa harmonogramu nie może być wcześniejsza niż data początkowa."
+                "Data końcowa harmonogramu nie może być wcześniejsza "
+                "niż data początkowa."
             )
 
         try:
@@ -67,28 +70,42 @@ class ScheduleService:
                 "Nie udało się pobrać harmonogramu pracy z Eskulapa."
             ) from exc
 
-        rows = [
+        all_visit_type_codes = sorted(
             {
-                "JO_ID": entry.jo_id,
-                "JO_SYMBOL": entry.jo_symbol,
-                "JO_NAZWA": entry.jo_nazwa,
-                "DATA_DNIA": entry.data_dnia,
-                "DATA_TEKST": entry.data_tekst,
-                "DZIEN_TYG": entry.dzien_tyg,
-                "PRACOWNIK_ID": entry.pracownik_id,
-                "PRACOWNIK": entry.pracownik,
-                "GODZ_OD": entry.godz_od,
-                "GODZ_DO": entry.godz_do,
-                "PLN_ID": entry.pln_id,
-                "PLN_OPIS": entry.pln_opis,
-                "RODZAJE_WIZYT_KODY": entry.rodzaje_wizyt_kody,
-                "RODZAJE_WIZYT_LISTA": entry.rodzaje_wizyt_lista,
-                "RODZAJE_WIZYT_NAZWY": self._visit_type_display_text(
-                    entry.rodzaje_wizyt_lista
-                ),
+                str(code or "").strip().upper()
+                for entry in entries
+                for code in (entry.rodzaje_wizyt_lista or [])
+                if str(code or "").strip()
             }
-            for entry in entries
-        ]
+        )
+        visit_type_names = self._visit_type_name_map(all_visit_type_codes)
+
+        rows = []
+        for entry in entries:
+            visit_types_text, visit_types_tooltip = self._visit_type_display(
+                entry.rodzaje_wizyt_lista,
+                visit_type_names,
+            )
+            rows.append(
+                {
+                    "JO_ID": entry.jo_id,
+                    "JO_SYMBOL": entry.jo_symbol,
+                    "JO_NAZWA": entry.jo_nazwa,
+                    "DATA_DNIA": entry.data_dnia,
+                    "DATA_TEKST": entry.data_tekst,
+                    "DZIEN_TYG": entry.dzien_tyg,
+                    "PRACOWNIK_ID": entry.pracownik_id,
+                    "PRACOWNIK": entry.pracownik,
+                    "GODZ_OD": entry.godz_od,
+                    "GODZ_DO": entry.godz_do,
+                    "PLN_ID": entry.pln_id,
+                    "PLN_OPIS": entry.pln_opis,
+                    "RODZAJE_WIZYT_KODY": entry.rodzaje_wizyt_kody,
+                    "RODZAJE_WIZYT_LISTA": entry.rodzaje_wizyt_lista,
+                    "RODZAJE_WIZYT_NAZWY": visit_types_text,
+                    "RODZAJE_WIZYT_TOOLTIP": visit_types_tooltip,
+                }
+            )
         return pd.DataFrame(
             rows,
             columns=[
@@ -107,6 +124,7 @@ class ScheduleService:
                 "RODZAJE_WIZYT_KODY",
                 "RODZAJE_WIZYT_LISTA",
                 "RODZAJE_WIZYT_NAZWY",
+                "RODZAJE_WIZYT_TOOLTIP",
             ],
         )
 
@@ -123,40 +141,52 @@ class ScheduleService:
                 f"Pole {field_name} musi mieć format RRRR-MM-DD"
             ) from exc
 
-    def _visit_type_name_map(self):
+    def _visit_type_name_map(self, codes):
+        key = tuple(sorted(set(codes or [])))
         if self._visit_type_names is None:
-            names = {}
+            self._visit_type_names = {}
+        if key not in self._visit_type_names:
             try:
-                for row in list_visit_mappings(only_active=True):
-                    code = str(row.get("parametr_kod") or "").strip().upper()
-                    name = str(
-                        row.get("parametr_nazwa_cache") or ""
-                    ).strip()
-                    if code and name:
-                        names[code] = name
+                self._visit_type_names[key] = get_visit_type_names(key)
             except Exception:
                 logger.exception(
                     "Nie udało się pobrać lokalnego słownika rodzajów wizyt"
                 )
-                names = {}
-            self._visit_type_names = names
-        return self._visit_type_names
+                self._visit_type_names[key] = {}
+        return self._visit_type_names[key]
 
-    def _visit_type_display_text(self, codes):
+    @staticmethod
+    def _visit_type_display(codes, names):
         codes = [
             str(code or "").strip().upper()
             for code in (codes or [])
             if str(code or "").strip()
         ]
         if not codes:
-            return "Brak określonych rodzajów wizyt"
-        names = self._visit_type_name_map()
+            text = "Brak określonych rodzajów wizyt"
+            return text, text
+
         labels = []
+        missing = []
         seen = set()
         for code in codes:
-            label = names.get(code) or f"{code} — brak nazwy w słowniku"
+            if code in names:
+                label = f"{code} — {names[code]}"
+            else:
+                label = code
+                missing.append(code)
             if label in seen:
                 continue
             seen.add(label)
             labels.append(label)
-        return "; ".join(sorted(labels, key=str.casefold))
+
+        display = "; ".join(sorted(labels, key=str.casefold))
+        if missing:
+            tooltip = (
+                f"{display}\n\n"
+                "Nazwa niedostępna. Zsynchronizuj słownik rodzajów wizyt "
+                "w Administracji."
+            )
+        else:
+            tooltip = display
+        return display, tooltip

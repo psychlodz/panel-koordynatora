@@ -875,3 +875,37 @@ Wszystkie relacje słownikowe używają `ON DELETE RESTRICT`.
 
 Taka kolejność najpierw zapewnia integralność danych, następnie przepina
 logikę, a dopiero na końcu udostępnia edycję administracyjną.
+## Lokalny słownik rodzajów wizyt Eskulapa
+
+Od ADM-VISIT-DICT-1 rodzaje wizyt z Eskulapa są synchronizowane do
+PostgreSQL do tabeli `pk_rodzaje_wizyt_eskulap`. Źródłem pozostaje wyłącznie
+widok Oracle `ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT` (`PARAMETR_KOD`,
+`PARAMETR_NAZWA`, `CZY_AKTUALNE`). KOMPAS nie edytuje danych w Oracle.
+
+Relacja docelowa:
+
+```mermaid
+flowchart LR
+    O["Oracle: V_KOMPAS_PARAMETRY_WIZYT"]
+    D[("pk_rodzaje_wizyt_eskulap")]
+    M[("pk_mapowanie_wizyt")]
+    B[("pk_klocki")]
+    E[("pk_sciezka_elementy")]
+    T[("pk_zadania")]
+
+    O -->|"synchronizacja SELECT"| D
+    D --> M
+    B --> M
+    B --> E
+    E --> T
+```
+
+`pk_rodzaje_wizyt_eskulap` przechowuje kod i nazwę rodzaju wizyty oraz dwa
+stany: `czy_aktualny_eskulap` informujący, czy kod nadal występuje w źródle,
+oraz `czy_aktywny_kompas`, którym administrator może ukryć kod w konfiguracji
+KOMPAS. Kod i nazwa są tylko do odczytu w UI.
+
+`pk_mapowanie_wizyt` wskazuje teraz `rodzaj_wizyty_id`, a nie tekstowy
+`parametr_kod`. Jeden klocek może mieć wiele kodów WP_PARAMETR, ale jeden kod
+może mieć tylko jedno aktywne przypisanie do klocka. Seed startowy tworzy
+`F18 -> PKK_KWAL`.

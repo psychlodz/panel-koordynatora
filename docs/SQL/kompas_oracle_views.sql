@@ -72,6 +72,56 @@ WHERE crc.rv_domain = 'PARAMETRY';
 -- TODO: jeżeli CG_REF_CODES nie znajduje się w schemacie RI_OWNER,
 -- należy odtworzyć widok pomocniczy z FROM CG_REF_CODES crc.
 
+CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ AS
+WITH warunki AS (
+    SELECT
+        plw_pln_id,
+        LISTAGG(
+            plw_wp_parametr,
+            ', ' ON OVERFLOW TRUNCATE '...' WITH COUNT
+        ) WITHIN GROUP (ORDER BY plw_wp_parametr)
+            AS rodzaje_wizyt_kody
+    FROM (
+        SELECT DISTINCT
+            plw_pln_id,
+            plw_wp_parametr
+        FROM RI_OWNER.RI_PLAN_PRACY_WARUNKI_NEW
+        WHERE plw_wp_parametr IS NOT NULL
+          AND NVL(plw_typ, 'W') = 'W'
+    )
+    GROUP BY plw_pln_id
+)
+SELECT
+    pln.pln_jo_jednostka_id AS jo_id,
+    jo.jo_symbol AS jo_symbol,
+    jo.jo_nazwa AS jo_nazwa,
+    TRUNC(pln.pln_data) AS data_dnia,
+    TO_CHAR(TRUNC(pln.pln_data), 'YYYY-MM-DD') AS data_tekst,
+    TO_CHAR(TRUNC(pln.pln_data), 'DY', 'NLS_DATE_LANGUAGE=POLISH')
+        AS dzien_tyg,
+    pln.pln_prac_pracownik_id AS pracownik_id,
+    prac.prac_nazwisko || ' ' || prac.prac_imie AS pracownik,
+    TO_CHAR(pln.pln_godz_od, 'HH24:MI') AS godz_od,
+    TO_CHAR(pln.pln_godz_do, 'HH24:MI') AS godz_do,
+    pln.pln_id AS pln_id,
+    pln.pln_opis AS pln_opis,
+    warunki.rodzaje_wizyt_kody AS rodzaje_wizyt_kody
+FROM RI_OWNER.RI_PLAN_PRACY_NEW pln
+LEFT JOIN RI_OWNER.SZ_JEDNOSTKI_ORGANIZACYJNE jo
+    ON jo.jo_jednostka_id = pln.pln_jo_jednostka_id
+LEFT JOIN RI_OWNER.RI_PRACOWNICY prac
+    ON prac.prac_pracownik_id = pln.pln_prac_pracownik_id
+LEFT JOIN warunki
+    ON warunki.plw_pln_id = pln.pln_id;
+/
+
+-- Widok zgodności dla starej nazwy. Nazwa jest przestarzała i powinna zostać
+-- usunięta ręcznie po potwierdzeniu działania V_KOMPAS_PLAN_PRACY_KALENDARZ.
+CREATE OR REPLACE VIEW ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ AS
+SELECT *
+FROM ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ;
+/
+
 -- Kontrakt KOMPAS wymaga kolumny DATA_KONSULTACJI.
 -- Po zmianie SQL należy ręcznie wykonać poniższe CREATE OR REPLACE VIEW
 -- w Oracle na koncie z uprawnieniami do schematu ESK_RAPORTY.

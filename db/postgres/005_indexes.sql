@@ -28,11 +28,27 @@ ON pk_klocki(grupa_id);
 CREATE INDEX IF NOT EXISTS idx_pk_klocki_jednostka_czasu
 ON pk_klocki(domyslna_jednostka_czasu_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pk_rodzaje_wizyt_code_nocase
+ON pk_rodzaje_wizyt_eskulap(lower(parametr_kod));
+
+CREATE INDEX IF NOT EXISTS idx_pk_rodzaje_wizyt_current
+ON pk_rodzaje_wizyt_eskulap(czy_aktualny_eskulap);
+
+CREATE INDEX IF NOT EXISTS idx_pk_rodzaje_wizyt_kompas_active
+ON pk_rodzaje_wizyt_eskulap(czy_aktywny_kompas);
+
 CREATE INDEX IF NOT EXISTS idx_pk_mapowanie_wizyt_klocek
 ON pk_mapowanie_wizyt(klocek_id);
 
+CREATE INDEX IF NOT EXISTS idx_pk_mapowanie_wizyt_rodzaj
+ON pk_mapowanie_wizyt(rodzaj_wizyty_id);
+
 CREATE INDEX IF NOT EXISTS idx_pk_mapowanie_wizyt_active
-ON pk_mapowanie_wizyt(czy_aktywny);
+ON pk_mapowanie_wizyt(czy_aktywne);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pk_mapowanie_wizyt_active_rodzaj
+ON pk_mapowanie_wizyt(rodzaj_wizyty_id)
+WHERE czy_aktywne = 1;
 
 CREATE INDEX IF NOT EXISTS idx_pk_sciezka_elementy_sciezka
 ON pk_sciezka_elementy(sciezka_id);

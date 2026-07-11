@@ -530,6 +530,7 @@ class PlanPracyApp(QWidget):
         result = []
         for person, group in rows.groupby("PRACOWNIK", dropna=False):
             labels = []
+            tooltips = []
             seen = set()
             for value in group.get(
                 "RODZAJE_WIZYT_NAZWY",
@@ -548,6 +549,13 @@ class PlanPracyApp(QWidget):
                         continue
                     seen.add(part)
                     labels.append(part)
+            for value in group.get(
+                "RODZAJE_WIZYT_TOOLTIP",
+                pd.Series(dtype=str),
+            ).dropna():
+                tooltip = str(value).strip()
+                if tooltip and tooltip not in tooltips:
+                    tooltips.append(tooltip)
             if not labels:
                 labels = ["Brak określonych rodzajów wizyt"]
             result.append(
@@ -556,6 +564,8 @@ class PlanPracyApp(QWidget):
                     "RODZAJE_WIZYT": "; ".join(
                         sorted(labels, key=str.casefold)
                     ),
+                    "RODZAJE_WIZYT_TOOLTIP": "\n\n".join(tooltips)
+                    or "; ".join(sorted(labels, key=str.casefold)),
                 }
             )
         return pd.DataFrame(result).sort_values("PRACOWNIK")
@@ -643,13 +653,16 @@ class PlanPracyApp(QWidget):
             person = str(rec["PRACOWNIK"])
             color = QColor(self.color_for_person(person))
             visit_types = str(rec["RODZAJE_WIZYT"])
+            visit_types_tooltip = str(
+                rec.get("RODZAJE_WIZYT_TOOLTIP", visit_types)
+            )
             vals = [person, visit_types]
             for c_idx, val in enumerate(vals):
                 it = QTableWidgetItem(val)
                 if c_idx == 0:
                     it.setForeground(QBrush(color))
                 if c_idx == 1:
-                    it.setToolTip(visit_types)
+                    it.setToolTip(visit_types_tooltip)
                 tbl.setItem(r_idx, c_idx, it)
         tbl.resizeColumnsToContents()
         tbl.horizontalHeader().setStretchLastSection(True)

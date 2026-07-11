@@ -9,6 +9,9 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.gateway.eskulap_gateway import EskulapGateway
+from app.repositories.visit_type_dictionary_repository import (
+    get_visit_type_names,
+)
 from config import load_config
 
 
@@ -45,13 +48,19 @@ def main():
         seen_pln_ids.add(row.pln_id)
 
         codes = row.rodzaje_wizyt_lista
+        names = get_visit_type_names(codes)
         if len(codes) != len(set(codes)):
             raise AssertionError(
                 f"PLN_ID={row.pln_id} ma zduplikowane kody: {codes}"
             )
+        decoded = [
+            f"{code}={names.get(code, 'brak w lokalnym słowniku')}"
+            for code in codes
+        ]
         print(
             f"PLN_ID={row.pln_id}; pracownik={row.pracownik}; "
-            f"kody={', '.join(codes) if codes else 'brak'}"
+            f"kody={', '.join(codes) if codes else 'brak'}; "
+            f"lokalny_słownik={'; '.join(decoded) if decoded else 'brak'}"
         )
 
     if duplicate_pln_ids:

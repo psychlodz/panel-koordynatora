@@ -23,7 +23,7 @@ flowchart LR
     W["RI_PLAN_PRACY_WARUNKI_NEW<br/>PLW_WP_PARAMETR"]
     V[("ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ")]
     O[("Oracle / Eskulap")]
-    L["Lokalny cache nazw<br/>pk_mapowanie_wizyt"]
+    L["Lokalny słownik nazw<br/>pk_rodzaje_wizyt_eskulap"]
 
     UI --> S
     S --> G
@@ -124,3 +124,11 @@ python scripts/test_schedule_data_source.py
 Test kończy się błędem, jeżeli Harmonogram pracy omija `ScheduleService`,
 omija `EskulapGateway` albo przestaje wskazywać na zatwierdzony widok
 `ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`.
+## Aktualizacja dekodowania rodzajów wizyt
+
+`RODZAJE_WIZYT_KODY` nadal pochodzi z widoku harmonogramu w Oracle, ale nazwy
+kodów są dekodowane lokalnie z PostgreSQL z tabeli
+`pk_rodzaje_wizyt_eskulap`. Słownik jest synchronizowany w module
+„Administracja -> Ustawienia systemu -> Integracja Eskulap -> Rodzaje wizyt”.
+Jeśli słownik nie zawiera danego kodu, harmonogram pokazuje kod i podpowiedź
+o konieczności synchronizacji.

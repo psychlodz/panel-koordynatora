@@ -218,3 +218,15 @@ python scripts/test_gateway.py 90010112345 --date-from 2026-01-01
 
 Test wymaga poprawnego `config.ini`, dostępu do Oracle oraz wdrożonych
 widoków `ESK_RAPORTY.V_KOMPAS_*`.
+## Słownik rodzajów wizyt i lokalne mapowania
+
+Gateway udostępnia metodę `list_visit_parameters(only_active=True)`, która
+czyta wyłącznie widok Oracle `ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT`.
+Synchronizacja do PostgreSQL odbywa się poza Gateway, w serwisie
+`VisitTypeDictionarySyncService`, i zapisuje dane referencyjne do
+`pk_rodzaje_wizyt_eskulap`.
+
+Mapowanie `WP_PARAMETR -> klocek KOMPAS` jest przechowywane w PostgreSQL w
+`pk_mapowanie_wizyt`, które wskazuje lokalny rekord
+`pk_rodzaje_wizyt_eskulap`. Gateway nie zapisuje do Oracle i nie edytuje
+słownika Eskulapa.

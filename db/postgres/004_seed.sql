@@ -224,23 +224,47 @@ JOIN pk_typy_elementow typ ON typ.kod = dane.typ_kod
 JOIN pk_grupy_klockow grupa ON grupa.kod = dane.grupa_kod
 ON CONFLICT DO NOTHING;
 
+INSERT INTO pk_rodzaje_wizyt_eskulap(
+    parametr_kod,
+    parametr_nazwa,
+    czy_aktualny_eskulap,
+    czy_aktywny_kompas,
+    last_seen_at,
+    synchronized_at
+)
+VALUES (
+    'F18',
+    'Wizyta kwalifikacyjna PKK',
+    1,
+    1,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+)
+ON CONFLICT (parametr_kod) DO UPDATE
+SET parametr_nazwa = EXCLUDED.parametr_nazwa,
+    czy_aktualny_eskulap = EXCLUDED.czy_aktualny_eskulap,
+    czy_aktywny_kompas = EXCLUDED.czy_aktywny_kompas,
+    last_seen_at = EXCLUDED.last_seen_at,
+    synchronized_at = EXCLUDED.synchronized_at,
+    updated_at = CURRENT_TIMESTAMP;
+
 INSERT INTO pk_mapowanie_wizyt(
     klocek_id,
-    parametr_kod,
-    parametr_nazwa_cache,
-    czy_aktywny
+    rodzaj_wizyty_id,
+    czy_aktywne
 )
 SELECT
     k.klocek_id,
-    'F18',
-    'Wizyta kwalifikacyjna PKK',
+    r.rodzaj_wizyty_id,
     1
 FROM pk_klocki k
+JOIN pk_rodzaje_wizyt_eskulap r
+    ON r.parametr_kod = 'F18'
 WHERE k.kod = 'PKK_KWAL'
-ON CONFLICT (parametr_kod) DO UPDATE
+ON CONFLICT (klocek_id, rodzaj_wizyty_id) DO UPDATE
 SET klocek_id = EXCLUDED.klocek_id,
-    parametr_nazwa_cache = EXCLUDED.parametr_nazwa_cache,
-    czy_aktywny = EXCLUDED.czy_aktywny,
+    rodzaj_wizyty_id = EXCLUDED.rodzaj_wizyty_id,
+    czy_aktywne = EXCLUDED.czy_aktywne,
     updated_at = CURRENT_TIMESTAMP;
 
 INSERT INTO pk_programy(kod, nazwa, wersja, opis)

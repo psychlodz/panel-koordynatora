@@ -248,3 +248,21 @@ psql -U postgres -d kompas_restore -f D:\Backup\kompas.sql
 ```
 
 Po odtworzeniu sprawdź logi, liczbę tabel i przykładowe rekordy procesowe.
+## Aktualizacja ADM-VISIT-DICT-1
+
+ADM-VISIT-DICT-1 dodaje lokalny słownik rodzajów wizyt Eskulapa
+`pk_rodzaje_wizyt_eskulap` oraz przebudowuje `pk_mapowanie_wizyt` tak, aby
+mapowania wskazywały rekord słownika, a nie tekstowy kod. Dla baz testowych
+zalecane jest odtworzenie bazy od zera aktualnymi skryptami:
+
+```powershell
+psql -U postgres -d postgres -f db/postgres/001_create_database.sql
+psql -U kompas_app -d kompas -f db/postgres/003_schema.sql
+psql -U kompas_app -d kompas -f db/postgres/004_seed.sql
+psql -U kompas_app -d kompas -f db/postgres/005_indexes.sql
+psql -U postgres -d kompas -f db/postgres/006_grants.sql
+```
+
+Po instalacji wykonaj synchronizację słownika w aplikacji:
+`Administracja -> Ustawienia systemu -> Integracja Eskulap -> Rodzaje wizyt`
+i kliknij „Synchronizuj z Eskulapem”.

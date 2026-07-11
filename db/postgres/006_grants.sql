@@ -2,6 +2,7 @@
 SET client_encoding = 'UTF8';
 
 -- Uruchom na bazie kompas jako administrator PostgreSQL (postgres).
+-- Obejmuje również słownik pk_rodzaje_wizyt_eskulap i pk_mapowanie_wizyt.
 GRANT USAGE ON SCHEMA public TO kompas_app;
 
 GRANT SELECT, INSERT, UPDATE, DELETE

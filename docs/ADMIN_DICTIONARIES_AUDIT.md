@@ -201,3 +201,11 @@ Pierwszy etap powinien być zachowawczy:
 Taki zakres daje administratorowi użyteczną kontrolę nad słownikami
 biznesowymi, ale nie pozwala przypadkowo zmienić kodów, od których zależą
 generator, synchronizacja, autoryzacja i walidacja procesu.
+## Aktualizacja ADM-VISIT-DICT-1
+
+Słownik rodzajów wizyt Eskulapa nie jest już tylko widokiem Oracle używanym
+bezpośrednio w UI mapowania. KOMPAS posiada lokalną tabelę referencyjną
+`pk_rodzaje_wizyt_eskulap`, synchronizowaną z
+`ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT`. Administrator może zmieniać wyłącznie
+lokalną aktywność kodu i mapowanie do klocka; kod i nazwa pozostają danymi
+Eskulapa tylko do odczytu.

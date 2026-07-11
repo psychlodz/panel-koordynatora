@@ -136,3 +136,15 @@ python scripts/test_db_postgres.py
 
 Szczegółowe zasady minimalizacji danych opisuje
 `docs/ARCHITECTURE/PRIVACY.md`.
+## ADM-VISIT-DICT-1: lokalny słownik rodzajów wizyt
+
+Rodzaje wizyt Eskulapa (`WP_PARAMETR`) są pobierane przez Gateway z widoku
+`ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT` i synchronizowane do PostgreSQL do
+tabeli `pk_rodzaje_wizyt_eskulap`. PostgreSQL przechowuje tylko słownik
+referencyjny i mapowania do klocków procesu (`pk_mapowanie_wizyt`), bez
+danych medycznych i bez danych osobowych pacjenta.
+
+Harmonogram pracy dekoduje nazwy kodów wizyt z lokalnego słownika
+PostgreSQL. Jeśli słownik nie był zsynchronizowany, UI pokazuje kody i
+komunikat: „Nazwa niedostępna. Zsynchronizuj słownik rodzajów wizyt w
+Administracji.”
