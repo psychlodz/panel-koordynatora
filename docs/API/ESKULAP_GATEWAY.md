@@ -207,7 +207,9 @@ reprezentuje wizytę kwalifikacyjną F18, a `PKK_WIZ` zwykłą wizytę lub
 czynność organizacyjną PKK w trakcie programu.
 Klocki typu wizyta, sesja i terapia mogą być mapowane do wielu wartości
 `parametr_kod` wybieranych z `V_KOMPAS_PARAMETRY_WIZYT` w module
-„Administracja → Ustawienia systemu → Integracja Eskulap”.
+„Administracja → Ustawienia systemu → Integracja Eskulap”. Jeden klocek może
+mieć wiele aktywnych rodzajów wizyt, ale jeden rodzaj wizyty może mieć tylko
+jedno aktywne przypisanie do klocka.
 Techniczna wartość `source_type = WIZYTA_KWALIFIKACYJNA_PKK` opisuje
 pochodzenie epizodu i nie jest kodem klocka.
 

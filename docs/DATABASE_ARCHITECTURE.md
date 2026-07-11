@@ -146,7 +146,19 @@ tabeli `pk_rodzaje_wizyt_eskulap`. PostgreSQL przechowuje tylko słownik
 referencyjny i mapowania do klocków procesu (`pk_mapowanie_wizyt`), bez
 danych medycznych i bez danych osobowych pacjenta.
 
-Harmonogram pracy dekoduje nazwy kodów wizyt z lokalnego słownika
-PostgreSQL. Jeśli słownik nie był zsynchronizowany, UI pokazuje kody i
-komunikat: „Nazwa niedostępna. Zsynchronizuj słownik rodzajów wizyt w
-Administracji.”
+Relacja mapowania:
+
+```text
+PK_KLOCKI (1)
+        ↓
+PK_MAPOWANIE_WIZYT (N)
+        ↓
+PK_RODZAJE_WIZYT_ESKULAP
+```
+
+Jeden klocek może odpowiadać wielu rodzajom wizyt Eskulapa. Jeden rodzaj
+wizyty może mieć tylko jedno aktywne przypisanie do klocka.
+
+Popup harmonogramu pracy wyświetla nazwy rodzajów wizyt z `RODZAJE_WIZYT`.
+Lokalny słownik PostgreSQL jest używany tylko jako fallback, gdy widok
+harmonogramu zwróci kody bez nazw.

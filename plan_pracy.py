@@ -544,7 +544,7 @@ class PlanPracyApp(QWidget):
                     continue
                 parts = [
                     part.strip()
-                    for part in text.split(";")
+                    for part in text.replace(";", "\n").splitlines()
                     if part.strip()
                 ]
                 for part in parts:
@@ -565,11 +565,11 @@ class PlanPracyApp(QWidget):
                 {
                     "PRACOWNIK": str(person or "[bez pracownika]"),
                     "GODZINY": f"{godz_od}–{godz_do}",
-                    "RODZAJE_WIZYT": "; ".join(
+                    "RODZAJE_WIZYT": "\n".join(
                         sorted(labels, key=str.casefold)
                     ),
                     "RODZAJE_WIZYT_TOOLTIP": "\n\n".join(tooltips)
-                    or "; ".join(sorted(labels, key=str.casefold)),
+                    or "\n".join(sorted(labels, key=str.casefold)),
                 }
             )
         return pd.DataFrame(result).sort_values(["PRACOWNIK", "GODZINY"])
@@ -670,7 +670,7 @@ class PlanPracyApp(QWidget):
                 if c_idx == 0:
                     it.setForeground(QBrush(color))
                 if c_idx == 2:
-                    it.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                    it.setTextAlignment(Qt.AlignLeft | Qt.AlignTop)
                     it.setToolTip(visit_types_tooltip)
                 tbl.setItem(r_idx, c_idx, it)
         tbl.resizeColumnsToContents()

@@ -167,7 +167,7 @@ class ScheduleService:
             if str(name or "").strip()
         ]
         if oracle_names:
-            display = "; ".join(
+            display = "\n".join(
                 sorted(dict.fromkeys(oracle_names), key=str.casefold)
             )
             return display, display
@@ -193,5 +193,5 @@ class ScheduleService:
             seen.add(label)
             labels.append(label)
 
-        display = "; ".join(sorted(labels, key=str.casefold))
+        display = "\n".join(sorted(labels, key=str.casefold))
         return display, display

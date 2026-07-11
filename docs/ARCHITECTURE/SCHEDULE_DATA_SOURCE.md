@@ -139,3 +139,6 @@ Popup szczegółów komórki kalendarza wyświetla użytkownikowi nazwy rodzajó
 wizyt z pola `RODZAJE_WIZYT` widoku
 `ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`. `RODZAJE_WIZYT_KODY` pozostaje
 polem technicznym do diagnostyki i fallbacku, gdy widok nie zwróci nazwy.
+Jeżeli pole zawiera wiele nazw rozdzielonych średnikami, popup pokazuje je
+jako listę wieloliniową w jednej komórce tabeli. Jeden pracownik i jeden
+zakres godzin nadal pozostają jednym wierszem popupu.
