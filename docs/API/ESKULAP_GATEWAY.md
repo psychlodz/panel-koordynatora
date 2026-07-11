@@ -107,6 +107,35 @@ Metoda korzysta z widoku `ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ` przez
 wewnętrzne repozytorium Gateway. Moduł Harmonogram pracy nie łączy się
 bezpośrednio z Oracle i nie zna danych połączenia.
 
+#### Źródło danych harmonogramu pracy
+
+Zatwierdzonym źródłem danych harmonogramu jest widok tylko do odczytu:
+
+```text
+ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ
+```
+
+Widok jest wskazywany przez `application.view_name` w `config.ini`; wartość
+domyślna oraz wartość udokumentowana dla KOMPAS to
+`ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ`.
+
+`work_schedule_repository` używa kolumn:
+
+- `JO_ID`,
+- `JO_SYMBOL`,
+- `JO_NAZWA`,
+- `DATA_DNIA`,
+- `DZIEN_TYG`,
+- `PRACOWNIK_ID`,
+- `PRACOWNIK`,
+- `GODZ_OD`,
+- `GODZ_DO`,
+- `PLN_ID`.
+
+Filtrowanie odbywa się po `JO_ID`, zakresie `DATA_DNIA` oraz opcjonalnie po
+`PRACOWNIK_ID`. KOMPAS wykonuje wyłącznie `SELECT`; żadne dane planu pracy
+nie są zapisywane do Oracle.
+
 ## Użycie
 
 ```python

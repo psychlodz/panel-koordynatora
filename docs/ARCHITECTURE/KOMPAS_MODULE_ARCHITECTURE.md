@@ -48,6 +48,11 @@ Moduł pobiera dane Eskulapa wyłącznie przez `ScheduleService`, który korzyst
 z `EskulapGateway`. UI harmonogramu nie otwiera połączeń Oracle, nie zna
 danych dostępowych i nie wykonuje SQL.
 
+Źródłem danych harmonogramu jest widok tylko do odczytu
+`ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ`. Moduł używa kolumn `JO_ID`,
+`JO_SYMBOL`, `JO_NAZWA`, `DATA_DNIA`, `DZIEN_TYG`, `PRACOWNIK_ID`,
+`PRACOWNIK`, `GODZ_OD`, `GODZ_DO` i `PLN_ID`.
+
 ### Programy
 
 Zarządza definicjami programów KOMPAS oraz ich dostępnością dla jednostek
@@ -141,7 +146,7 @@ flowchart LR
     S["ScheduleService"]
     G["EskulapGateway"]
     R["work_schedule_repository"]
-    O[("Oracle / V_PLAN_PRACY_KALENDARZ")]
+    O[("Oracle / ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ")]
 
     H --> S
     S --> G

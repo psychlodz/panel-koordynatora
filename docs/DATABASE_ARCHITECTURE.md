@@ -33,6 +33,30 @@ Moduł Harmonogram pracy również podlega tej zasadzie: pobiera plan pracy
 z Eskulapa przez `ScheduleService` i `EskulapGateway`, a nie przez
 bezpośrednie połączenie z Oracle w warstwie UI.
 
+### Źródło danych harmonogramu pracy
+
+Harmonogram pracy korzysta z widoku Oracle:
+
+```text
+ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ
+```
+
+Widok jest tylko do odczytu i służy do prezentowania planu pracy jednostki
+organizacyjnej w kalendarzu. Przepływ danych:
+
+```text
+UI Harmonogramu
+→ ScheduleService
+→ EskulapGateway
+→ ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ
+→ Oracle / Eskulap
+```
+
+Używane kolumny widoku: `JO_ID`, `JO_SYMBOL`, `JO_NAZWA`, `DATA_DNIA`,
+`DZIEN_TYG`, `PRACOWNIK_ID`, `PRACOWNIK`, `GODZ_OD`, `GODZ_DO`, `PLN_ID`.
+Filtrowanie odbywa się po `JO_ID`, zakresie `DATA_DNIA` oraz opcjonalnie po
+`PRACOWNIK_ID`.
+
 ## PostgreSQL
 
 PostgreSQL przechowuje:
@@ -59,7 +83,7 @@ flowchart TB
 
     O --> G
     G -->|"aktualne dane pacjenta"| UI
-    G -->|"plan pracy"| S
+    G -->|"plan pracy z V_PLAN_PRACY_KALENDARZ"| S
     S --> UI
     P -->|"programy, epizody, zadania"| UI
     UI -->|"zapis danych procesowych"| P
