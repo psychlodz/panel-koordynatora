@@ -84,9 +84,9 @@ wizyt.
 przez `calendar_logic.py`. Logika kalendarza pozostaje czysta: nie zna
 Oracle, SQL ani danych połączenia.
 
-Nazwy rodzajów wizyt do okna szczegółów komórki uzupełnia `ScheduleService`
-z lokalnego cache mapowania rodzajów wizyt (`pk_mapowanie_wizyt`). Jeżeli
-brakuje nazwy dla kodu, UI pokazuje kod z informacją „brak nazwy w słowniku”.
+Nazwy rodzajów wizyt do okna szczegółów komórki pochodzą przede wszystkim z
+kolumny `RODZAJE_WIZYT` widoku Oracle. `ScheduleService` korzysta z lokalnego
+słownika tylko jako fallback, gdy widok nie zwróci nazwy dla kodu.
 
 ## Filtrowanie
 
@@ -126,11 +126,16 @@ python scripts/test_schedule_data_source.py
 Test kończy się błędem, jeżeli Harmonogram pracy omija `ScheduleService`,
 omija `EskulapGateway` albo przestaje wskazywać na zatwierdzony widok
 `ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`.
-## Aktualizacja dekodowania rodzajów wizyt
+## Aktualizacja nazw rodzajów wizyt
 
-`RODZAJE_WIZYT_KODY` nadal pochodzi z widoku harmonogramu w Oracle, ale nazwy
-kodów są dekodowane lokalnie z PostgreSQL z tabeli
-`pk_rodzaje_wizyt_eskulap`. Słownik jest synchronizowany w module
-„Administracja -> Ustawienia systemu -> Integracja Eskulap -> Rodzaje wizyt”.
-Jeśli słownik nie zawiera danego kodu, harmonogram pokazuje kod i podpowiedź
-o konieczności synchronizacji.
+`RODZAJE_WIZYT_KODY` i `RODZAJE_WIZYT` pochodzą z widoku harmonogramu w Oracle.
+Popup kalendarza pokazuje nazwy z `RODZAJE_WIZYT`. Lokalny słownik
+`pk_rodzaje_wizyt_eskulap` pozostaje rezerwowym źródłem nazw tylko wtedy, gdy
+widok Oracle zwróci kody bez nazw. Jeśli nazwa nadal nie jest dostępna, UI
+pokazuje komunikat w formacie `F99 — brak nazwy rodzaju wizyty`.
+## Popup kalendarza
+
+Popup szczegółów komórki kalendarza wyświetla użytkownikowi nazwy rodzajów
+wizyt z pola `RODZAJE_WIZYT` widoku
+`ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`. `RODZAJE_WIZYT_KODY` pozostaje
+polem technicznym do diagnostyki i fallbacku, gdy widok nie zwróci nazwy.

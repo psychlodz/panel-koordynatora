@@ -528,7 +528,10 @@ class PlanPracyApp(QWidget):
         if rows.empty:
             return rows
         result = []
-        for person, group in rows.groupby("PRACOWNIK", dropna=False):
+        for (person, godz_od, godz_do), group in rows.groupby(
+            ["PRACOWNIK", "GODZ_OD", "GODZ_DO"],
+            dropna=False,
+        ):
             labels = []
             tooltips = []
             seen = set()
@@ -561,6 +564,7 @@ class PlanPracyApp(QWidget):
             result.append(
                 {
                     "PRACOWNIK": str(person or "[bez pracownika]"),
+                    "GODZINY": f"{godz_od}–{godz_do}",
                     "RODZAJE_WIZYT": "; ".join(
                         sorted(labels, key=str.casefold)
                     ),
@@ -568,7 +572,7 @@ class PlanPracyApp(QWidget):
                     or "; ".join(sorted(labels, key=str.casefold)),
                 }
             )
-        return pd.DataFrame(result).sort_values("PRACOWNIK")
+        return pd.DataFrame(result).sort_values(["PRACOWNIK", "GODZINY"])
 
     def rysuj_tabele(self, df: pd.DataFrame, start, end):
         dni = pd.date_range(start=start, end=end, freq="D")
@@ -636,15 +640,6 @@ class PlanPracyApp(QWidget):
         if rows.empty:
             return
         visit_type_rows = self.detail_visit_type_rows_for_cell(cell_rows)
-        visit_types_by_person = {
-            str(rec["PRACOWNIK"]): {
-                "text": str(rec["RODZAJE_WIZYT"]),
-                "tooltip": str(
-                    rec.get("RODZAJE_WIZYT_TOOLTIP", rec["RODZAJE_WIZYT"])
-                ),
-            }
-            for _, rec in visit_type_rows.iterrows()
-        }
 
         dlg = QDialog(self)
         dlg.setWindowTitle(f"{APP_NAME} — {day_date.isoformat()} {DNI_TYG[day_date.weekday()]}, godz. {slot}")
@@ -654,37 +649,33 @@ class PlanPracyApp(QWidget):
         layout.addWidget(title)
 
         tbl = QTableWidget()
-        tbl.setColumnCount(4)
-        tbl.setHorizontalHeaderLabels(["Pracownik", "Od", "Do", "Rodzaje wizyt"])
-        tbl.setRowCount(len(rows))
+        tbl.setColumnCount(3)
+        tbl.setHorizontalHeaderLabels(["Pracownik", "Godziny", "Rodzaje wizyt"])
+        tbl.setRowCount(len(visit_type_rows))
         tbl.setWordWrap(True)
-        for r_idx, (_, rec) in enumerate(rows.iterrows()):
+        for r_idx, (_, rec) in enumerate(visit_type_rows.iterrows()):
             person = str(rec["PRACOWNIK"])
             color = QColor(self.color_for_person(person))
-            visit_type_info = visit_types_by_person.get(
-                person,
-                {
-                    "text": "Brak określonych rodzajów wizyt",
-                    "tooltip": "Brak określonych rodzajów wizyt",
-                },
+            visit_types = str(rec["RODZAJE_WIZYT"])
+            visit_types_tooltip = str(
+                rec.get("RODZAJE_WIZYT_TOOLTIP", visit_types)
             )
             vals = [
                 person,
-                str(rec["GODZ_OD"]),
-                str(rec["GODZ_DO"]),
-                visit_type_info["text"],
+                str(rec["GODZINY"]),
+                visit_types,
             ]
             for c_idx, val in enumerate(vals):
                 it = QTableWidgetItem(val)
                 if c_idx == 0:
                     it.setForeground(QBrush(color))
-                if c_idx == 3:
-                    it.setToolTip(visit_type_info["tooltip"])
+                if c_idx == 2:
+                    it.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+                    it.setToolTip(visit_types_tooltip)
                 tbl.setItem(r_idx, c_idx, it)
         tbl.resizeColumnsToContents()
-        tbl.setColumnWidth(0, max(180, tbl.columnWidth(0)))
-        tbl.setColumnWidth(1, 80)
-        tbl.setColumnWidth(2, 80)
+        tbl.setColumnWidth(0, max(220, int(tbl.width() * 0.30)))
+        tbl.setColumnWidth(1, max(110, int(tbl.width() * 0.15)))
         tbl.horizontalHeader().setStretchLastSection(True)
         tbl.resizeRowsToContents()
         layout.addWidget(tbl)

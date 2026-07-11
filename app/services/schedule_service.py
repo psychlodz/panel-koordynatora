@@ -74,6 +74,7 @@ class ScheduleService:
             {
                 str(code or "").strip().upper()
                 for entry in entries
+                if not entry.rodzaje_wizyt_nazwy_lista
                 for code in (entry.rodzaje_wizyt_lista or [])
                 if str(code or "").strip()
             }
@@ -181,26 +182,16 @@ class ScheduleService:
             return text, text
 
         labels = []
-        missing = []
         seen = set()
         for code in codes:
-            if code in names:
-                label = f"{code} — {names[code]}"
+            if code in names and str(names[code] or "").strip():
+                label = str(names[code]).strip()
             else:
-                label = code
-                missing.append(code)
+                label = f"{code} — brak nazwy rodzaju wizyty"
             if label in seen:
                 continue
             seen.add(label)
             labels.append(label)
 
         display = "; ".join(sorted(labels, key=str.casefold))
-        if missing:
-            tooltip = (
-                f"{display}\n\n"
-                "Nazwa niedostępna. Zsynchronizuj słownik rodzajów wizyt "
-                "w Administracji."
-            )
-        else:
-            tooltip = display
-        return display, tooltip
+        return display, display

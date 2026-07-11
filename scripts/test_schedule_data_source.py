@@ -109,6 +109,18 @@ def main():
         "rodzaje_wizyt_nazwy_lista" in read("app/models/work_schedule.py"),
         "Model harmonogramu nie rozdziela nazw rodzajów wizyt.",
     )
+    require(
+        "brak nazwy rodzaju wizyty" in service,
+        "ScheduleService nie ma fallbacku dla kodu bez nazwy rodzaju wizyty.",
+    )
+    require(
+        "entry.rodzaje_wizyt_nazwy_lista" in service,
+        "ScheduleService nie preferuje nazw RODZAJE_WIZYT z widoku Oracle.",
+    )
+    require(
+        "if not entry.rodzaje_wizyt_nazwy_lista" in service,
+        "ScheduleService powinien używać lokalnego słownika tylko jako fallback.",
+    )
 
     for doc_path in (
         "docs/API/ESKULAP_GATEWAY.md",

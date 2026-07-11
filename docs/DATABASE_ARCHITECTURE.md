@@ -55,6 +55,8 @@ UI Harmonogramu
 Używane kolumny widoku: `JO_ID`, `JO_SYMBOL`, `JO_NAZWA`, `DATA_DNIA`,
 `DATA_TEKST`, `DZIEN_TYG`, `PRACOWNIK_ID`, `PRACOWNIK`, `GODZ_OD`,
 `GODZ_DO`, `PLN_ID`, `PLN_OPIS`, `RODZAJE_WIZYT_KODY`, `RODZAJE_WIZYT`.
+Popup kalendarza wyświetla nazwy z `RODZAJE_WIZYT`; kody są traktowane jako
+dane techniczne.
 Filtrowanie odbywa się po `JO_ID`, zakresie `DATA_DNIA` oraz opcjonalnie po
 `PRACOWNIK_ID`.
 

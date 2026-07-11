@@ -147,10 +147,13 @@ nie są zapisywane do Oracle.
 `RODZAJE_WIZYT_KODY` zawiera zagregowane, unikalne kody
 `WP_PARAMETR`, a `RODZAJE_WIZYT` zawiera odpowiadające im nazwy z
 `V_KOMPAS_PARAMETRY_WIZYT`.
+Popup kalendarza pokazuje użytkownikowi `RODZAJE_WIZYT`; kody pozostają
+danymi technicznymi do diagnostyki i fallbacku.
 `RI_PLAN_PRACY_WARUNKI_NEW.PLW_WP_PARAMETR` dla danego `PLN_ID`.
-Gateway rozdziela tekst na `rodzaje_wizyt_lista`, ale nie dekoduje nazw
-z PostgreSQL. Nazwy do prezentacji uzupełnia `ScheduleService` na podstawie
-lokalnego cache mapowania rodzajów wizyt.
+Gateway rozdziela kody na `rodzaje_wizyt_lista`, a nazwy z Oracle na
+`rodzaje_wizyt_nazwy_lista`. `ScheduleService` preferuje nazwy z
+`RODZAJE_WIZYT`; lokalny słownik PostgreSQL jest używany tylko jako fallback,
+gdy widok Oracle nie zwróci nazw.
 
 ## Użycie
 
