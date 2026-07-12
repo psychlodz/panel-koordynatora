@@ -31,6 +31,10 @@ from app.repositories.episode_repository import (
 )
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 from app.services import episode_path_service
+from app.services.debug_logging import (
+    application_log_path,
+    configure_application_logging,
+)
 from app.services.episode_synchronization_service import EpisodeSynchronizationService
 from app.services.episode_state_service import EpisodeStateService
 from app.services.work_context import work_context
@@ -566,11 +570,13 @@ class EpisodeDetailsDialog(QDialog):
     def _episode_refresh_finished(self, summary):
         self._refresh_process(self._refresh_selected_element_id)
         if summary.errors:
+            log_path = configure_application_logging() or application_log_path()
             QMessageBox.warning(
                 self,
                 "KOMPAS",
                 "Odświeżenie epizodu zakończyło się z ostrzeżeniami. "
-                "Szczegóły zapisano w logu.",
+                "Szczegóły zapisano w logu:\n\n"
+                f"{log_path}",
             )
             logger.warning(
                 "Odświeżenie epizodu %s: %s",
@@ -585,6 +591,7 @@ class EpisodeDetailsDialog(QDialog):
             )
 
     def _episode_refresh_failed(self, message):
+        log_path = configure_application_logging() or application_log_path()
         logger.error(
             "Nie udało się odświeżyć epizodu %s z Eskulapa: %s",
             self.episode["epizod_id"],
@@ -594,7 +601,8 @@ class EpisodeDetailsDialog(QDialog):
             self,
             "KOMPAS",
             "Nie udało się odświeżyć danych z Eskulapa. "
-            "Szczegóły techniczne zapisano w logu.",
+            "Szczegóły techniczne zapisano w logu:\n\n"
+            f"{log_path}",
         )
 
     def _episode_refresh_cleanup(self):

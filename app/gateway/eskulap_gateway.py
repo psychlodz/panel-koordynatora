@@ -182,8 +182,14 @@ class EskulapGateway:
     def get_patient_consultations(
         self,
         patient_id,
+        date_from=None,
+        date_to=None,
     ) -> list[Consultation]:
-        events = self._events.get_patient_consultations(patient_id)
+        events = self._events.get_patient_consultations(
+            patient_id,
+            date_from,
+            date_to,
+        )
         return [
             _event_to_model(Consultation, event)
             for event in events
@@ -192,8 +198,14 @@ class EskulapGateway:
     def get_patient_laboratory_orders(
         self,
         patient_id,
+        date_from=None,
+        date_to=None,
     ) -> list[LaboratoryOrder]:
-        events = self._events.get_patient_laboratory_orders(patient_id)
+        events = self._events.get_patient_laboratory_orders(
+            patient_id,
+            date_from,
+            date_to,
+        )
         return [
             _event_to_model(LaboratoryOrder, event)
             for event in events
@@ -202,8 +214,14 @@ class EskulapGateway:
     def get_patient_imaging_orders(
         self,
         patient_id,
+        date_from=None,
+        date_to=None,
     ) -> list[ImagingOrder]:
-        events = self._events.get_patient_imaging_orders(patient_id)
+        events = self._events.get_patient_imaging_orders(
+            patient_id,
+            date_from,
+            date_to,
+        )
         return [
             _event_to_model(ImagingOrder, event)
             for event in events

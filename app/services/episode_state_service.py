@@ -283,11 +283,11 @@ class EpisodeStateService:
         block_code = str(row.get("klocek_kod") or "").strip().upper()
         has_visit = bool(row.get("eskulap_id"))
         planned = row.get("data_zaplanowana")
-        realized = row.get("data_realizacji") or row.get("eskulap_data_wizyty")
+        realized = row.get("data_realizacji")
 
         if block_code == PKK_KWAL_BLOCK_CODE:
             status = STATUS_COMPLETED
-            status_at = realized
+            status_at = realized or row.get("eskulap_data_wizyty")
         elif decision == "B":
             status = STATUS_CANCELLED
             status_at = row.get("eskulap_data_wizyty") or realized

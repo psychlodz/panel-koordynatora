@@ -12,7 +12,9 @@ from app.repositories.episode_element_repository import record_history
 SYSTEM_USER = "SYSTEM"
 SYNC_REASON = "Synchronizacja z Eskulap."
 SOURCE_SYSTEM = "ESKULAP"
+SOURCE_CONSULTATION = "ESKULAP_KONSULTACJE"
 PKK_KWAL_BLOCK_CODE = "PKK_KWAL"
+CONSULTATION_BLOCK_PREFIX = "KONSULTACJA"
 
 STATUS_TO_PLAN = "DO_ZAPLANOWANIA"
 
@@ -47,7 +49,15 @@ def _as_datetime(value):
 
 
 def _event_key(visit):
-    return SOURCE_SYSTEM, str(getattr(visit, "oracle_id", "") or "")
+    return _event_source(visit), str(getattr(visit, "oracle_id", "") or "")
+
+
+def _event_source(event):
+    event_type = str(getattr(event, "event_type", "") or "").upper()
+    source = str(getattr(event, "source", "") or "").upper()
+    if event_type == "CONSULTATION" or "KONSULTACJE" in source:
+        return SOURCE_CONSULTATION
+    return SOURCE_SYSTEM
 
 
 def _decision(visit):
@@ -105,6 +115,46 @@ def match_visits_to_elements(elements, visits, visit_mapping, used_visit_keys=No
     return assignments
 
 
+def match_consultations_to_elements(elements, consultations, used_event_keys=None):
+    free_elements = []
+    for element in sorted(
+        elements,
+        key=lambda row: (
+            int(row.get("lp") or 0),
+            int(row.get("epizod_element_id") or 0),
+        ),
+    ):
+        if element.get("eskulap_id"):
+            continue
+        block_code = str(element.get("klocek_kod") or "").strip().upper()
+        if block_code.startswith(CONSULTATION_BLOCK_PREFIX):
+            free_elements.append(element)
+
+    assignments = []
+    used_event_keys = set(used_event_keys or set())
+    sorted_consultations = sorted(
+        consultations,
+        key=lambda consultation: (
+            _as_datetime(
+                getattr(consultation, "planned_date", None)
+                or getattr(consultation, "event_date", None)
+            )
+            or datetime.max,
+            str(getattr(consultation, "oracle_id", "") or ""),
+        ),
+    )
+    for consultation in sorted_consultations:
+        event_key = _event_key(consultation)
+        if event_key in used_event_keys:
+            continue
+        if not free_elements:
+            break
+        element = free_elements.pop(0)
+        used_event_keys.add(event_key)
+        assignments.append((element, consultation))
+    return assignments
+
+
 class EpisodeSynchronizationService:
     def __init__(self, gateway=None):
         if gateway is None:
@@ -128,11 +178,16 @@ class EpisodeSynchronizationService:
                             episode["pacjent_id"],
                             date_from=episode["data_start"],
                         )
-                        summary.visits += len(visits)
+                        consultations = self.gateway.get_patient_consultations(
+                            episode["pacjent_id"],
+                            date_from=episode["data_start"],
+                        )
+                        summary.visits += len(visits) + len(consultations)
                         result = self._synchronize_episode(
                             connection,
                             episode,
                             visits,
+                            consultations,
                             visit_mapping,
                             globally_used_visits,
                         )
@@ -161,11 +216,16 @@ class EpisodeSynchronizationService:
                         episode["pacjent_id"],
                         date_from=episode["data_start"],
                     )
-                    summary.visits = len(visits)
+                    consultations = self.gateway.get_patient_consultations(
+                        episode["pacjent_id"],
+                        date_from=episode["data_start"],
+                    )
+                    summary.visits = len(visits) + len(consultations)
                     result = self._synchronize_episode(
                         connection,
                         episode,
                         visits,
+                        consultations,
                         visit_mapping,
                         globally_used_visits,
                     )
@@ -253,7 +313,8 @@ class EpisodeSynchronizationService:
             system = str(row["eskulap_system"])
             oracle_id = str(row["eskulap_id"])
             keys.add((system, oracle_id))
-            keys.add((SOURCE_SYSTEM, oracle_id))
+            if system != SOURCE_CONSULTATION:
+                keys.add((SOURCE_SYSTEM, oracle_id))
         return keys
 
     def _episode_elements(self, connection, epizod_id):
@@ -289,6 +350,7 @@ class EpisodeSynchronizationService:
         connection,
         episode,
         visits,
+        consultations,
         visit_mapping,
         globally_used_visits,
     ):
@@ -320,6 +382,26 @@ class EpisodeSynchronizationService:
             task_id = self._ensure_task(connection, episode, element)
             if self._update_task_from_visit(connection, task_id, element, visit):
                 globally_used_visits.add(_event_key(visit))
+                result["new_assignments"] += 1
+
+        unused_consultations = [
+            consultation
+            for consultation in consultations
+            if _event_key(consultation) not in globally_used_visits
+        ]
+        for element, consultation in match_consultations_to_elements(
+            elements,
+            unused_consultations,
+            globally_used_visits,
+        ):
+            task_id = self._ensure_task(connection, episode, element)
+            if self._update_task_from_visit(
+                connection,
+                task_id,
+                element,
+                consultation,
+            ):
+                globally_used_visits.add(_event_key(consultation))
                 result["new_assignments"] += 1
         return result
 
@@ -363,27 +445,38 @@ class EpisodeSynchronizationService:
     ):
         before = self._task_snapshot(connection, task_id)
         event_date = getattr(visit, "event_date", None) if visit is not None else None
+        planned_date = (
+            getattr(visit, "planned_date", None)
+            if visit is not None
+            else None
+        )
         visit_name = (
             getattr(visit, "parametr_nazwa", None)
+            or getattr(visit, "description", None)
             if visit is not None
             else "Wizyta kwalifikacyjna PKK"
         )
         worker = getattr(visit, "employee_name", None) if visit is not None else None
         oracle_id = getattr(visit, "oracle_id", None) if visit is not None else None
         decision = _decision(visit) if visit is not None else None
-        source = SOURCE_SYSTEM
+        source = _event_source(visit) if visit is not None else SOURCE_SYSTEM
+        realization_date = event_date if decision == "J" else None
+        scheduled_date = planned_date or event_date
 
         changed = (
             not before
             or str(before.get("eskulap_id") or "") != str(oracle_id or "")
             or str(before.get("eskulap_decyzja") or "") != str(decision or "")
+            or str(before.get("data_zaplanowana") or "") != str(scheduled_date or "")
+            or str(before.get("data_realizacji") or "") != str(realization_date or "")
         )
         if not changed:
             return False
         connection.execute(
             """
             UPDATE pk_zadania
-            SET data_realizacji = COALESCE(?, data_realizacji),
+            SET data_zaplanowana = COALESCE(?, data_zaplanowana),
+                data_realizacji = COALESCE(?, data_realizacji),
                 eskulap_system = COALESCE(?, eskulap_system),
                 eskulap_id = COALESCE(?, eskulap_id),
                 eskulap_pracownik = COALESCE(?, eskulap_pracownik),
@@ -395,11 +488,12 @@ class EpisodeSynchronizationService:
             WHERE zadanie_id = ?
             """,
             (
-                event_date,
+                scheduled_date,
+                realization_date,
                 source,
                 str(oracle_id) if oracle_id is not None else None,
                 worker,
-                event_date,
+                event_date or scheduled_date,
                 visit_name,
                 decision,
                 SYNC_REASON,
