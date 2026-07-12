@@ -158,6 +158,39 @@ class EpisodeSynchronizationService:
                         )
             return summary
 
+    def synchronize_episode(self, epizod_id) -> EpisodeSynchronizationSummary:
+        summary = EpisodeSynchronizationSummary()
+        with closing(create_connection()) as connection:
+            with connection:
+                episode = self._get_active_episode(connection, epizod_id)
+                if episode is None:
+                    summary.errors.append(
+                        f"Nie znaleziono aktywnego epizodu {epizod_id}."
+                    )
+                    return summary
+                summary.episodes = 1
+                visit_mapping = self._visit_mapping(connection)
+                globally_used_visits = self._used_visit_keys(connection)
+                try:
+                    visits = self.gateway.get_patient_visits(
+                        episode["pacjent_id"],
+                        date_from=episode["data_start"],
+                    )
+                    summary.visits = len(visits)
+                    result = self._synchronize_episode(
+                        connection,
+                        episode,
+                        visits,
+                        visit_mapping,
+                        globally_used_visits,
+                    )
+                    summary.new_assignments = result["new_assignments"]
+                    summary.status_changes = result["status_changes"]
+                except Exception as exc:
+                    summary.errors.append(f"Epizod {epizod_id}: {exc}")
+                    raise
+            return summary
+
     def _list_active_episodes(self, connection):
         rows = connection.execute(
             f"""
@@ -174,6 +207,24 @@ class EpisodeSynchronizationService:
             """
         ).fetchall()
         return [dict(row) for row in rows]
+
+    def _get_active_episode(self, connection, epizod_id):
+        row = connection.execute(
+            f"""
+            SELECT
+                epizod_id,
+                {patient_id_column()} AS pacjent_id,
+                data_start,
+                source_system,
+                source_type,
+                source_id
+            FROM pk_epizody
+            WHERE epizod_id = ?
+              AND data_zakonczenia IS NULL
+            """,
+            (epizod_id,),
+        ).fetchone()
+        return dict(row) if row is not None else None
 
     def _visit_mapping(self, connection):
         rows = connection.execute(
