@@ -11,6 +11,7 @@ sys.modules.setdefault("oracledb", SimpleNamespace(connect=lambda *a, **k: None)
 
 from app.services.episode_synchronization_service import (
     PKK_KWAL_BLOCK_CODE,
+    EpisodeSynchronizationService,
     match_consultations_to_elements,
     match_visits_to_elements,
 )
@@ -70,6 +71,51 @@ class FakeConnection:
             )
         if normalized.startswith("INSERT INTO PK_EPIZOD_ELEMENTY_HISTORIA"):
             self.insert_parameters = parameters
+            return SimpleNamespace(fetchone=lambda: None)
+        raise AssertionError(f"Nieobsługiwany SQL w teście: {sql}")
+
+
+class FakeSyncConnection:
+    def __init__(self):
+        self.task = {
+            "zadanie_id": 10,
+            "data_zaplanowana": "2026-07-12 10:00:00",
+            "data_realizacji": "2026-07-12 10:00:00",
+            "eskulap_system": "ESKULAP",
+            "eskulap_id": "901",
+            "eskulap_pracownik": "Lekarz Testowy",
+            "eskulap_data_wizyty": "2026-07-12 10:00:00",
+            "eskulap_rodzaj_wizyty": "Wizyta laryngologiczna",
+            "eskulap_decyzja": "J",
+        }
+        self.history_inserted = False
+
+    def execute(self, sql, parameters=()):
+        normalized = " ".join(sql.split()).upper()
+        if normalized.startswith("SELECT * FROM PK_ZADANIA"):
+            return SimpleNamespace(fetchone=lambda: dict(self.task))
+        if normalized.startswith("UPDATE PK_ZADANIA"):
+            for field in (
+                "data_zaplanowana",
+                "data_realizacji",
+                "eskulap_system",
+                "eskulap_id",
+                "eskulap_pracownik",
+                "eskulap_data_wizyty",
+                "eskulap_rodzaj_wizyty",
+                "eskulap_decyzja",
+            ):
+                self.task[field] = None
+            return SimpleNamespace(fetchone=lambda: None)
+        if normalized.startswith("SELECT * FROM PK_EPIZOD_ELEMENTY"):
+            return SimpleNamespace(
+                fetchone=lambda: {
+                    "epizod_element_id": parameters[0],
+                    "epizod_id": 77,
+                }
+            )
+        if normalized.startswith("INSERT INTO PK_EPIZOD_ELEMENTY_HISTORIA"):
+            self.history_inserted = True
             return SimpleNamespace(fetchone=lambda: None)
         raise AssertionError(f"Nieobsługiwany SQL w teście: {sql}")
 
@@ -167,6 +213,26 @@ def test_consultation_does_not_match_visit_based_consultation_block():
     )
     assert len(assignments) == 1
     assert assignments[0][0]["klocek_kod"] == "KONSULTACJA_SPECJALISTYCZNA"
+
+
+def test_invalid_specialist_consultation_visit_assignment_is_cleared():
+    connection = FakeSyncConnection()
+    element_row = element(77, "KONSULTACJA_SPECJALISTYCZNA", 1, eskulap_id="901")
+    element_row["zadanie_id"] = 10
+    element_row["eskulap_system"] = "ESKULAP"
+
+    changed = EpisodeSynchronizationService(
+        gateway=SimpleNamespace()
+    )._clear_invalid_specialist_consultation_assignment(
+        connection,
+        element_row,
+    )
+
+    assert changed
+    assert connection.task["eskulap_system"] is None
+    assert connection.task["eskulap_id"] is None
+    assert connection.task["data_realizacji"] is None
+    assert connection.history_inserted
 
 
 def test_planned_eskulap_visit_is_planned_status():
@@ -305,6 +371,7 @@ def main():
     test_consultation_matches_first_free_consultation_block()
     test_visit_does_not_match_specialist_consultation_block()
     test_consultation_does_not_match_visit_based_consultation_block()
+    test_invalid_specialist_consultation_visit_assignment_is_cleared()
     test_planned_eskulap_visit_is_planned_status()
     test_record_history_fetches_episode_when_payload_is_task_only()
     test_event_repository_maps_planned_visit_date()

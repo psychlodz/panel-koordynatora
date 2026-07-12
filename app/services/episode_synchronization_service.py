@@ -376,6 +376,12 @@ class EpisodeSynchronizationService:
                 ):
                     result["new_assignments"] += 1
 
+        for element in elements:
+            self._clear_invalid_specialist_consultation_assignment(
+                connection,
+                element,
+            )
+
         unused_visits = [
             visit
             for visit in visits
@@ -443,6 +449,56 @@ class EpisodeSynchronizationService:
             ),
         )
         return int(cursor.lastrowid)
+
+    def _clear_invalid_specialist_consultation_assignment(self, connection, element):
+        if not is_specialist_consultation_block(element.get("klocek_kod")):
+            return False
+        source = str(element.get("eskulap_system") or "").strip().upper()
+        if not source or source == SOURCE_CONSULTATION:
+            return False
+        task_id = element.get("zadanie_id")
+        if not task_id:
+            return False
+
+        before = self._task_snapshot(connection, task_id)
+        connection.execute(
+            """
+            UPDATE pk_zadania
+            SET data_zaplanowana = NULL,
+                data_realizacji = NULL,
+                eskulap_system = NULL,
+                eskulap_id = NULL,
+                eskulap_pracownik = NULL,
+                eskulap_data_wizyty = NULL,
+                eskulap_rodzaj_wizyty = NULL,
+                eskulap_decyzja = NULL,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE zadanie_id = ?
+            """,
+            (task_id,),
+        )
+        after = self._task_snapshot(connection, task_id)
+        record_history(
+            connection,
+            element["epizod_element_id"],
+            "EDYCJA",
+            before={"zadanie": before},
+            after={"zadanie": after},
+            reason=(
+                f"{SYNC_REASON} Usunięto błędne powiązanie konsultacji "
+                "specjalistycznej z wizytą Eskulap."
+            ),
+            user_id=SYSTEM_USER,
+        )
+        element.update(
+            {
+                "data_zaplanowana": None,
+                "data_realizacji": None,
+                "eskulap_system": None,
+                "eskulap_id": None,
+            }
+        )
+        return True
 
     def _update_task_from_visit(
         self,

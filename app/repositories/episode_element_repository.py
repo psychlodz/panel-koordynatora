@@ -22,6 +22,8 @@ ACTIVE_TASK_STATUSES = {
     "W_REALIZACJI",
     "W REALIZACJI",
 }
+SOURCE_CONSULTATION = "ESKULAP_KONSULTACJE"
+SPECIALIST_CONSULTATION_BLOCK_CODES = {"KONSULTACJA_SPECJALISTYCZNA"}
 TERMINAL_TASK_STATUSES = COMPLETED_STATUSES | {"ANULOWANE", "POMINIETE", "POMINIĘTE"}
 
 
@@ -41,6 +43,16 @@ def _user_id(user_id):
 
 def _row_dict(row):
     return dict(row) if row is not None else None
+
+
+def _is_invalid_specialist_consultation_assignment(row):
+    block_code = str(row["klocek_kod"] or "").strip().upper()
+    source = str(row["eskulap_system"] or "").strip().upper()
+    return (
+        block_code in SPECIALIST_CONSULTATION_BLOCK_CODES
+        and source
+        and source != SOURCE_CONSULTATION
+    )
 
 
 def _element_snapshot(connection, epizod_element_id):
@@ -265,20 +277,35 @@ def get_episode_element(epizod_element_id):
 
 
 def _blocking_realization(connection, epizod_element_id):
-    return connection.execute(
+    rows = connection.execute(
         """
-        SELECT zadanie_id, status, data_realizacji, eskulap_system, eskulap_id
-        FROM pk_zadania
-        WHERE epizod_element_id = ?
+        SELECT
+            z.zadanie_id,
+            z.status,
+            z.data_realizacji,
+            z.eskulap_system,
+            z.eskulap_id,
+            k.kod AS klocek_kod
+        FROM pk_zadania z
+        JOIN pk_epizod_elementy ee
+            ON ee.epizod_element_id = z.epizod_element_id
+        JOIN pk_klocki k
+            ON k.klocek_id = ee.klocek_id
+        WHERE z.epizod_element_id = ?
           AND (
-              UPPER(status) IN ('ZAKONCZONE', 'ZAKOŃCZONE', 'ZREALIZOWANO', 'ZREALIZOWANE')
-              OR data_realizacji IS NOT NULL
-              OR eskulap_id IS NOT NULL
+              UPPER(z.status) IN ('ZAKONCZONE', 'ZAKOŃCZONE', 'ZREALIZOWANO', 'ZREALIZOWANE')
+              OR z.data_realizacji IS NOT NULL
+              OR z.eskulap_id IS NOT NULL
           )
-        LIMIT 1
+        ORDER BY z.zadanie_id
         """,
         (epizod_element_id,),
-    ).fetchone()
+    ).fetchall()
+    for row in rows:
+        if _is_invalid_specialist_consultation_assignment(row):
+            continue
+        return row
+    return None
 
 
 def can_deactivate_element(epizod_element_id) -> dict:
