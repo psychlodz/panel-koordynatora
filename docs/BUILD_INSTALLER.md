@@ -26,13 +26,13 @@ Skrypt:
 3. tworzy katalog:
 
 ```text
-release/KOMPAS_0.9.0/
+release/KOMPAS_1.0.0/
 ```
 
 4. zapisuje:
 
 ```text
-release/KOMPAS_0.9.0/VERSION.txt
+release/KOMPAS_1.0.0/VERSION.txt
 ```
 
 Do wydania trafia `config.example.ini`, nie produkcyjny `config.ini`.
@@ -67,7 +67,7 @@ Skrypt:
 2. sprawdza, czy istnieje:
 
 ```text
-release/KOMPAS_0.9.0/KOMPAS.exe
+release/KOMPAS_1.0.0/KOMPAS.exe
 ```
 
 3. sprawdza `VERSION.txt` i `config.example.ini`;
@@ -80,7 +80,7 @@ ISCC installer/KOMPAS.iss
 5. zapisuje instalator w:
 
 ```text
-release/installers/KOMPAS_Setup_0.9.0.exe
+release/installers/KOMPAS_Setup_1.0.0.exe
 ```
 
 ## 4. Ręczna kompilacja pliku ISS
@@ -94,7 +94,7 @@ ISCC installer/KOMPAS.iss
 Plik `installer/KOMPAS.iss` pakuje katalog:
 
 ```text
-release/KOMPAS_0.9.0/
+release/KOMPAS_1.0.0/
 ```
 
 ## 5. Sprawdzenie wersji instalatora
@@ -105,10 +105,10 @@ Wersja aplikacji jest zdefiniowana w:
 version.py
 ```
 
-Dla wersji `0.9.0` instalator powinien mieć nazwę:
+Dla wersji `1.0.0` instalator powinien mieć nazwę:
 
 ```text
-KOMPAS_Setup_0.9.0.exe
+KOMPAS_Setup_1.0.0.exe
 ```
 
 W katalogu instalacji powinien znaleźć się plik:
@@ -130,7 +130,6 @@ Instalator zawiera:
 Instalator nie powinien zawierać:
 
 - `config.ini` z hasłami;
-- `kompas.db`;
 - `.git/`;
 - `.idea/`;
 - plików tymczasowych;
@@ -139,7 +138,7 @@ Instalator nie powinien zawierać:
 
 ## 7. Test instalatora
 
-1. Uruchom `release/installers/KOMPAS_Setup_0.9.0.exe`.
+1. Uruchom `release/installers/KOMPAS_Setup_1.0.0.exe`.
 2. Zainstaluj do domyślnego katalogu:
 
 ```text

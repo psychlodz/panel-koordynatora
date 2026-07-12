@@ -9,7 +9,7 @@
 5. Pozostaw port `5432`, jeżeli nie koliduje z inną usługą.
 6. Ustaw usługę PostgreSQL na automatyczne uruchamianie.
 
-Skrypty KOMPAS należy wykonywać w `psql`, a nie w SQLite.
+Skrypty KOMPAS należy wykonywać w `psql`.
 
 ## 2. Utworzenie roli i bazy
 
@@ -190,8 +190,7 @@ postgres_dsn=host=SERVER port=5432 dbname=kompas user=kompas_app password=HASLO
 Alternatywnie cały DSN umieść w zmiennej `KOMPAS_POSTGRES_DSN`. Ma ona
 pierwszeństwo przed wartością z pliku.
 
-SQLite nie jest wspierany. Brak poprawnego DSN zatrzymuje dostęp do
-modułów KOMPAS i nie powoduje utworzenia lokalnego pliku bazy.
+Brak poprawnego DSN PostgreSQL zatrzymuje dostęp do modułów KOMPAS.
 
 ## 8. Test z serwera i klienta
 

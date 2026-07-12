@@ -54,7 +54,7 @@ LEFT JOIN RI_OWNER.CG_REF_CODES crc
    AND crc.rv_low_value = wp.wp_parametr;
 /
 
--- TODO: jeżeli CG_REF_CODES nie znajduje się w schemacie RI_OWNER,
+-- Jeżeli CG_REF_CODES nie znajduje się w schemacie RI_OWNER,
 -- administrator powinien zastąpić powyższy JOIN wariantem:
 -- LEFT JOIN CG_REF_CODES crc
 --     ON crc.rv_domain = 'PARAMETRY'
@@ -69,7 +69,7 @@ FROM RI_OWNER.CG_REF_CODES crc
 WHERE crc.rv_domain = 'PARAMETRY';
 /
 
--- TODO: jeżeli CG_REF_CODES nie znajduje się w schemacie RI_OWNER,
+-- Jeżeli CG_REF_CODES nie znajduje się w schemacie RI_OWNER,
 -- należy odtworzyć widok pomocniczy z FROM CG_REF_CODES crc.
 
 CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ AS
@@ -164,13 +164,6 @@ WHERE NVL(pln.pln_czy_aktualny, 'T') = 'T'
             AND NVL(pln.pln_ni, 'N') = 'T'
         )
   );
-/
-
--- Widok zgodności dla starej nazwy. Nazwa jest przestarzała i powinna zostać
--- usunięta ręcznie po potwierdzeniu działania V_KOMPAS_PLAN_PRACY_KALENDARZ.
-CREATE OR REPLACE VIEW ESK_RAPORTY.V_PLAN_PRACY_KALENDARZ AS
-SELECT *
-FROM ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ;
 /
 
 -- Kontrakt KOMPAS wymaga kolumny DATA_KONSULTACJI.

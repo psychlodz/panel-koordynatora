@@ -161,9 +161,10 @@ gdy widok Oracle nie zwróci nazw.
 `EskulapGateway.get_patient_visits(patient_id, date_from=None, date_to=None)`.
 Gateway zwraca `Visit.status` na podstawie kolumny `DECYZJA` z widoku
 `V_KOMPAS_WIZYTY` oraz `parametr_kod`/`parametr_nazwa`. Kolumna `DECYZJA` jest
-aliasem pola `RI_WIZYTY_W_PORADNIACH.WP_DECYZJA`. KOMPAS używa tych danych
-wyłącznie do aktualizacji własnych zadań i elementów epizodu; nie wykonuje
-żadnych zapisów do Oracle.
+aliasem pola `RI_WIZYTY_W_PORADNIACH.WP_DECYZJA`.
+`EpisodeSynchronizationService` zapisuje powiązanie wizyty z elementem
+epizodu, a `EpisodeStateService` wylicza z tych danych aktualny stan.
+KOMPAS nie wykonuje żadnych zapisów do Oracle.
 
 ## Użycie
 

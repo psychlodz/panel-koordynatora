@@ -21,9 +21,8 @@ Epizod w docelowej bazie PostgreSQL zawiera wyłącznie:
 Identyfikator służy do pobrania aktualnego rekordu pacjenta z Oracle. Nie
 jest podstawą do tworzenia lokalnej kartoteki pacjentów.
 
-PostgreSQL jest jedyną bazą procesową KOMPAS. Historyczne schematy SQLite
-zostały wycofane z działania aplikacji i znajdują się wyłącznie w archiwum
-`db/sqlite_deprecated/`.
+PostgreSQL jest jedyną bazą procesową KOMPAS. Aplikacja nie posiada lokalnej
+bazy procesowej i nie tworzy plikowej kopii danych KOMPAS.
 
 ## Pobieranie danych na żądanie
 

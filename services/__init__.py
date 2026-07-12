@@ -1,1 +1,0 @@
-"""Usługi aplikacyjne KOMPAS."""

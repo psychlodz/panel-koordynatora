@@ -1,5 +1,5 @@
 #define MyAppName "KOMPAS"
-#define MyAppVersion "0.9.0"
+#define MyAppVersion "1.0.0"
 #define MyAppPublisher "KOMPAS"
 #define MyAppExeName "KOMPAS.exe"
 #define ProjectRoot ".."
@@ -37,7 +37,7 @@ Name: "{commonappdata}\KOMPAS\logs"
 Name: "{app}\logs"
 
 [Files]
-Source: "{#ReleaseDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "config.ini,kompas.db,*.tmp,*.bak,*.pyc,__pycache__\*,.git\*,.idea\*"
+Source: "{#ReleaseDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs; Excludes: "config.ini,*.tmp,*.bak,*.pyc,__pycache__\*,.git\*,.idea\*"
 
 [Icons]
 Name: "{group}\KOMPAS"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"

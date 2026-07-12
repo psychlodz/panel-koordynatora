@@ -48,11 +48,12 @@ Widok łączy go ze słownikiem `CG_REF_CODES` dla
 `RV_DOMAIN = 'PARAMETRY'`: `RV_LOW_VALUE` jest kodem, `RV_MEANING` nazwą
 wizyty/porady/sesji/terapii, a `RV_CZY_AKTUALNE` oznacza aktualność.
 
-`RI_WIZYTY_W_PORADNIACH.WP_DECYZJA` jest wykorzystywane przez synchronizację
-epizodów:
+`RI_WIZYTY_W_PORADNIACH.WP_DECYZJA` jest zapisywane jako dane techniczne
+powiązanej wizyty i wykorzystywane przez `EpisodeStateService`:
 
-- `J` — pacjent obsłużony, zadanie otrzymuje status `ZREALIZOWANA`,
-- `B` — wizyta anulowana, zadanie otrzymuje status `ANULOWANA`.
+- `J` — pacjent obsłużony; przy dacie realizacji stan elementu to
+  `ZREALIZOWANA`,
+- `B` — wizyta anulowana; stan elementu to `ANULOWANA`.
 
 ### `ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT`
 

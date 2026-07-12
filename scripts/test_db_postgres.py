@@ -13,7 +13,6 @@ from app.repositories import db_connection
 from app.repositories.db_connection import (
     DatabaseSettings,
     POSTGRES_CONNECTION_ERROR,
-    SQLITE_UNSUPPORTED_ERROR,
     create_connection,
     initialize_database,
 )
@@ -133,13 +132,13 @@ def test_compatibility_layer():
     connection.close()
 
 
-def test_sqlite_is_rejected():
+def test_non_postgres_engine_is_rejected():
     try:
-        initialize_database(DatabaseSettings(engine="sqlite"))
+        initialize_database(DatabaseSettings(engine="legacy"))
     except ValueError as exc:
-        assert str(exc) == SQLITE_UNSUPPORTED_ERROR
+        assert "Obsługiwany jest wyłącznie PostgreSQL" in str(exc)
     else:
-        raise AssertionError("Konfiguracja SQLite nie została odrzucona.")
+        raise AssertionError("Nieobsługiwany silnik bazy nie został odrzucony.")
 
 
 def test_missing_postgres_dsn_is_rejected():
@@ -182,8 +181,8 @@ def test_live_postgres(dsn):
 
 
 def main():
-    test_sqlite_is_rejected()
-    print("Blokada SQLite: OK")
+    test_non_postgres_engine_is_rejected()
+    print("Walidacja silnika bazy: OK")
 
     test_missing_postgres_dsn_is_rejected()
     print("Walidacja konfiguracji PostgreSQL: OK")

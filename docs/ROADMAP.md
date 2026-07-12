@@ -1,52 +1,39 @@
-# Plan refaktoryzacji
+# Roadmap po wydaniu 1.0
 
-Refaktoryzacja powinna przebiegać małymi krokami, z zachowaniem dotychczasowego działania programu.
+Ten dokument opisuje kierunek rozwoju po stabilizacji KOMPAS 1.0.
+Nie jest listą funkcji wymaganych do oznaczenia bieżącej wersji.
 
-## Etap 0 — porządek w repozytorium
+## Priorytet 1 — stabilność operacyjna
 
-- usunąć zbędne pliki tymczasowe;
-- dodać bezpieczny przykład konfiguracji;
-- udokumentować architekturę, historię zmian i plan prac;
-- nie zmieniać kodu aplikacji ani SQL.
+- monitoring błędów synchronizacji z Eskulapem;
+- rozszerzenie logowania diagnostycznego bez ujawniania danych wrażliwych;
+- testy regresji dla Dashboardu, Szczegółów epizodu i Harmonogramu;
+- automatyczna walidacja skryptów PostgreSQL przed wydaniem.
 
-## Etap 1 — testy zachowania
+## Priorytet 2 — administracja i konfiguracja
 
-- dodać testy funkcji czasu, świąt i przedziałów;
-- przetestować przygotowanie danych oraz filtrowanie;
-- utrwalić obecne zachowanie przed rozdzielaniem modułów.
+- edycja słowników biznesowych w module Ustawienia systemu;
+- kontrolowana edycja mapowania rodzajów wizyt;
+- konfiguracja filtrów integracji Eskulap bez zmian w kodzie;
+- podgląd wersji bazy i diagnostyka połączeń.
 
-## Etap 2 — konfiguracja
+## Priorytet 3 — proces koordynatora
 
-- wydzielić odczyt i walidację konfiguracji;
-- dodać czytelne komunikaty o brakujących ustawieniach;
-- oddzielić dane dostępowe od plików dystrybucyjnych.
+- pełniejsza obsługa konsultacji i badań w synchronizacji epizodów;
+- powiadomienia o zadaniach po terminie;
+- raporty postępu programu;
+- eksport danych procesowych bez danych osobowych pacjenta.
 
-## Etap 3 — dostęp do Oracle
+## Priorytet 4 — jakość UI
 
-- wydzielić repozytorium odpowiedzialne za połączenia i zapytania;
-- zachować obecne zapytania i format zwracanych danych;
-- dodać testowalną granicę pomiędzy bazą a aplikacją.
+- dalsze ujednolicenie formularzy administracyjnych;
+- uspójnienie walidacji komunikatów użytkownika;
+- testy manualne w rozdzielczości 1366×768 i wyższych;
+- przygotowanie dokumentacji użytkownika.
 
-## Etap 4 — logika harmonogramu
+## Priorytet 5 — wydania
 
-- przenieść transformacje danych, sloty godzinowe i święta do osobnego modułu;
-- uniezależnić logikę biznesową od PySide6;
-- zoptymalizować grupowanie danych dla komórek kalendarza.
-
-## Etap 5 — interfejs użytkownika
-
-- pozostawić w głównym oknie jedynie obsługę kontrolek i zdarzeń;
-- wykonywać operacje Oracle poza głównym wątkiem;
-- dodać stan ładowania i kontrolowaną obsługę błędów.
-
-## Etap 6 — eksport
-
-- wydzielić generowanie Excela do osobnego serwisu;
-- testować dane eksportu bez uruchamiania interfejsu.
-
-## Etap 7 — powtarzalne wydania
-
-- przypiąć wersje zależności;
-- ograniczyć zawartość paczki PyInstallera;
-- ujednolicić numer wersji;
-- zautomatyzować testy, budowanie EXE i instalatora Inno Setup.
+- checklisty release;
+- podpisywanie instalatora;
+- automatyczne budowanie paczek release;
+- procedura rollbacku klienta i bazy.

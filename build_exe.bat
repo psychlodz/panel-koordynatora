@@ -46,11 +46,6 @@ if errorlevel 1 goto error
 python -m PyInstaller --clean --noconfirm plan_pracy.spec
 if errorlevel 1 goto error
 
-if exist "dist\%APP_NAME%\kompas.db" (
-    echo Build contains unsupported SQLite database kompas.db.
-    goto error
-)
-
 if not exist release mkdir release
 if not exist "%RELEASE_DIR%" mkdir "%RELEASE_DIR%"
 

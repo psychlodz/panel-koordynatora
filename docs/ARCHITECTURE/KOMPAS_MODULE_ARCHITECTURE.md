@@ -85,8 +85,6 @@ Administracja
     ├── Parametry systemu
     ├── Role i uprawnienia
     ├── Diagnostyka
-    ├── Harmonogram usług
-    ├── Powiadomienia
     └── Informacje o systemie
 ```
 
@@ -115,8 +113,7 @@ kontekstowe i dokumentację użytkową. Nie zawiera logiki biznesowej.
    konfiguracyjnych. Wszystkie ustawienia trafiają do „Ustawień systemu”.
 4. Oracle/Eskulap jest źródłem danych medycznych i danych pacjenta.
 5. PostgreSQL przechowuje wyłącznie dane procesowe i konfigurację KOMPAS.
-6. PostgreSQL jest jedyną bazą procesową KOMPAS. Historyczny tryb SQLite
-   nie jest wspierany i nie uczestniczy w działaniu aplikacji.
+6. PostgreSQL jest jedyną bazą procesową KOMPAS.
 7. UI nie odwołuje się bezpośrednio do Oracle. Dostęp do Eskulapa odbywa
    się przez `EskulapGateway`.
    Dotyczy to również modułu Harmonogram pracy.

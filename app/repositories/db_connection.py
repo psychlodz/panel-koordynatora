@@ -15,9 +15,6 @@ POSTGRES_CONNECTION_ERROR = (
     "Brak połączenia z centralną bazą KOMPAS PostgreSQL. "
     "Sprawdź konfigurację."
 )
-SQLITE_UNSUPPORTED_ERROR = (
-    "SQLite nie jest już wspierany. Skonfiguruj PostgreSQL."
-)
 INSERT_IDS = {
     "pk_users": "user_id",
     "pk_roles": "role_id",
@@ -54,12 +51,10 @@ def _config_section(parser):
 
 def _validate_settings(settings):
     engine = str(settings.engine or "").strip().lower()
-    if engine == "sqlite":
-        raise ValueError(SQLITE_UNSUPPORTED_ERROR)
     if engine != SUPPORTED_ENGINE:
         raise ValueError(
             f"Nieobsługiwany silnik bazy KOMPAS: {engine or 'brak'}. "
-            "Skonfiguruj PostgreSQL."
+            "Obsługiwany jest wyłącznie PostgreSQL."
         )
     if not str(settings.postgres_dsn or "").strip():
         raise ValueError(POSTGRES_CONNECTION_ERROR)
@@ -318,7 +313,6 @@ __all__ = [
     "DatabaseConnection",
     "DatabaseSettings",
     "POSTGRES_CONNECTION_ERROR",
-    "SQLITE_UNSUPPORTED_ERROR",
     "create_connection",
     "database_connection",
     "initialize_database",

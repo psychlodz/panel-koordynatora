@@ -11,9 +11,8 @@ KOMPAS korzysta z dwóch systemów danych:
 
 **PostgreSQL jest jedyną bazą procesową KOMPAS.**
 
-SQLite został usunięty z mechanizmu działania aplikacji w DB-PG-3.
-Historyczne pliki znajdują się w `db/sqlite_deprecated/`, nie są wspierane,
-uruchamiane ani pakowane do EXE.
+Aplikacja nie posiada trybu lokalnej bazy procesowej i nie tworzy bazy
+plikowej obok programu.
 
 ## Oracle / Eskulap
 
@@ -115,8 +114,8 @@ postgres_dsn=host=SERVER port=5432 dbname=kompas user=kompas_app password=HASLO
 ```
 
 Zmienna `KOMPAS_POSTGRES_DSN` ma pierwszeństwo przed DSN zapisanym w pliku.
-Brak DSN, błąd połączenia albo próba ustawienia `engine=sqlite` zatrzymuje
-operację z czytelnym komunikatem i nigdy nie tworzy `kompas.db`.
+Brak DSN, błąd połączenia albo ustawienie silnika innego niż `postgres`
+zatrzymuje operację z czytelnym komunikatem.
 
 ## Kodowanie
 
@@ -180,12 +179,18 @@ EpisodeSynchronizationService
         ↓
 PostgreSQL KOMPAS
         ↓
-Dashboard Koordynatora
+EpisodeStateService
+        ↓
+Dashboard Koordynatora / Szczegóły epizodu
 ```
 
 KOMPAS nie zapisuje nic do Oracle. Wizyty pacjenta są pobierane przez Gateway
 z `V_KOMPAS_WIZYTY`, a `WP_PARAMETR` jest dopasowywany do klocka procesu przez
 aktywne rekordy `pk_mapowanie_wizyt`.
+
+`EpisodeSynchronizationService` zapisuje powiązania z wizytami Eskulapa,
+daty, pracownika, rodzaj wizyty i techniczną decyzję Eskulapa. Nie wylicza
+statusów Dashboardu.
 
 Reguły dopasowania:
 
@@ -194,12 +199,13 @@ Reguły dopasowania:
 - jeden element epizodu może mieć tylko jedną przypisaną wizytę,
 - wizyty są przypisywane chronologicznie do pierwszych wolnych elementów
   danego klocka,
-- `PKK_KWAL` jest oznaczany jako `ZREALIZOWANA`, bo kwalifikacja była warunkiem
+- `PKK_KWAL` jest powiązany z wizytą kwalifikacyjną, która była warunkiem
   utworzenia epizodu.
 
-Statusy automatyczne:
+Statusy automatyczne wylicza wyłącznie `EpisodeStateService`:
 
-- `DECYZJA = 'J'` → `ZREALIZOWANA`,
-- `DECYZJA = 'B'` → `ANULOWANA`,
+- `PKK_KWAL` → `ZREALIZOWANA`,
 - istnieje data planowana i brak realizacji → `ZAPLANOWANA`,
-- brak wizyty → pozostaje dotychczasowy status.
+- data realizacji i `DECYZJA = 'J'` → `ZREALIZOWANA`,
+- `DECYZJA = 'B'` → `ANULOWANA`,
+- brak wizyty → `DO_ZAPLANOWANIA`.
