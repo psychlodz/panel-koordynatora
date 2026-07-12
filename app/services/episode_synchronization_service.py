@@ -14,7 +14,7 @@ SYNC_REASON = "Synchronizacja z Eskulap."
 SOURCE_SYSTEM = "ESKULAP"
 SOURCE_CONSULTATION = "ESKULAP_KONSULTACJE"
 PKK_KWAL_BLOCK_CODE = "PKK_KWAL"
-CONSULTATION_BLOCK_PREFIX = "KONSULTACJA"
+SPECIALIST_CONSULTATION_BLOCK_CODES = {"KONSULTACJA_SPECJALISTYCZNA"}
 
 STATUS_TO_PLAN = "DO_ZAPLANOWANIA"
 
@@ -69,6 +69,10 @@ def mapped_block_code(visit, visit_mapping):
     return visit_mapping.get(code)
 
 
+def is_specialist_consultation_block(block_code):
+    return str(block_code or "").strip().upper() in SPECIALIST_CONSULTATION_BLOCK_CODES
+
+
 def match_visits_to_elements(elements, visits, visit_mapping, used_visit_keys=None):
     """Chronologicznie przypisuje wizyty do pierwszych wolnych elementów.
 
@@ -86,7 +90,11 @@ def match_visits_to_elements(elements, visits, visit_mapping, used_visit_keys=No
         if element.get("eskulap_id"):
             continue
         block_code = str(element.get("klocek_kod") or "").strip().upper()
-        if not block_code or block_code == PKK_KWAL_BLOCK_CODE:
+        if (
+            not block_code
+            or block_code == PKK_KWAL_BLOCK_CODE
+            or is_specialist_consultation_block(block_code)
+        ):
             continue
         free_elements_by_block.setdefault(block_code, []).append(element)
 
@@ -127,7 +135,7 @@ def match_consultations_to_elements(elements, consultations, used_event_keys=Non
         if element.get("eskulap_id"):
             continue
         block_code = str(element.get("klocek_kod") or "").strip().upper()
-        if block_code.startswith(CONSULTATION_BLOCK_PREFIX):
+        if is_specialist_consultation_block(block_code):
             free_elements.append(element)
 
     assignments = []

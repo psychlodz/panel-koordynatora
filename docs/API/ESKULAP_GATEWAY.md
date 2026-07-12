@@ -171,6 +171,12 @@ Repozytoria filtrują wizyty po `COALESCE(DATA_WIZYTY, DATA_WIZYTY_DO)`, a
 konsultacje po `COALESCE(DATA_PRZYJECIA, DATA_KONSULTACJI, DATA_PLANOWANA)`,
 więc wpisy zaplanowane w Eskulapie są widoczne w szczegółach epizodu jeszcze
 przed realizacją.
+Klocek `KONSULTACJA_SPECJALISTYCZNA` jest zasilany wyłącznie danymi z widoku
+`V_KOMPAS_KONSULTACJE`. Nie jest uzupełniany przez mapowanie rodzajów wizyt
+`WP_PARAMETR -> klocek`, nawet jeśli administrator omyłkowo utworzy takie
+mapowanie. Klocki wizytowe o nazwach zaczynających się od `KONSULTACJA_`, np.
+psychiatryczne lub psychologiczne, nadal mogą być zasilane z `V_KOMPAS_WIZYTY`,
+jeżeli są mapowane przez `pk_mapowanie_wizyt`.
 `EpisodeSynchronizationService` zapisuje powiązanie wizyty z elementem
 epizodu, a `EpisodeStateService` wylicza z tych danych aktualny stan.
 KOMPAS nie wykonuje żadnych zapisów do Oracle.

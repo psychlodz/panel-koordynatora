@@ -148,6 +148,27 @@ def test_consultation_matches_first_free_consultation_block():
     assert [row[1].oracle_id for row in assignments] == ["601", "602"]
 
 
+def test_visit_does_not_match_specialist_consultation_block():
+    assignments = match_visits_to_elements(
+        [element(1, "KONSULTACJA_SPECJALISTYCZNA", 1)],
+        [visit(901, "F99", "2026-07-01T10:00:00")],
+        {"F99": "KONSULTACJA_SPECJALISTYCZNA"},
+    )
+    assert assignments == []
+
+
+def test_consultation_does_not_match_visit_based_consultation_block():
+    assignments = match_consultations_to_elements(
+        [
+            element(1, "KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA", 1),
+            element(2, "KONSULTACJA_SPECJALISTYCZNA", 2),
+        ],
+        [consultation(902, "2026-07-02T10:00:00")],
+    )
+    assert len(assignments) == 1
+    assert assignments[0][0]["klocek_kod"] == "KONSULTACJA_SPECJALISTYCZNA"
+
+
 def test_planned_eskulap_visit_is_planned_status():
     state = EpisodeStateService()._calculate_element_state(
         {
@@ -282,6 +303,8 @@ def main():
     test_pkk_kwal_not_auto_matched_again()
     test_idempotency_skips_already_linked_element()
     test_consultation_matches_first_free_consultation_block()
+    test_visit_does_not_match_specialist_consultation_block()
+    test_consultation_does_not_match_visit_based_consultation_block()
     test_planned_eskulap_visit_is_planned_status()
     test_record_history_fetches_episode_when_payload_is_task_only()
     test_event_repository_maps_planned_visit_date()
