@@ -40,30 +40,13 @@ INSERT INTO pk_typy_elementow(
 ) VALUES
     ('PKK', 'Punkt konsultacyjno-koordynacyjny', NULL, 10, 1, 1),
     ('WIZYTA', 'Wizyta', NULL, 20, 1, 1),
-    ('SESJA', 'Sesja', NULL, 30, 1, 1),
     ('KONSULTACJA', 'Konsultacja', NULL, 40, 1, 1),
     ('BADANIE_LAB', 'Badanie laboratoryjne', NULL, 50, 1, 1),
     ('BADANIE_GEN', 'Badanie genetyczne', NULL, 60, 1, 1),
     ('BADANIE_OBRAZOWE', 'Badanie obrazowe', NULL, 70, 1, 1),
     ('KONSYLIUM', 'Konsylium', NULL, 80, 1, 1),
-    ('DOKUMENT', 'Dokument', NULL, 90, 1, 1),
-    ('RAPORT', 'Raport', NULL, 100, 1, 1),
+    ('SUPERWIZJA', 'Superwizja', NULL, 90, 1, 1),
     ('ZAKONCZENIE', 'Zakończenie programu', NULL, 110, 1, 1)
-ON CONFLICT DO NOTHING;
-
-INSERT INTO pk_grupy_klockow(
-    kod, nazwa, opis, kolejnosc, czy_aktywny, czy_systemowy, kolor
-) VALUES
-    ('KWALIFIKACJA', 'Kwalifikacja', NULL, 10, 1, 1, '#173F5F'),
-    ('WIZYTY', 'Wizyty', NULL, 20, 1, 1, '#2F80ED'),
-    ('KONSULTACJE', 'Konsultacje', NULL, 30, 1, 1, '#7B2CBF'),
-    ('BADANIA_LAB', 'Badania laboratoryjne', NULL, 40, 1, 1, '#F2994A'),
-    ('BADANIA_OBRAZOWE', 'Badania obrazowe', NULL, 50, 1, 1, '#1BA39C'),
-    ('DIAGNOSTYKA', 'Diagnostyka', NULL, 60, 1, 1, '#F2C94C'),
-    ('PSYCHOTERAPIA', 'Psychoterapia', NULL, 70, 1, 1, '#27AE60'),
-    ('DOKUMENTACJA', 'Dokumentacja', NULL, 80, 1, 1, '#828282'),
-    ('RAPORTY', 'Raporty', NULL, 90, 1, 1, '#1B365D'),
-    ('ZAKONCZENIE_PROGRAMU', 'Zakończenie programu', NULL, 100, 1, 1, '#1F6B45')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO pk_jednostki_czasu(
@@ -76,17 +59,17 @@ INSERT INTO pk_jednostki_czasu(
 ON CONFLICT DO NOTHING;
 
 INSERT INTO pk_klocki(
-    kod, nazwa, opis, typ_elementu_id, grupa_id, ikona, kolor,
+    kod, nazwa, opis, typ_elementu_id, ikona, kolor,
     kolor_tekstu,
     domyslny_termin_liczba, domyslna_jednostka_czasu_id,
     czy_wymaga_zlecenia, czy_obowiazkowy, czy_aktywny,
     czy_systemowy, kolejnosc
 )
 SELECT
-    dane.kod, dane.nazwa, dane.opis, typ.typ_id, grupa.grupa_id,
-    dane.ikona, grupa.kolor,
+    dane.kod, dane.nazwa, dane.opis, typ.typ_id,
+    dane.ikona, dane.kolor,
     CASE
-        WHEN dane.grupa_kod IN ('BADANIA_LAB', 'DIAGNOSTYKA')
+        WHEN dane.typ_kod IN ('BADANIE_LAB', 'SUPERWIZJA')
             THEN '#1F2937'
         ELSE '#FFFFFF'
     END,
@@ -97,131 +80,132 @@ FROM (
         (
             'PKK_KWAL', 'Wizyta kwalifikacyjna w PKK',
             'Wizyta kwalifikacyjna w PKK; w Eskulapie rodzaj wizyty F18.',
-            'PKK', 'KWALIFIKACJA', 'PKK', 0, 1, 10
+            'PKK', 'PKK', '#173F5F', 0, 1, 10
         ),
         (
             'PKK_WIZ', 'Wizyta w PKK',
             'Wizyta lub czynność organizacyjna realizowana w PKK w trakcie programu.',
-            'PKK', 'WIZYTY', 'PKK', 0, 0, 20
+            'PKK', 'PKK', '#2F80ED', 0, 0, 20
         ),
         (
             'KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA',
             'Konsultacja psychiatryczna kompleksowa',
             'Kompleksowa konsultacja psychiatryczna w programie.',
-            'KONSULTACJA', 'KONSULTACJE', 'PSY', 0, 1, 30
+            'WIZYTA', 'PSY', '#2F80ED', 0, 1, 30
         ),
         (
             'KONSULTACJA_PSYCHIATRYCZNA_DIAGNOSTYCZNA',
             'Konsultacja psychiatryczna diagnostyczna',
             'Konsultacja psychiatryczna służąca diagnostyce pacjenta.',
-            'KONSULTACJA', 'KONSULTACJE', 'PSY', 0, 0, 40
+            'WIZYTA', 'PSY', '#2F80ED', 0, 0, 40
         ),
         (
             'KONSULTACJA_PSYCHIATRYCZNA_TERAPEUTYCZNA',
             'Konsultacja psychiatryczna terapeutyczna',
             'Konsultacja psychiatryczna ukierunkowana terapeutycznie.',
-            'KONSULTACJA', 'KONSULTACJE', 'PSY', 0, 0, 50
+            'WIZYTA', 'PSY', '#2F80ED', 0, 0, 50
         ),
         (
             'KONSULTACJA_PSYCHOLOGICZNA_DIAGNOSTYCZNA',
             'Konsultacja psychologiczna diagnostyczna',
             'Konsultacja psychologiczna służąca diagnostyce pacjenta.',
-            'KONSULTACJA', 'DIAGNOSTYKA', 'PSY', 0, 0, 60
+            'WIZYTA', 'PSY', '#F2C94C', 0, 0, 60
         ),
         (
             'KONSULTACJA_PSYCHOLOGICZNA_TERAPEUTYCZNA',
             'Konsultacja psychologiczna terapeutyczna',
             'Konsultacja psychologiczna ukierunkowana terapeutycznie.',
-            'KONSULTACJA', 'KONSULTACJE', 'PSY', 0, 0, 70
+            'WIZYTA', 'PSY', '#2F80ED', 0, 0, 70
         ),
         (
             'KONSULTACJA_TERAPEUTY_SRODOWISKOWEGO',
             'Konsultacja terapeuty środowiskowego',
             'Konsultacja terapeuty środowiskowego wspierająca realizację programu.',
-            'KONSULTACJA', 'KONSULTACJE', 'TER', 0, 0, 80
+            'WIZYTA', 'TER', '#2F80ED', 0, 0, 80
         ),
         (
-            'DIAGNOSTYKA_PSYCHOLOGICZNA', 'Diagnostyka psychologiczna',
-            'Proces diagnostyki psychologicznej.',
-            'KONSULTACJA', 'DIAGNOSTYKA', 'DIA', 0, 1, 90
+            'KONSULTACJA_PSYCHOTERAPEUTYCZNA_DIAGNOSTYCZNA',
+            'Konsultacja psychoterapeutyczna diagnostyczna',
+            'Konsultacja psychoterapeutyczna służąca diagnostyce pacjenta.',
+            'WIZYTA', 'PST', '#2F80ED', 0, 0, 90
+        ),
+        (
+            'KONSULTACJA_PSYCHOTERAPEUTYCZNA_TERAPEUTYCZNA',
+            'Konsultacja psychoterapeutyczna terapeutyczna',
+            'Konsultacja psychoterapeutyczna ukierunkowana terapeutycznie.',
+            'WIZYTA', 'PST', '#2F80ED', 0, 0, 100
         ),
         (
             'SUPERWIZJA', 'Superwizja',
             'Superwizja procesu terapeutycznego lub diagnostycznego.',
-            'KONSULTACJA', 'DIAGNOSTYKA', 'SUP', 0, 0, 100
+            'SUPERWIZJA', 'SUP', '#F2C94C', 0, 0, 110
         ),
         (
             'SESJA_TERAPEUTYCZNA', 'Sesja terapeutyczna',
             'Pojedyncza sesja terapeutyczna.',
-            'SESJA', 'PSYCHOTERAPIA', 'SES', 0, 0, 110
+            'WIZYTA', 'SES', '#27AE60', 0, 0, 120
         ),
         (
             'SESJA_TERAPEUTYCZNA_GRUPOWA', 'Sesja terapeutyczna grupowa',
             'Grupowa sesja terapeutyczna.',
-            'SESJA', 'PSYCHOTERAPIA', 'SGR', 0, 0, 120
+            'WIZYTA', 'SGR', '#27AE60', 0, 0, 130
         ),
         (
             'SESJA_PSYCHOLOGICZNA', 'Sesja psychologiczna',
             'Indywidualna sesja psychologiczna.',
-            'SESJA', 'PSYCHOTERAPIA', 'SPS', 0, 0, 130
+            'WIZYTA', 'SPS', '#27AE60', 0, 0, 140
         ),
         (
             'SESJA_PSYCHOLOGICZNA_GRUPOWA', 'Sesja psychologiczna grupowa',
             'Grupowa sesja psychologiczna.',
-            'SESJA', 'PSYCHOTERAPIA', 'SPG', 0, 0, 140
+            'WIZYTA', 'SPG', '#27AE60', 0, 0, 150
         ),
         (
             'SESJA_PSYCHOTERAPEUTYCZNA', 'Sesja psychoterapeutyczna',
             'Indywidualna sesja psychoterapeutyczna.',
-            'SESJA', 'PSYCHOTERAPIA', 'SPT', 0, 0, 150
+            'WIZYTA', 'SPT', '#27AE60', 0, 0, 160
         ),
         (
             'SESJA_PSYCHOTERAPEUTYCZNA_GRUPOWA',
             'Sesja psychoterapeutyczna grupowa',
             'Grupowa sesja psychoterapeutyczna; zastępuje ogólny klocek PSYCHOTERAPIA.',
-            'SESJA', 'PSYCHOTERAPIA', 'SPG', 0, 0, 160
+            'WIZYTA', 'SPG', '#27AE60', 0, 0, 170
         ),
         (
             'KONSULTACJA_SPECJALISTYCZNA', 'Konsultacja specjalistyczna',
             'Konsultacja u wskazanego specjalisty.',
-            'KONSULTACJA', 'KONSULTACJE', 'KON', 1, 0, 170
+            'KONSULTACJA', 'KON', '#7B2CBF', 1, 0, 180
         ),
         (
-            'BADANIE_LAB', 'Badanie laboratoryjne',
-            'Badanie laboratoryjne zlecone w programie.',
-            'BADANIE_LAB', 'BADANIA_LAB', 'LAB', 1, 0, 180
+            'BADANIA_LABORATORYJNE', 'Badania laboratoryjne',
+            'Badania laboratoryjne zlecone w programie.',
+            'BADANIE_LAB', 'LAB', '#F2994A', 1, 0, 190
         ),
         (
-            'BADANIE_GENETYCZNE', 'Badanie genetyczne',
-            'Badanie genetyczne zlecone w programie.',
-            'BADANIE_GEN', 'DIAGNOSTYKA', 'GEN', 1, 0, 190
+            'BADANIA_GENETYCZNE', 'Badania genetyczne',
+            'Badania genetyczne zlecone w programie.',
+            'BADANIE_GEN', 'GEN', '#F2C94C', 1, 0, 200
         ),
         (
             'BADANIE_OBRAZOWE', 'Badanie obrazowe',
             'Badanie obrazowe zlecone w programie.',
-            'BADANIE_OBRAZOWE', 'BADANIA_OBRAZOWE', 'OBR', 1, 0, 200
+            'BADANIE_OBRAZOWE', 'OBR', '#1BA39C', 1, 0, 210
         ),
         (
             'KONSYLIUM', 'Konsylium',
             'Konsylium zespołu prowadzącego program.',
-            'KONSYLIUM', 'DIAGNOSTYKA', 'KON', 0, 1, 210
+            'KONSYLIUM', 'KON', '#1B365D', 0, 1, 220
         ),
         (
-            'RAPORT_KONCOWY', 'Raport końcowy',
-            'Raport końcowy i plan dalszego postępowania.',
-            'RAPORT', 'RAPORTY', 'RAP', 0, 1, 220
-        ),
-        (
-            'ZAMKNIECIE_PROGRAMU', 'Zamknięcie programu',
+            'ZAKONCZENIE_PROGRAMU', 'Zakończenie programu',
             'Formalne zakończenie udziału w programie.',
-            'ZAKONCZENIE', 'ZAKONCZENIE_PROGRAMU', 'KON', 0, 1, 230
+            'ZAKONCZENIE', 'KON', '#1F6B45', 0, 1, 230
         )
 ) AS dane(
-    kod, nazwa, opis, typ_kod, grupa_kod, ikona,
+    kod, nazwa, opis, typ_kod, ikona, kolor,
     wymaga_zlecenia, obowiazkowy, kolejnosc
 )
 JOIN pk_typy_elementow typ ON typ.kod = dane.typ_kod
-JOIN pk_grupy_klockow grupa ON grupa.kod = dane.grupa_kod
 ON CONFLICT DO NOTHING;
 
 INSERT INTO pk_rodzaje_wizyt_eskulap(
@@ -329,7 +313,7 @@ CROSS JOIN (
             'Do 3 kompleksowych konsultacji psychiatrycznych w programie.'
         ),
         (
-            'DIAGNOSTYKA_PSYCHOLOGICZNA', 3,
+            'KONSULTACJA_PSYCHOLOGICZNA_DIAGNOSTYCZNA', 3,
             'Porady psychologiczne diagnostyczne',
             3, 8, 1, 0, NULL, NULL, NULL,
             'Podstawowo do 3 porad, maksymalnie do 8 porad diagnostycznych.'
@@ -341,12 +325,12 @@ CROSS JOIN (
             'Element warunkowy aktywowany po zleceniu lekarza.'
         ),
         (
-            'BADANIE_LAB', 5, 'Badania laboratoryjne',
+            'BADANIA_LABORATORYJNE', 5, 'Badania laboratoryjne',
             0, NULL, 0, 1, NULL, NULL, NULL,
             'Element warunkowy aktywowany po zleceniu w Eskulapie.'
         ),
         (
-            'BADANIE_GENETYCZNE', 6, 'Badania genetyczne',
+            'BADANIA_GENETYCZNE', 6, 'Badania genetyczne',
             0, NULL, 0, 1, NULL, NULL, NULL,
             'Element warunkowy aktywowany po zleceniu w Eskulapie.'
         ),
@@ -361,8 +345,8 @@ CROSS JOIN (
             'Podsumowanie diagnostyki, wyników, diagnozy i zaleceń.'
         ),
         (
-            'RAPORT_KONCOWY', 9,
-            'Raport końcowy / plan dalszego postępowania',
+            'ZAKONCZENIE_PROGRAMU', 9,
+            'Zakończenie programu / plan dalszego postępowania',
             1, 1, 1, 0, 12, 'TYDZIEN', 'START_PROGRAMU',
             'Zakończenie ścieżki: raport i decyzja o dalszym postępowaniu.'
         )
@@ -426,7 +410,7 @@ JOIN pk_klocki k_psychiatra
     ON k_psychiatra.klocek_id = psychiatra.klocek_id
 WHERE p.kod = 'ADHD_DZ_ML'
   AND s.kod = 'PODSTAWOWA'
-  AND k_psycholog.kod = 'DIAGNOSTYKA_PSYCHOLOGICZNA'
+  AND k_psycholog.kod = 'KONSULTACJA_PSYCHOLOGICZNA_DIAGNOSTYCZNA'
   AND k_psychiatra.kod = 'KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA'
   AND NOT EXISTS (
       SELECT 1

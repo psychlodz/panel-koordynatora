@@ -180,7 +180,7 @@ class PathwayElementDialog(QDialog):
             prefix = f"{icon} • " if icon else ""
             self.block_combo.addItem(
                 f"{prefix}{block['nazwa']} "
-                f"({block['typ_nazwa']} • {block['grupa_nazwa']})",
+                f"({block['typ_nazwa']})",
                 block["klocek_id"],
             )
             item = self.block_combo.model().item(

@@ -76,6 +76,10 @@ PostgreSQL przechowuje:
 - użytkowników, role i przypisania jednostek;
 - konfigurację procesów.
 
+W słownikach biznesowych typ klocka jest podstawowym i jedynym mechanizmem
+klasyfikacji elementów procesu. Mechanizm grup klocków został usunięty z
+modelu PostgreSQL i z warstwy aplikacji.
+
 Epizod zawiera wyłącznie `pacjent_id_eskulap`, który służy do pobierania
 aktualnych danych pacjenta z Oracle. PostgreSQL nie zawiera lokalnej
 kartoteki pacjentów ani kopii ich danych osobowych.

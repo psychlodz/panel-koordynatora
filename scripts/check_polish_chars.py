@@ -32,10 +32,6 @@ TEXT_COLUMNS = {
         "typ_id",
         ("kod", "nazwa", "opis", "ikona", "kolor"),
     ),
-    "pk_grupy_klockow": (
-        "grupa_id",
-        ("kod", "nazwa", "opis", "ikona", "kolor"),
-    ),
     "pk_jednostki_czasu": (
         "jednostka_czasu_id",
         ("kod", "nazwa", "opis", "rodzaj_obliczenia"),

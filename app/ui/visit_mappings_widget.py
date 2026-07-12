@@ -105,7 +105,7 @@ class VisitMappingsWidget(QWidget):
         self.search_edit = QLineEdit()
         self.search_edit.setClearButtonEnabled(True)
         self.search_edit.setPlaceholderText(
-            "Szukaj po kodzie, nazwie, klocku lub grupie..."
+            "Szukaj po kodzie, nazwie, klocku lub typie..."
         )
         self.assigned_count_label = QLabel("Przypisane rodzaje wizyt: 0")
         filters.addWidget(QLabel("Filtr:"))
@@ -265,13 +265,13 @@ class VisitMappingsWidget(QWidget):
             count = int(block.get("liczba_mapowan") or 0)
             item = QListWidgetItem(
                 f"{block.get('nazwa')}\n"
-                f"{block.get('grupa_nazwa') or 'bez grupy'} • "
+                f"{block.get('typ_nazwa') or 'bez typu'} • "
                 f"przypisań: {count}"
             )
             item.setData(BLOCK_ROLE, block)
             tooltip = (
                 f"{block.get('kod')}\n"
-                f"Grupa: {block.get('grupa_nazwa') or 'bez grupy'}\n"
+                f"Typ: {block.get('typ_nazwa') or 'bez typu'}\n"
                 f"Przypisane rodzaje wizyt: {count}"
             )
             item.setToolTip(tooltip)
@@ -293,9 +293,9 @@ class VisitMappingsWidget(QWidget):
                 code = str(visit_type.get("parametr_kod") or "")
                 name = str(visit_type.get("parametr_nazwa") or "")
                 mapped_block = str(visit_type.get("klocek_nazwa") or "")
-                group = str(visit_type.get("grupa_nazwa") or "")
+                block_type = str(visit_type.get("typ_nazwa") or "")
                 mapped_info = (
-                    f" → {mapped_block} ({group or 'bez grupy'})"
+                    f" → {mapped_block} ({block_type or 'bez typu'})"
                     if mapped_block
                     else " → nieprzypisany"
                 )

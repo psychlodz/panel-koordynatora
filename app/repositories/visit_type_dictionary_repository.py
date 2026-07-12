@@ -83,16 +83,16 @@ def list_visit_types(active_only=False) -> list[dict]:
                 k.nazwa AS klocek_nazwa,
                 k.kolor AS klocek_kolor,
                 k.kolor_tekstu AS klocek_kolor_tekstu,
-                grupa.kod AS grupa_kod,
-                grupa.nazwa AS grupa_nazwa
+                typ.kod AS typ_kod,
+                typ.nazwa AS typ_nazwa
             FROM pk_rodzaje_wizyt_eskulap r
             LEFT JOIN pk_mapowanie_wizyt m
                 ON m.rodzaj_wizyty_id = r.rodzaj_wizyty_id
                AND m.czy_aktywne = 1
             LEFT JOIN pk_klocki k
                 ON k.klocek_id = m.klocek_id
-            LEFT JOIN pk_grupy_klockow grupa
-                ON grupa.grupa_id = k.grupa_id
+            LEFT JOIN pk_typy_elementow typ
+                ON typ.typ_id = k.typ_elementu_id
             {where_clause}
             ORDER BY r.parametr_nazwa, r.parametr_kod
             """

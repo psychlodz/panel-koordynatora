@@ -38,12 +38,12 @@ def list_mapping_blocks(only_active=True) -> list[dict]:
                 k.ikona,
                 k.kolor,
                 k.kolor_tekstu,
-                grupa.kod AS grupa_kod,
-                grupa.nazwa AS grupa_nazwa,
+                typ.kod AS typ_kod,
+                typ.nazwa AS typ_nazwa,
                 COUNT(m.mapowanie_id) AS liczba_mapowan
             FROM pk_klocki k
-            JOIN pk_grupy_klockow grupa
-                ON grupa.grupa_id = k.grupa_id
+            JOIN pk_typy_elementow typ
+                ON typ.typ_id = k.typ_elementu_id
             LEFT JOIN pk_mapowanie_wizyt m
                 ON m.klocek_id = k.klocek_id
                AND m.czy_aktywne = 1
@@ -51,9 +51,9 @@ def list_mapping_blocks(only_active=True) -> list[dict]:
             GROUP BY
                 k.klocek_id, k.kod, k.nazwa, k.ikona,
                 k.kolor, k.kolor_tekstu,
-                grupa.kod, grupa.nazwa, grupa.kolejnosc,
+                typ.kod, typ.nazwa, typ.kolejnosc,
                 k.kolejnosc
-            ORDER BY grupa.kolejnosc, k.kolejnosc, k.nazwa
+            ORDER BY typ.kolejnosc, k.kolejnosc, k.nazwa
             """
         ).fetchall()
     return [dict(row) for row in rows]

@@ -257,21 +257,6 @@ class SystemSettingsWindow(QWidget):
                     ],
                 )
 
-            groups_node = QTreeWidgetItem(
-                tree, ["Grupy klocków", "", "", "", ""]
-            )
-            for item in data["block_groups"]:
-                QTreeWidgetItem(
-                    groups_node,
-                    [
-                        item["kod"],
-                        item["nazwa"],
-                        "Grupa",
-                        "Tak" if item["czy_aktywny"] else "Nie",
-                        item["opis"] or "",
-                    ],
-                )
-
             time_node = QTreeWidgetItem(
                 tree, ["Jednostki czasu", "", "", "", ""]
             )

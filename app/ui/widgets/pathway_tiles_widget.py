@@ -54,8 +54,7 @@ class PathwayTile(QFrame):
         block = QLabel(
             f"{element.get('klocek_nazwa') or 'Klocek'} "
             f"[{element.get('klocek_kod') or '—'}] • "
-            f"{element.get('klocek_typ_nazwa') or 'bez typu'} • "
-            f"{element.get('klocek_grupa_nazwa') or 'bez grupy'}"
+            f"{element.get('klocek_typ_nazwa') or 'bez typu'}"
         )
         block.setObjectName("tileMetadata")
         block.setWordWrap(False)

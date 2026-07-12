@@ -77,7 +77,7 @@ def main():
         epizod_id,
     )
     final_codes = {task["klocek_kod"] for task in tasks}
-    if "DIAGNOSTYKA_PSYCHOLOGICZNA" not in final_codes:
+    if "KONSULTACJA_PSYCHOLOGICZNA_DIAGNOSTYCZNA" not in final_codes:
         raise AssertionError("Nie utworzono zadania dla psychologa")
 
     print("Test generatora 2.0 zakończony powodzeniem.")

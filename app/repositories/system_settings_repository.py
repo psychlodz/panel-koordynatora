@@ -7,7 +7,6 @@ from app.repositories.db_connection import (
 
 
 OPTIONAL_DICTIONARY_TABLES = {
-    "block_groups": "pk_grupy_klockow",
     "time_units": "pk_jednostki_czasu",
 }
 
@@ -51,8 +50,6 @@ def get_business_dictionaries():
                     k.nazwa,
                     typ.kod AS typ,
                     typ.nazwa AS typ_nazwa,
-                    grupa.kod AS grupa,
-                    grupa.nazwa AS grupa_nazwa,
                     k.opis,
                     k.ikona,
                     k.kolor,
@@ -63,10 +60,8 @@ def get_business_dictionaries():
                 FROM pk_klocki k
                 JOIN pk_typy_elementow typ
                     ON typ.typ_id = k.typ_elementu_id
-                JOIN pk_grupy_klockow grupa
-                    ON grupa.grupa_id = k.grupa_id
                 ORDER BY k.czy_aktywny DESC,
-                         grupa.kolejnosc,
+                         typ.kolejnosc,
                          k.kolejnosc,
                          k.nazwa COLLATE NOCASE
                 """
@@ -76,18 +71,6 @@ def get_business_dictionaries():
             key: _table_exists(connection, table_name)
             for key, table_name in OPTIONAL_DICTIONARY_TABLES.items()
         }
-        block_groups = [
-            dict(row)
-            for row in connection.execute(
-                """
-                SELECT
-                    grupa_id, kod, nazwa, opis, kolejnosc,
-                    czy_aktywny, czy_systemowy, ikona, kolor
-                FROM pk_grupy_klockow
-                ORDER BY kolejnosc, nazwa COLLATE NOCASE
-                """
-            ).fetchall()
-        ]
         time_units = [
             dict(row)
             for row in connection.execute(
@@ -104,7 +87,6 @@ def get_business_dictionaries():
     return {
         "element_types": element_types,
         "blocks": blocks,
-        "block_groups": block_groups,
         "time_units": time_units,
         "optional_tables": optional_tables,
     }

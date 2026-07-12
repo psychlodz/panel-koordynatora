@@ -196,8 +196,6 @@ def list_pathway_elements(sciezka_id) -> list[dict]:
                 k.nazwa AS klocek_nazwa,
                 typ.kod AS klocek_typ,
                 typ.nazwa AS klocek_typ_nazwa,
-                grupa.kod AS klocek_grupa,
-                grupa.nazwa AS klocek_grupa_nazwa,
                 k.ikona AS klocek_ikona,
                 k.kolor AS klocek_kolor,
                 k.kolor_tekstu AS klocek_kolor_tekstu
@@ -205,8 +203,6 @@ def list_pathway_elements(sciezka_id) -> list[dict]:
             JOIN pk_klocki k ON k.klocek_id = e.klocek_id
             JOIN pk_typy_elementow typ
                 ON typ.typ_id = k.typ_elementu_id
-            JOIN pk_grupy_klockow grupa
-                ON grupa.grupa_id = k.grupa_id
             WHERE e.sciezka_id = ?
             ORDER BY e.lp, e.element_id
             """,
@@ -226,8 +222,6 @@ def list_blocks() -> list[dict]:
                 k.nazwa,
                 typ.kod AS typ,
                 typ.nazwa AS typ_nazwa,
-                grupa.kod AS grupa,
-                grupa.nazwa AS grupa_nazwa,
                 k.opis,
                 k.ikona,
                 k.kolor,
@@ -240,13 +234,10 @@ def list_blocks() -> list[dict]:
             FROM pk_klocki k
             JOIN pk_typy_elementow typ
                 ON typ.typ_id = k.typ_elementu_id
-            JOIN pk_grupy_klockow grupa
-                ON grupa.grupa_id = k.grupa_id
             WHERE k.czy_aktywny = 1
               AND typ.czy_aktywny = 1
-              AND grupa.czy_aktywny = 1
-            ORDER BY grupa.kolejnosc,
-                     grupa.nazwa COLLATE NOCASE,
+            ORDER BY typ.kolejnosc,
+                     typ.nazwa COLLATE NOCASE,
                      k.kolejnosc,
                      k.nazwa COLLATE NOCASE
             """
