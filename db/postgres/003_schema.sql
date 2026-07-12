@@ -450,6 +450,7 @@ CREATE TABLE IF NOT EXISTS pk_zadania (
     eskulap_pracownik text,
     eskulap_data_wizyty timestamptz,
     eskulap_rodzaj_wizyty text,
+    eskulap_decyzja text,
     uwagi text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz,
@@ -474,6 +475,9 @@ ADD COLUMN IF NOT EXISTS eskulap_data_wizyty timestamptz;
 
 ALTER TABLE pk_zadania
 ADD COLUMN IF NOT EXISTS eskulap_rodzaj_wizyty text;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS eskulap_decyzja text;
 
 DO $$
 BEGIN

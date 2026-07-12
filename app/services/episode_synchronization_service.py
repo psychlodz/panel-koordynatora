@@ -15,9 +15,6 @@ SOURCE_SYSTEM = "ESKULAP"
 PKK_KWAL_BLOCK_CODE = "PKK_KWAL"
 
 STATUS_TO_PLAN = "DO_ZAPLANOWANIA"
-STATUS_PLANNED = "ZAPLANOWANA"
-STATUS_COMPLETED = "ZREALIZOWANA"
-STATUS_CANCELLED = "ANULOWANA"
 
 
 @dataclass
@@ -55,17 +52,6 @@ def _event_key(visit):
 
 def _decision(visit):
     return str(getattr(visit, "status", "") or "").strip().upper()
-
-
-def status_from_visit(visit, planned_at=None):
-    decision = _decision(visit)
-    if decision == "B":
-        return STATUS_CANCELLED
-    if getattr(visit, "event_date", None) is not None and decision == "J":
-        return STATUS_COMPLETED
-    if planned_at is not None:
-        return STATUS_PLANNED
-    return None
 
 
 def mapped_block_code(visit, visit_mapping):
@@ -127,11 +113,11 @@ class EpisodeSynchronizationService:
             gateway = EskulapGateway()
         self.gateway = gateway
 
-    def synchronize(self) -> EpisodeSynchronizationSummary:
+    def synchronize(self, epizod_ids=None) -> EpisodeSynchronizationSummary:
         summary = EpisodeSynchronizationSummary()
         with closing(create_connection()) as connection:
             with connection:
-                episodes = self._list_active_episodes(connection)
+                episodes = self._list_active_episodes(connection, epizod_ids)
                 summary.episodes = len(episodes)
                 visit_mapping = self._visit_mapping(connection)
                 globally_used_visits = self._used_visit_keys(connection)
@@ -151,7 +137,6 @@ class EpisodeSynchronizationService:
                             globally_used_visits,
                         )
                         summary.new_assignments += result["new_assignments"]
-                        summary.status_changes += result["status_changes"]
                     except Exception as exc:
                         summary.errors.append(
                             f"Epizod {episode['epizod_id']}: {exc}"
@@ -185,13 +170,22 @@ class EpisodeSynchronizationService:
                         globally_used_visits,
                     )
                     summary.new_assignments = result["new_assignments"]
-                    summary.status_changes = result["status_changes"]
                 except Exception as exc:
                     summary.errors.append(f"Epizod {epizod_id}: {exc}")
                     raise
             return summary
 
-    def _list_active_episodes(self, connection):
+    def _list_active_episodes(self, connection, epizod_ids=None):
+        conditions = ["data_zakonczenia IS NULL"]
+        parameters = []
+        if epizod_ids is not None:
+            ids = sorted({int(value) for value in epizod_ids})
+            if not ids:
+                return []
+            placeholders = ", ".join("?" for _ in ids)
+            conditions.append(f"epizod_id IN ({placeholders})")
+            parameters.extend(ids)
+        where_clause = " AND ".join(conditions)
         rows = connection.execute(
             f"""
             SELECT
@@ -202,9 +196,10 @@ class EpisodeSynchronizationService:
                 source_type,
                 source_id
             FROM pk_epizody
-            WHERE data_zakonczenia IS NULL
+            WHERE {where_clause}
             ORDER BY data_start, epizod_id
-            """
+            """,
+            tuple(parameters),
         ).fetchall()
         return [dict(row) for row in rows]
 
@@ -297,12 +292,8 @@ class EpisodeSynchronizationService:
         visit_mapping,
         globally_used_visits,
     ):
-        result = {"new_assignments": 0, "status_changes": 0}
+        result = {"new_assignments": 0}
         elements = self._episode_elements(connection, episode["epizod_id"])
-        result["status_changes"] += self._update_planned_statuses(
-            connection,
-            elements,
-        )
 
         for element in elements:
             if str(element.get("klocek_kod") or "").upper() == PKK_KWAL_BLOCK_CODE:
@@ -312,9 +303,8 @@ class EpisodeSynchronizationService:
                     task_id,
                     element,
                     self._qualification_visit(episode, visits),
-                    forced_status=STATUS_COMPLETED,
                 ):
-                    result["status_changes"] += 1
+                    result["new_assignments"] += 1
 
         unused_visits = [
             visit
@@ -331,45 +321,7 @@ class EpisodeSynchronizationService:
             if self._update_task_from_visit(connection, task_id, element, visit):
                 globally_used_visits.add(_event_key(visit))
                 result["new_assignments"] += 1
-                result["status_changes"] += 1
         return result
-
-    def _update_planned_statuses(self, connection, elements):
-        changed_count = 0
-        for element in elements:
-            task_id = element.get("zadanie_id")
-            if not task_id:
-                continue
-            if element.get("data_zaplanowana") and not element.get("data_realizacji"):
-                current = str(element.get("status") or "")
-                if current.upper() == STATUS_PLANNED:
-                    continue
-                before = self._task_snapshot(connection, task_id)
-                connection.execute(
-                    """
-                    UPDATE pk_zadania
-                    SET status = ?,
-                        updated_at = CURRENT_TIMESTAMP
-                    WHERE zadanie_id = ?
-                    """,
-                    (STATUS_PLANNED, task_id),
-                )
-                after = self._task_snapshot(connection, task_id)
-                record_history(
-                    connection,
-                    element["epizod_element_id"],
-                    "EDYCJA",
-                    before={"zadanie": before},
-                    after={"zadanie": after},
-                    reason=(
-                        f"{SYNC_REASON} Status: "
-                        f"{before.get('status') if before else None} -> "
-                        f"{STATUS_PLANNED}; wizyta Eskulap: brak"
-                    ),
-                    user_id=SYSTEM_USER,
-                )
-                changed_count += 1
-        return changed_count
 
     def _qualification_visit(self, episode, visits):
         source_id = str(episode.get("source_id") or "")
@@ -408,13 +360,8 @@ class EpisodeSynchronizationService:
         task_id,
         element,
         visit,
-        forced_status=None,
     ):
         before = self._task_snapshot(connection, task_id)
-        planned_at = before.get("data_zaplanowana") if before else None
-        new_status = forced_status or status_from_visit(visit, planned_at)
-        if new_status is None:
-            return False
         event_date = getattr(visit, "event_date", None) if visit is not None else None
         visit_name = (
             getattr(visit, "parametr_nazwa", None)
@@ -423,42 +370,38 @@ class EpisodeSynchronizationService:
         )
         worker = getattr(visit, "employee_name", None) if visit is not None else None
         oracle_id = getattr(visit, "oracle_id", None) if visit is not None else None
+        decision = _decision(visit) if visit is not None else None
         source = SOURCE_SYSTEM
 
         changed = (
             not before
-            or before.get("status") != new_status
             or str(before.get("eskulap_id") or "") != str(oracle_id or "")
+            or str(before.get("eskulap_decyzja") or "") != str(decision or "")
         )
         if not changed:
             return False
         connection.execute(
             """
             UPDATE pk_zadania
-            SET status = ?,
-                data_realizacji = CASE
-                    WHEN ? = ? THEN COALESCE(?, data_realizacji)
-                    ELSE data_realizacji
-                END,
+            SET data_realizacji = COALESCE(?, data_realizacji),
                 eskulap_system = COALESCE(?, eskulap_system),
                 eskulap_id = COALESCE(?, eskulap_id),
                 eskulap_pracownik = COALESCE(?, eskulap_pracownik),
                 eskulap_data_wizyty = COALESCE(?, eskulap_data_wizyty),
                 eskulap_rodzaj_wizyty = COALESCE(?, eskulap_rodzaj_wizyty),
+                eskulap_decyzja = COALESCE(?, eskulap_decyzja),
                 uwagi = COALESCE(uwagi, ?),
                 updated_at = CURRENT_TIMESTAMP
             WHERE zadanie_id = ?
             """,
             (
-                new_status,
-                new_status,
-                STATUS_COMPLETED,
                 event_date,
                 source,
                 str(oracle_id) if oracle_id is not None else None,
                 worker,
                 event_date,
                 visit_name,
+                decision,
                 SYNC_REASON,
                 task_id,
             ),
@@ -471,9 +414,8 @@ class EpisodeSynchronizationService:
             before={"zadanie": before},
             after={"zadanie": after},
             reason=(
-                f"{SYNC_REASON} Status: "
-                f"{before.get('status') if before else None} -> {new_status}; "
-                f"wizyta Eskulap: {oracle_id or 'brak'}"
+                f"{SYNC_REASON} Powiązanie z wizytą Eskulap: "
+                f"{oracle_id or 'brak'}; decyzja: {decision or 'brak'}"
             ),
             user_id=SYSTEM_USER,
         )

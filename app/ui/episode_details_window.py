@@ -28,11 +28,11 @@ from app.gateway.eskulap_gateway import EskulapGateway
 from app.repositories.episode_repository import (
     get_episode,
     list_episode_tasks,
-    list_episode_process_elements,
 )
 from app.ui.ui_helpers import create_help_button, polish_dialog_buttons
 from app.services import episode_path_service
 from app.services.episode_synchronization_service import EpisodeSynchronizationService
+from app.services.episode_state_service import EpisodeStateService
 from app.services.work_context import work_context
 from app.ui.episode_details_presenter import (
     WAITING_STATUS,
@@ -63,6 +63,7 @@ class EpisodeRefreshWorker(QObject):
             summary = EpisodeSynchronizationService().synchronize_episode(
                 self.epizod_id
             )
+            EpisodeStateService().calculate_episode_state(self.epizod_id)
             self.finished.emit(summary)
         except Exception:
             self.failed.emit(traceback.format_exc())
@@ -218,7 +219,9 @@ class EpisodeDetailsDialog(QDialog):
         self.episode = get_episode(epizod_id)
         if self.episode is None:
             raise ValueError(f"Nie znaleziono epizodu o ID {epizod_id}")
-        self.process_elements = list_episode_process_elements(epizod_id)
+        self.process_elements = EpisodeStateService().calculate_episode_state(
+            epizod_id
+        )["elements"]
         self.tasks = list_episode_tasks(epizod_id)
         self.patient = patient
         self.oracle_errors = []
@@ -525,9 +528,9 @@ class EpisodeDetailsDialog(QDialog):
     def _refresh_process(self, selected_element_id=None):
         if selected_element_id is None:
             selected_element_id = self._selected_episode_element_id()
-        self.process_elements = list_episode_process_elements(
+        self.process_elements = EpisodeStateService().calculate_episode_state(
             self.episode["epizod_id"]
-        )
+        )["elements"]
         self.tasks = list_episode_tasks(self.episode["epizod_id"])
         self._populate_process_overview_table()
         if selected_element_id is not None and self._process_overview_table is not None:

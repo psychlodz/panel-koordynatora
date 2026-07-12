@@ -31,6 +31,7 @@ from app.services.work_context import work_context
 from app.services.episode_synchronization_service import (
     EpisodeSynchronizationService,
 )
+from app.services.episode_state_service import EpisodeStateService
 from app.ui.episode_details_window import EpisodeDetailsDialog
 from app.ui.theme.color_utils import apply_readable_item_colors
 from app.ui.theme.process_colors import task_status_colors
@@ -51,9 +52,21 @@ class EpisodeSyncWorker(QObject):
     finished = Signal(object)
     failed = Signal(str)
 
+    def __init__(self, current_user=None, current_unit=None):
+        super().__init__()
+        self.current_user = current_user
+        self.current_unit = current_unit
+
     def run(self):
         try:
-            self.finished.emit(EpisodeSynchronizationService().synchronize())
+            visible = list_dashboard_episodes(
+                current_user=self.current_user,
+                current_unit=self.current_unit,
+            )
+            epizod_ids = [row["epizod_id"] for row in visible]
+            summary = EpisodeSynchronizationService().synchronize(epizod_ids)
+            EpisodeStateService().calculate_all_episode_states()
+            self.finished.emit(summary)
         except Exception as exc:
             self.failed.emit(str(exc))
 
@@ -293,7 +306,7 @@ class EpisodesDashboardWindow(QWidget):
         ):
             combo.currentIndexChanged.connect(self.apply_filters)
 
-        self.refresh_dashboard()
+        self.synchronize_and_refresh()
 
     def synchronize_and_refresh(self):
         if self._sync_thread is not None:
@@ -302,7 +315,10 @@ class EpisodesDashboardWindow(QWidget):
         show_busy("Pobieranie danych z systemu Eskulap...", self)
 
         self._sync_thread = QThread(self)
-        self._sync_worker = EpisodeSyncWorker()
+        self._sync_worker = EpisodeSyncWorker(
+            current_user=self.current_user,
+            current_unit=self.initial_unit,
+        )
         self._sync_worker.moveToThread(self._sync_thread)
         self._sync_thread.started.connect(self._sync_worker.run)
         self._sync_worker.finished.connect(self._synchronization_finished)
@@ -329,7 +345,7 @@ class EpisodesDashboardWindow(QWidget):
             f"Epizody: {summary.episodes}\n"
             f"Wizyty: {summary.visits}\n"
             f"Nowych przypisań: {summary.new_assignments}\n"
-            f"Zmienionych statusów: {summary.status_changes}\n"
+            "Stan epizodów został przeliczony centralnie.\n"
             f"Błędy: {summary.error_count}",
         )
         self.refresh_dashboard()

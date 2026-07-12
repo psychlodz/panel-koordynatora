@@ -239,6 +239,7 @@ def list_episode_elements(epizod_id, include_inactive=True) -> list[dict]:
                 z.eskulap_pracownik,
                 z.eskulap_data_wizyty,
                 z.eskulap_rodzaj_wizyty,
+                z.eskulap_decyzja,
                 z.uwagi
             FROM pk_epizod_elementy ee
             JOIN pk_klocki k ON k.klocek_id = ee.klocek_id

@@ -134,7 +134,8 @@ def list_episode_tasks(epizod_id) -> list[dict]:
                 z.eskulap_id,
                 z.eskulap_pracownik,
                 z.eskulap_data_wizyty,
-                z.eskulap_rodzaj_wizyty
+                z.eskulap_rodzaj_wizyty,
+                z.eskulap_decyzja
             FROM pk_zadania z
             LEFT JOIN pk_epizod_elementy ee
                 ON ee.epizod_element_id = z.epizod_element_id
@@ -178,6 +179,7 @@ def list_episode_process_elements(epizod_id) -> list[dict]:
                 z.eskulap_pracownik,
                 z.eskulap_data_wizyty,
                 z.eskulap_rodzaj_wizyty,
+                z.eskulap_decyzja,
                 z.uwagi
             FROM pk_epizody ep
             JOIN pk_epizod_elementy ee

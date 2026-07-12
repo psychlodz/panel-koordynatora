@@ -1,11 +1,10 @@
 from collections import defaultdict
 from contextlib import closing
-from datetime import date, datetime
 
-from app.repositories.db_connection import (
-    create_connection,
-    initialize_database,
-    patient_id_column,
+from app.repositories.db_connection import create_connection, initialize_database
+from app.services.episode_state_service import (
+    EpisodeStateService,
+    normalized_status,
 )
 
 
@@ -15,49 +14,6 @@ FILTER_OVERDUE = "DASHBOARD_OVERDUE"
 FILTER_SCHEDULED_TODAY = "DASHBOARD_SCHEDULED_TODAY"
 FILTER_WAITING_ESKULAP = "DASHBOARD_WAITING_ESKULAP"
 FILTER_COMPLETED_MONTH = "DASHBOARD_COMPLETED_MONTH"
-
-COMPLETED_TASK_STATUSES = {
-    "ZAKONCZONE",
-    "ZAKOŃCZONE",
-    "ZREALIZOWANO",
-    "ZREALIZOWANE",
-}
-CANCELLED_TASK_STATUSES = {
-    "ANULOWANE",
-    "ANULOWANO",
-}
-TERMINAL_TASK_STATUSES = COMPLETED_TASK_STATUSES | CANCELLED_TASK_STATUSES
-TERMINAL_EPISODE_STATUSES = {
-    "ZAKONCZONY",
-    "ZAKOŃCZONY",
-    "ZAKONCZONE",
-    "ZAKOŃCZONE",
-    "ANULOWANY",
-    "ANULOWANE",
-}
-WAITING_ESKULAP_STATUSES = {
-    "OCZEKUJE NA ESKULAP",
-    "OCZEKUJE NA DANE Z ESKULAPA",
-    "OCZEKUJE_NA_ESKULAP",
-    "OCZEKUJE_NA_DANE_Z_ESKULAPA",
-}
-
-
-def _normalized_status(value):
-    return str(value or "").strip().upper()
-
-
-def _date_value(value):
-    if value is None or value == "":
-        return None
-    if isinstance(value, datetime):
-        return value.date()
-    if isinstance(value, date):
-        return value
-    try:
-        return date.fromisoformat(str(value).strip()[:10])
-    except ValueError:
-        return None
 
 
 def _unit_id(unit):
@@ -76,8 +32,7 @@ def _is_admin(user):
 
 
 def _user_id(user):
-    value = getattr(user, "user_id", None) if user is not None else None
-    return value
+    return getattr(user, "user_id", None) if user is not None else None
 
 
 def _load_unit_maps(connection):
@@ -135,72 +90,6 @@ def _episode_units(episode, program_units, pathway_units):
 def _load_dashboard_episodes(current_user=None, current_unit=None):
     initialize_database()
     with closing(create_connection()) as connection:
-        episodes = [
-            dict(row)
-            for row in connection.execute(
-                f"""
-                SELECT
-                    e.epizod_id,
-                    {patient_id_column("e")} AS pacjent_id,
-                    e.program_id,
-                    e.sciezka_id,
-                    e.data_start,
-                    e.data_zakonczenia,
-                    e.status,
-                    e.koordynator_id,
-                    e.source_system,
-                    e.source_type,
-                    e.source_id,
-                    p.kod AS program_kod,
-                    p.nazwa AS program_nazwa,
-                    s.kod AS sciezka_kod,
-                    s.nazwa AS sciezka_nazwa
-                FROM pk_epizody e
-                LEFT JOIN pk_programy p ON p.program_id = e.program_id
-                LEFT JOIN pk_sciezki s ON s.sciezka_id = e.sciezka_id
-                ORDER BY e.data_start DESC, e.epizod_id DESC
-                """
-            ).fetchall()
-        ]
-        tasks = [
-            dict(row)
-            for row in connection.execute(
-                """
-                SELECT
-                    z.zadanie_id,
-                    z.epizod_id,
-                    z.element_id,
-                    z.epizod_element_id,
-                    z.status,
-                    z.data_wymagana_do,
-                    z.data_zaplanowana,
-                    z.data_realizacji,
-                    z.eskulap_system,
-                    z.eskulap_id,
-                    z.eskulap_pracownik,
-                    z.eskulap_data_wizyty,
-                    z.eskulap_rodzaj_wizyty,
-                    COALESCE(ee.lp, el.lp) AS lp,
-                    COALESCE(ee.nazwa, el.nazwa_w_sciezce) AS nazwa_w_sciezce,
-                    COALESCE(
-                        ee.czy_wymaga_zlecenia,
-                        el.czy_wymaga_zlecenia
-                    ) AS czy_wymaga_zlecenia,
-                    COALESCE(ee.czy_aktywny, el.czy_aktywny, 1) AS czy_aktywny,
-                    k.nazwa AS klocek_nazwa,
-                    k.kolor AS klocek_kolor,
-                    k.kolor_tekstu AS klocek_kolor_tekstu
-                FROM pk_zadania z
-                LEFT JOIN pk_epizod_elementy ee
-                    ON ee.epizod_element_id = z.epizod_element_id
-                LEFT JOIN pk_sciezka_elementy el
-                    ON el.element_id = z.element_id
-                LEFT JOIN pk_klocki k
-                    ON k.klocek_id = COALESCE(ee.klocek_id, el.klocek_id)
-                ORDER BY z.epizod_id, COALESCE(ee.lp, el.lp), z.zadanie_id
-                """
-            ).fetchall()
-        ]
         program_units, pathway_units = _load_unit_maps(connection)
         allowed_units = _allowed_unit_ids(
             connection,
@@ -208,14 +97,8 @@ def _load_dashboard_episodes(current_user=None, current_unit=None):
             current_unit,
         )
 
-    tasks_by_episode = defaultdict(list)
-    for task in tasks:
-        if task["czy_aktywny"] in (None, 1, True):
-            tasks_by_episode[task["epizod_id"]].append(task)
-
-    today = date.today()
-    month_start = today.replace(day=1)
-    result = []
+    episodes = EpisodeStateService().calculate_all_episode_states()
+    visible = []
     for episode in episodes:
         units = _episode_units(episode, program_units, pathway_units)
         unit_ids = [unit["jo_id"] for unit in units]
@@ -224,114 +107,9 @@ def _load_dashboard_episodes(current_user=None, current_unit=None):
         ):
             continue
 
-        episode_tasks = tasks_by_episode.get(episode["epizod_id"], [])
-        progress_tasks = [
-            task
-            for task in episode_tasks
-            if _normalized_status(task["status"])
-            not in CANCELLED_TASK_STATUSES
-        ]
-        completed_count = sum(
-            _normalized_status(task["status"])
-            in COMPLETED_TASK_STATUSES
-            for task in progress_tasks
-        )
-        total_count = len(progress_tasks)
-        progress = (
-            round(100.0 * completed_count / total_count, 1)
-            if total_count
-            else 0.0
-        )
-
-        open_tasks = [
-            task
-            for task in episode_tasks
-            if _normalized_status(task["status"])
-            not in TERMINAL_TASK_STATUSES
-        ]
-        for task in open_tasks:
-            task["termin"] = (
-                task["data_zaplanowana"]
-                or task["data_wymagana_do"]
-            )
-        next_task = min(
-            open_tasks,
-            key=lambda task: (
-                _date_value(task["termin"]) is None,
-                _date_value(task["termin"]) or date.max,
-                task["lp"] if task["lp"] is not None else 999999,
-                task["zadanie_id"],
-            ),
-            default=None,
-        )
-
-        has_to_plan = any(
-            _normalized_status(task["status"]) == "DO_ZAPLANOWANIA"
-            for task in open_tasks
-        )
-        has_overdue = any(
-            _date_value(task["termin"]) is not None
-            and _date_value(task["termin"]) < today
-            for task in open_tasks
-        )
-        scheduled_today_count = sum(
-            _date_value(task["data_zaplanowana"]) == today
-            for task in open_tasks
-        )
-        has_scheduled_today = scheduled_today_count > 0
-        waiting_for_eskulap = any(
-            _normalized_status(task["status"])
-            in WAITING_ESKULAP_STATUSES
-            or (
-                bool(task["czy_wymaga_zlecenia"])
-                and not task["eskulap_id"]
-                and _normalized_status(task["status"])
-                == "DO_ZAPLANOWANIA"
-            )
-            for task in open_tasks
-        )
-        end_date = _date_value(episode["data_zakonczenia"])
-        completed_this_month = bool(
-            end_date
-            and month_start <= end_date <= today
-        )
-        is_active = (
-            end_date is None
-            and _normalized_status(episode["status"])
-            not in TERMINAL_EPISODE_STATUSES
-        )
-
         row = dict(episode)
         row.update(
             {
-                "liczba_zadan": total_count,
-                "liczba_zrealizowanych_zadan": completed_count,
-                "procent_realizacji": progress,
-                "next_task_id": (
-                    next_task["zadanie_id"] if next_task else None
-                ),
-                "next_task_name": (
-                    (
-                        next_task["nazwa_w_sciezce"]
-                        or next_task["klocek_nazwa"]
-                    )
-                    if next_task
-                    else None
-                ),
-                "next_task_due": (
-                    next_task["termin"] if next_task else None
-                ),
-                "next_task_status": (
-                    next_task["status"] if next_task else None
-                ),
-                "next_task_color": (
-                    next_task["klocek_kolor"] if next_task else None
-                ),
-                "next_task_text_color": (
-                    next_task["klocek_kolor_tekstu"]
-                    if next_task
-                    else None
-                ),
                 "unit_ids": unit_ids,
                 "unit_symbols": [
                     unit["jo_symbol"] or unit["jo_id"]
@@ -341,17 +119,10 @@ def _load_dashboard_episodes(current_user=None, current_unit=None):
                     unit["jo_nazwa"] or unit["jo_symbol"] or unit["jo_id"]
                     for unit in units
                 ],
-                "is_active": is_active,
-                "has_to_plan": has_to_plan,
-                "has_overdue": has_overdue,
-                "has_scheduled_today": has_scheduled_today,
-                "scheduled_today_count": scheduled_today_count,
-                "waiting_for_eskulap": waiting_for_eskulap,
-                "completed_this_month": completed_this_month,
             }
         )
-        result.append(row)
-    return result
+        visible.append(row)
+    return visible
 
 
 def _matches_status_filter(episode, status_filter):
@@ -368,7 +139,7 @@ def _matches_status_filter(episode, status_filter):
     flag = special_filters.get(status_filter)
     if flag:
         return bool(episode[flag])
-    return _normalized_status(episode["status"]) == _normalized_status(
+    return normalized_status(episode["status"]) == normalized_status(
         status_filter
     )
 
@@ -390,59 +161,20 @@ def list_dashboard_episodes(
 
 def get_dashboard_summary(current_user=None, current_unit=None):
     episodes = _load_dashboard_episodes(current_user, current_unit)
-    return {
-        "active_episodes": sum(row["is_active"] for row in episodes),
-        "episodes_to_plan": sum(row["has_to_plan"] for row in episodes),
-        "overdue_episodes": sum(row["has_overdue"] for row in episodes),
-        "tasks_scheduled_today": sum(
-            row["scheduled_today_count"] for row in episodes
-        ),
-        "waiting_for_eskulap": sum(
-            row["waiting_for_eskulap"] for row in episodes
-        ),
-        "completed_this_month": sum(
-            row["completed_this_month"] for row in episodes
-        ),
-    }
+    return EpisodeStateService().calculate_dashboard_counters(episodes)
 
 
 def get_episode_progress(epizod_id):
-    episode = next(
-        (
-            row
-            for row in _load_dashboard_episodes()
-            if int(row["epizod_id"]) == int(epizod_id)
-        ),
-        None,
-    )
-    if episode is None:
-        raise ValueError(f"Nie znaleziono epizodu o ID {epizod_id}")
-    return {
-        "epizod_id": episode["epizod_id"],
-        "liczba_zadan": episode["liczba_zadan"],
-        "liczba_zrealizowanych_zadan": (
-            episode["liczba_zrealizowanych_zadan"]
-        ),
-        "procent_realizacji": episode["procent_realizacji"],
-    }
+    return EpisodeStateService().calculate_progress(epizod_id)
 
 
 def get_next_task(epizod_id):
-    episode = next(
-        (
-            row
-            for row in _load_dashboard_episodes()
-            if int(row["epizod_id"]) == int(epizod_id)
-        ),
-        None,
-    )
-    if episode is None:
-        raise ValueError(f"Nie znaleziono epizodu o ID {epizod_id}")
-    if episode["next_task_id"] is None:
+    next_task = EpisodeStateService().calculate_next_task(epizod_id)
+    if next_task is None:
         return None
     return {
-        "zadanie_id": episode["next_task_id"],
-        "nazwa": episode["next_task_name"],
-        "termin": episode["next_task_due"],
-        "status": episode["next_task_status"],
+        "zadanie_id": next_task["zadanie_id"],
+        "nazwa": next_task["nazwa_w_sciezce"] or next_task["klocek_nazwa"],
+        "termin": next_task["termin"],
+        "status": next_task["status_wyliczony"],
     }

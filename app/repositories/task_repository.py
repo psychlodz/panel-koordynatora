@@ -37,6 +37,7 @@ def list_active_tasks() -> list[dict]:
                 z.eskulap_pracownik,
                 z.eskulap_data_wizyty,
                 z.eskulap_rodzaj_wizyty,
+                z.eskulap_decyzja,
                 z.uwagi,
                 z.created_at,
                 {patient_id_column("ep")} AS pacjent_id,

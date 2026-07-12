@@ -53,13 +53,13 @@ def process_element_label(record):
 def status_with_date(record):
     status = record.get("status") or WAITING_STATUS
     status_upper = str(status).strip().upper()
-    date_value = None
+    date_value = record.get("status_data_czas")
     if status_upper == "ZAPLANOWANA":
-        date_value = record.get("data_zaplanowana")
+        date_value = date_value or record.get("data_zaplanowana")
     elif status_upper == "ZREALIZOWANA":
-        date_value = record.get("data_realizacji")
+        date_value = date_value or record.get("data_realizacji")
     elif status_upper == "ANULOWANA":
-        date_value = (
+        date_value = date_value or (
             record.get("eskulap_data_wizyty")
             or record.get("data_realizacji")
             or record.get("data_zaplanowana")

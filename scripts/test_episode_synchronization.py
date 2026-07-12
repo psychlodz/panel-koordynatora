@@ -10,11 +10,7 @@ if str(ROOT) not in sys.path:
 
 from app.services.episode_synchronization_service import (
     PKK_KWAL_BLOCK_CODE,
-    STATUS_CANCELLED,
-    STATUS_COMPLETED,
-    STATUS_PLANNED,
     match_visits_to_elements,
-    status_from_visit,
 )
 
 
@@ -75,19 +71,6 @@ def test_no_mapping_no_assignment():
     assert assignments == []
 
 
-def test_statuses_from_decision_and_planned_date():
-    assert status_from_visit(
-        visit(401, "F21", "2026-07-02T10:00:00", "J")
-    ) == STATUS_COMPLETED
-    assert status_from_visit(
-        visit(402, "F21", "2026-07-02T10:00:00", "B")
-    ) == STATUS_CANCELLED
-    assert status_from_visit(
-        SimpleNamespace(event_date=None, status=""),
-        planned_at=datetime(2026, 7, 2, 10, 0),
-    ) == STATUS_PLANNED
-
-
 def test_pkk_kwal_not_auto_matched_again():
     assignments = match_visits_to_elements(
         [element(1, PKK_KWAL_BLOCK_CODE, 1)],
@@ -114,10 +97,9 @@ def main():
     test_single_visit_single_block()
     test_many_visits_many_blocks_chronologically()
     test_no_mapping_no_assignment()
-    test_statuses_from_decision_and_planned_date()
     test_pkk_kwal_not_auto_matched_again()
     test_idempotency_skips_already_linked_element()
-    print("OK: logika synchronizacji epizodów")
+    print("OK: logika synchronizacji epizodow")
 
 
 if __name__ == "__main__":
