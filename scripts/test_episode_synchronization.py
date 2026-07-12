@@ -13,6 +13,7 @@ from app.services.episode_synchronization_service import (
     match_consultations_to_elements,
     match_visits_to_elements,
 )
+from app.repositories.episode_element_repository import record_history
 from app.services.episode_state_service import (
     EpisodeStateService,
     STATUS_PLANNED,
@@ -50,6 +51,25 @@ def element(element_id, block_code, lp, eskulap_id=None):
         "lp": lp,
         "eskulap_id": eskulap_id,
     }
+
+
+class FakeConnection:
+    def __init__(self):
+        self.insert_parameters = None
+
+    def execute(self, sql, parameters=()):
+        normalized = " ".join(sql.split()).upper()
+        if normalized.startswith("SELECT * FROM PK_EPIZOD_ELEMENTY"):
+            return SimpleNamespace(
+                fetchone=lambda: {
+                    "epizod_element_id": parameters[0],
+                    "epizod_id": 77,
+                }
+            )
+        if normalized.startswith("INSERT INTO PK_EPIZOD_ELEMENTY_HISTORIA"):
+            self.insert_parameters = parameters
+            return SimpleNamespace(fetchone=lambda: None)
+        raise AssertionError(f"Nieobsługiwany SQL w teście: {sql}")
 
 
 def test_single_visit_single_block():
@@ -146,6 +166,21 @@ def test_planned_eskulap_visit_is_planned_status():
     assert state["status_wyliczony"] == STATUS_PLANNED
 
 
+def test_record_history_fetches_episode_when_payload_is_task_only():
+    connection = FakeConnection()
+    record_history(
+        connection,
+        123,
+        "EDYCJA",
+        before={"zadanie": {"zadanie_id": 1}},
+        after={"zadanie": {"zadanie_id": 1, "eskulap_id": "601"}},
+        reason="Test synchronizacji",
+        user_id="SYSTEM",
+    )
+    assert connection.insert_parameters[0] == 123
+    assert connection.insert_parameters[1] == 77
+
+
 def main():
     test_single_visit_single_block()
     test_many_visits_many_blocks_chronologically()
@@ -154,6 +189,7 @@ def main():
     test_idempotency_skips_already_linked_element()
     test_consultation_matches_first_free_consultation_block()
     test_planned_eskulap_visit_is_planned_status()
+    test_record_history_fetches_episode_when_payload_is_task_only()
     print("OK: logika synchronizacji epizodow")
 
 

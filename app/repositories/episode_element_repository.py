@@ -66,6 +66,8 @@ def record_history(
     user_id=None,
 ):
     element = after or before or _element_snapshot(connection, epizod_element_id)
+    if element is not None and "epizod_id" not in element:
+        element = _element_snapshot(connection, epizod_element_id)
     if element is None:
         raise ValueError(
             f"Nie znaleziono elementu epizodu o ID {epizod_element_id}"
