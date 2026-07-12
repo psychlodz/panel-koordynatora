@@ -73,4 +73,8 @@ def eskulap_visit_details(record):
     visit_type = text_or_missing(record.get("eskulap_rodzaj_wizyty"))
     if worker == "brak" and visit_type == "brak":
         return "brak"
+    if worker == "brak":
+        return visit_type
+    if visit_type == "brak":
+        return worker
     return f"{worker}\n{visit_type}"

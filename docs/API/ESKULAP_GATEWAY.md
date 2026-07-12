@@ -48,6 +48,8 @@ Pobiera jednego pacjenta. Zwraca `Patient` albo `None`.
 Pobiera wizyty pacjenta. Zwraca listę `Visit`. Model zawiera także pola
 `parametr_kod`, `parametr_nazwa` i `parametr_czy_aktualne`, mapowane
 odpowiednio z `WP_PARAMETR` i słownika `CG_REF_CODES`.
+Jeżeli widok `V_KOMPAS_WIZYTY` zwraca wizytę zaplanowaną bez `DATA_WIZYTY`,
+Gateway przekazuje `DATA_PLANOWANA` jako `Visit.planned_date`.
 
 ### `get_patient_qualification_visits(date_from=None, date_to=None, only_unassigned=True)`
 
@@ -60,6 +62,8 @@ aktywnych kodach przypisanych do klocka `PKK_KWAL` w tabeli
 ### `get_patient_consultations(patient_id)`
 
 Pobiera konsultacje pacjenta. Zwraca listę `Consultation`.
+Konsultacja z samą datą planowaną trafia do modelu jako `planned_date`;
+`event_date` oznacza przyjęcie/realizację, a nie samo zaplanowanie.
 
 ### `get_patient_laboratory_orders(patient_id)`
 
@@ -162,6 +166,10 @@ gdy widok Oracle nie zwróci nazw.
 Gateway zwraca `Visit.status` na podstawie kolumny `DECYZJA` z widoku
 `V_KOMPAS_WIZYTY` oraz `parametr_kod`/`parametr_nazwa`. Kolumna `DECYZJA` jest
 aliasem pola `RI_WIZYTY_W_PORADNIACH.WP_DECYZJA`.
+Repozytoria filtrują wizyty po `COALESCE(DATA_WIZYTY, DATA_PLANOWANA)`, a
+konsultacje po `COALESCE(DATA_PRZYJECIA, DATA_KONSULTACJI, DATA_PLANOWANA)`,
+więc wpisy zaplanowane w Eskulapie są widoczne w szczegółach epizodu jeszcze
+przed realizacją.
 `EpisodeSynchronizationService` zapisuje powiązanie wizyty z elementem
 epizodu, a `EpisodeStateService` wylicza z tych danych aktualny stan.
 KOMPAS nie wykonuje żadnych zapisów do Oracle.

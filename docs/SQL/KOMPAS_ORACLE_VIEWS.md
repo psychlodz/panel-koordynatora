@@ -28,6 +28,8 @@ Minimalny kontrakt kolumn:
 
 - `PACJENT_ID`,
 - `DATA_WIZYTY`,
+- `DATA_PLANOWANA` — data planowanej wizyty; używana, gdy wizyta jest
+  wpisana w Eskulapie, ale nie ma jeszcze daty realizacji,
 - `PARAMETR_KOD` — kod rodzaju wizyty z `WP_PARAMETR`,
 - `PARAMETR_NAZWA` — nazwa ze słownika `CG_REF_CODES`,
 - `PARAMETR_CZY_AKTUALNE` — aktualność kodu słownikowego,
@@ -36,6 +38,9 @@ Minimalny kontrakt kolumn:
 
 Widok może udostępniać dodatkowe informacje, np. identyfikator wizyty,
 status, jednostkę organizacyjną, personel i rodzaj świadczenia.
+Synchronizacja epizodu filtruje wizyty po dacie efektywnej
+`COALESCE(DATA_WIZYTY, DATA_PLANOWANA)`, żeby pokazywać także wizyty
+zaplanowane, które nie mają jeszcze daty realizacji.
 
 Wizyty kwalifikacyjne PKK są pobierane z `V_KOMPAS_WIZYTY`. Aplikacja
 rozpoznaje je przez aktywne mapowania klocka `PKK_KWAL` w
@@ -71,7 +76,14 @@ i terapia.
 Minimalny kontrakt kolumn:
 
 - `PACJENT_ID`,
-- `DATA_KONSULTACJI`.
+- `DATA_KONSULTACJI`,
+- `DATA_PLANOWANA`,
+- `DATA_PRZYJECIA`.
+
+Synchronizacja epizodu filtruje konsultacje po dacie efektywnej
+`COALESCE(DATA_PRZYJECIA, DATA_KONSULTACJI, DATA_PLANOWANA)`.
+`DATA_PLANOWANA` jest wykorzystywana do pokazania konsultacji jako
+zaplanowanej, gdy nie została jeszcze przyjęta/zrealizowana.
 
 Źródłem widoku jest `RI_OWNER.OD_KONSULTACJE`.
 

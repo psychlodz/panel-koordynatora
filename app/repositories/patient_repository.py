@@ -10,6 +10,10 @@ VISITS_VIEW = "ESK_RAPORTY.V_KOMPAS_WIZYTY"
 CONSULTATIONS_VIEW = "ESK_RAPORTY.V_KOMPAS_KONSULTACJE"
 EXAMS_VIEW = "ESK_RAPORTY.V_KOMPAS_BADANIA"
 MAX_SEARCH_LIMIT = 500
+VISIT_EFFECTIVE_DATE = "COALESCE(w.DATA_WIZYTY, w.DATA_PLANOWANA)"
+CONSULTATION_EFFECTIVE_DATE = (
+    "COALESCE(k.DATA_PRZYJECIA, k.DATA_KONSULTACJI, k.DATA_PLANOWANA)"
+)
 
 
 def _required_text(value, field_name: str) -> str:
@@ -111,10 +115,10 @@ def get_patient_visits(
     conditions = ["w.PACJENT_ID = :pacjent_id"]
     parameters = {"pacjent_id": pacjent_id}
     if date_from:
-        conditions.append("w.DATA_WIZYTY >= :date_from")
+        conditions.append(f"{VISIT_EFFECTIVE_DATE} >= :date_from")
         parameters["date_from"] = date_from
     if date_to:
-        conditions.append("w.DATA_WIZYTY < :date_to_exclusive")
+        conditions.append(f"{VISIT_EFFECTIVE_DATE} < :date_to_exclusive")
         parameters["date_to_exclusive"] = date_to + timedelta(days=1)
 
     return _query(
@@ -122,7 +126,7 @@ def get_patient_visits(
         SELECT w.*
         FROM {VISITS_VIEW} w
         WHERE {" AND ".join(conditions)}
-        ORDER BY w.DATA_WIZYTY DESC
+        ORDER BY {VISIT_EFFECTIVE_DATE} DESC, w.WIZYTA_ID DESC
         """,
         parameters,
     )
@@ -142,10 +146,16 @@ def get_patient_consultations(
     conditions = ["k.PACJENT_ID = :pacjent_id"]
     parameters = {"pacjent_id": pacjent_id}
     if date_from:
-        conditions.append("k.DATA_KONSULTACJI >= :date_from")
+        conditions.append(
+            f"({CONSULTATION_EFFECTIVE_DATE} >= :date_from "
+            f"OR {CONSULTATION_EFFECTIVE_DATE} IS NULL)"
+        )
         parameters["date_from"] = date_from
     if date_to:
-        conditions.append("k.DATA_KONSULTACJI < :date_to_exclusive")
+        conditions.append(
+            f"({CONSULTATION_EFFECTIVE_DATE} < :date_to_exclusive "
+            f"OR {CONSULTATION_EFFECTIVE_DATE} IS NULL)"
+        )
         parameters["date_to_exclusive"] = date_to + timedelta(days=1)
 
     return _query(
@@ -153,7 +163,7 @@ def get_patient_consultations(
         SELECT k.*
         FROM {CONSULTATIONS_VIEW} k
         WHERE {" AND ".join(conditions)}
-        ORDER BY k.DATA_KONSULTACJI DESC
+        ORDER BY {CONSULTATION_EFFECTIVE_DATE} DESC, k.KONSULTACJA_ID DESC
         """,
         parameters,
     )

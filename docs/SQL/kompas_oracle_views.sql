@@ -34,6 +34,11 @@ SELECT
     wp.wp_l_lekarz_id AS pracownik_id,
     pr.prac_nazwisko || ' ' || pr.prac_imie AS pracownik,
     wp.wp_data_wizyty AS data_wizyty,
+    -- DATA_PLANOWANA jest używana przez KOMPAS dla wizyt wpisanych
+    -- w Eskulapie, które nie mają jeszcze daty realizacji wizyty.
+    -- Jeżeli lokalna instalacja Eskulapa posiada osobną kolumnę daty
+    -- planowanej, należy wskazać ją tutaj zamiast wp_data_wizyty_do.
+    wp.wp_data_wizyty_do AS data_planowana,
     wp.wp_data_wizyty_do AS data_wizyty_do,
     wp.wp_data_rejestracji AS data_rejestracji,
     wp.wp_typ_wizyty AS typ_wizyty,

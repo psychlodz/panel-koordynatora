@@ -19,6 +19,7 @@ from app.repositories.visit_mapping_repository import (
 SOURCE_SYSTEM = "ESKULAP"
 SOURCE_TYPE = "WIZYTA_KWALIFIKACYJNA_PKK"
 PKK_KWAL_BLOCK_CODE = "PKK_KWAL"
+VISIT_EFFECTIVE_DATE = "COALESCE(w.DATA_WIZYTY, w.DATA_PLANOWANA)"
 logger = logging.getLogger(__name__)
 
 
@@ -121,10 +122,10 @@ def list_qualification_visits(
     qualification_condition, parameters = _qualification_filter("w")
     conditions = [qualification_condition]
     if date_from:
-        conditions.append("w.DATA_WIZYTY >= :date_from")
+        conditions.append(f"{VISIT_EFFECTIVE_DATE} >= :date_from")
         parameters["date_from"] = date_from
     if date_to:
-        conditions.append("w.DATA_WIZYTY < :date_to_exclusive")
+        conditions.append(f"{VISIT_EFFECTIVE_DATE} < :date_to_exclusive")
         parameters["date_to_exclusive"] = date_to + timedelta(days=1)
     where_clause = "WHERE " + " AND ".join(conditions)
 
@@ -141,7 +142,7 @@ def list_qualification_visits(
         LEFT JOIN {PATIENTS_VIEW} p
             ON p.PACJENT_ID = w.PACJENT_ID
         {where_clause}
-        ORDER BY w.DATA_WIZYTY DESC, w.WIZYTA_ID DESC
+        ORDER BY {VISIT_EFFECTIVE_DATE} DESC, w.WIZYTA_ID DESC
         """,
         parameters,
     )
@@ -222,7 +223,9 @@ def create_episode_from_qualification_visit(
             pacjent_id=str(visit["pacjent_id"]),
             program_id=program_id,
             sciezka_id=sciezka_id,
-            data_start=_episode_start_date(visit.get("data_wizyty")),
+            data_start=_episode_start_date(
+                visit.get("data_wizyty") or visit.get("data_planowana")
+            ),
             koordynator_id=koordynator_id,
             source_system=SOURCE_SYSTEM,
             source_type=SOURCE_TYPE,

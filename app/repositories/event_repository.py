@@ -92,6 +92,7 @@ def get_patient_visits(
             VISITS_VIEW,
             "wizyta_id",
             row.get("data_wizyty"),
+            planned_date=row.get("data_planowana"),
             description=_description(
                 row,
                 "opis",
@@ -124,7 +125,7 @@ def get_patient_consultations(
             EVENT_CONSULTATION,
             CONSULTATIONS_VIEW,
             "konsultacja_id",
-            row.get("data_przyjecia") or row.get("data_konsultacji"),
+            row.get("data_przyjecia"),
             planned_date=row.get("data_planowana"),
             description=_description(row, "opis", "tytul", "uwagi"),
             status=row.get("status"),

@@ -7,6 +7,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+sys.modules.setdefault("oracledb", SimpleNamespace(connect=lambda *a, **k: None))
 
 from app.services.episode_synchronization_service import (
     PKK_KWAL_BLOCK_CODE,
@@ -14,6 +15,7 @@ from app.services.episode_synchronization_service import (
     match_visits_to_elements,
 )
 from app.repositories.episode_element_repository import record_history
+from app.repositories import event_repository
 from app.services.episode_state_service import (
     EpisodeStateService,
     STATUS_PLANNED,
@@ -181,6 +183,75 @@ def test_record_history_fetches_episode_when_payload_is_task_only():
     assert connection.insert_parameters[1] == 77
 
 
+def test_event_repository_maps_planned_visit_date():
+    original = event_repository._get_patient_visits
+    try:
+        event_repository._get_patient_visits = lambda *args: [
+            {
+                "wizyta_id": 700,
+                "pacjent_id": "P1",
+                "data_wizyty": None,
+                "data_planowana": "2026-07-12 10:00:00",
+                "decyzja": None,
+                "parametr_kod": "F21",
+                "parametr_nazwa": "Wizyta planowana",
+            }
+        ]
+        events = event_repository.get_patient_visits("P1")
+    finally:
+        event_repository._get_patient_visits = original
+
+    assert len(events) == 1
+    assert events[0].event_date is None
+    assert events[0].planned_date == "2026-07-12 10:00:00"
+
+
+def test_event_repository_maps_planned_consultation_without_realization():
+    original = event_repository._get_patient_consultations
+    try:
+        event_repository._get_patient_consultations = lambda *args: [
+            {
+                "konsultacja_id": 800,
+                "pacjent_id": "P1",
+                "data_przyjecia": None,
+                "data_konsultacji": "2026-07-12 10:00:00",
+                "data_planowana": "2026-07-12 10:00:00",
+                "status": None,
+            }
+        ]
+        events = event_repository.get_patient_consultations("P1")
+    finally:
+        event_repository._get_patient_consultations = original
+
+    assert len(events) == 1
+    assert events[0].event_date is None
+    assert events[0].planned_date == "2026-07-12 10:00:00"
+
+
+def test_event_repository_keeps_consultation_without_dates():
+    original = event_repository._get_patient_consultations
+    try:
+        event_repository._get_patient_consultations = lambda *args: [
+            {
+                "konsultacja_id": 801,
+                "pacjent_id": "P1",
+                "data_przyjecia": None,
+                "data_konsultacji": None,
+                "data_planowana": None,
+                "opis": "Konsultacja bez wyznaczonego terminu",
+                "status": None,
+            }
+        ]
+        events = event_repository.get_patient_consultations("P1")
+    finally:
+        event_repository._get_patient_consultations = original
+
+    assert len(events) == 1
+    assert events[0].event_date is None
+    assert events[0].planned_date is None
+    assert events[0].description == "Konsultacja bez wyznaczonego terminu"
+
+
 def main():
     test_single_visit_single_block()
     test_many_visits_many_blocks_chronologically()
@@ -190,6 +261,9 @@ def main():
     test_consultation_matches_first_free_consultation_block()
     test_planned_eskulap_visit_is_planned_status()
     test_record_history_fetches_episode_when_payload_is_task_only()
+    test_event_repository_maps_planned_visit_date()
+    test_event_repository_maps_planned_consultation_without_realization()
+    test_event_repository_keeps_consultation_without_dates()
     print("OK: logika synchronizacji epizodow")
 
 

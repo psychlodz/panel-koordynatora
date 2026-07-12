@@ -64,6 +64,17 @@ def test_missing_eskulap_details_are_brak():
     assert eskulap_visit_details({}) == "brak"
 
 
+def test_consultation_description_is_visible_without_worker():
+    text = eskulap_visit_details(
+        {
+            "eskulap_pracownik": None,
+            "eskulap_rodzaj_wizyty": "Konsultacja bez wyznaczonego terminu",
+        }
+    )
+    assert text == "Konsultacja bez wyznaczonego terminu"
+    assert "brak" not in text
+
+
 def test_window_has_no_bottom_tabs_and_uses_main_table_selection():
     source = Path("app/ui/episode_details_window.py").read_text(encoding="utf-8")
     assert "QTabWidget" not in source
@@ -86,6 +97,7 @@ def main():
     test_status_with_date_for_realized()
     test_eskulap_details_do_not_show_date()
     test_missing_eskulap_details_are_brak()
+    test_consultation_description_is_visible_without_worker()
     test_window_has_no_bottom_tabs_and_uses_main_table_selection()
     print("OK: test_episode_details_presenter")
 
