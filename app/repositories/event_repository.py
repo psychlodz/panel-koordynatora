@@ -105,6 +105,8 @@ def get_patient_visits(
             parametr_czy_aktualne=_optional_text(
                 row.get("parametr_czy_aktualne")
             ),
+            employee_id=_optional_text(row.get("pracownik_id")),
+            employee_name=_optional_text(row.get("pracownik")),
         )
         for row in rows
     ]

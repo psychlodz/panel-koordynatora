@@ -30,19 +30,29 @@ Minimalny kontrakt kolumn:
 - `DATA_WIZYTY`,
 - `PARAMETR_KOD` — kod rodzaju wizyty z `WP_PARAMETR`,
 - `PARAMETR_NAZWA` — nazwa ze słownika `CG_REF_CODES`,
-- `PARAMETR_CZY_AKTUALNE` — aktualność kodu słownikowego.
+- `PARAMETR_CZY_AKTUALNE` — aktualność kodu słownikowego,
+- `DECYZJA` — decyzja/status wizyty z Eskulapa, alias pola
+  `RI_WIZYTY_W_PORADNIACH.WP_DECYZJA`.
 
 Widok może udostępniać dodatkowe informacje, np. identyfikator wizyty,
 status, jednostkę organizacyjną, personel i rodzaj świadczenia.
 
 Wizyty kwalifikacyjne PKK są pobierane z `V_KOMPAS_WIZYTY`. Aplikacja
-rozpoznaje je po dokładnej wartości `PARAMETR_KOD = 'F18'`. `F18` oznacza
-rodzaj wizyty kwalifikacyjnej PKK. Nie wymagają osobnego widoku Oracle.
+rozpoznaje je przez aktywne mapowania klocka `PKK_KWAL` w
+`pk_mapowanie_wizyt`. Seed startowy mapuje `F18`, ale administrator może
+dopisać kolejne kody bez zmiany aplikacji. Nie wymagają osobnego widoku
+Oracle.
 
 `RI_WIZYTY_W_PORADNIACH.WP_PARAMETR` przechowuje kod rodzaju wizyty.
 Widok łączy go ze słownikiem `CG_REF_CODES` dla
 `RV_DOMAIN = 'PARAMETRY'`: `RV_LOW_VALUE` jest kodem, `RV_MEANING` nazwą
 wizyty/porady/sesji/terapii, a `RV_CZY_AKTUALNE` oznacza aktualność.
+
+`RI_WIZYTY_W_PORADNIACH.WP_DECYZJA` jest wykorzystywane przez synchronizację
+epizodów:
+
+- `J` — pacjent obsłużony, zadanie otrzymuje status `ZREALIZOWANA`,
+- `B` — wizyta anulowana, zadanie otrzymuje status `ANULOWANA`.
 
 ### `ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT`
 

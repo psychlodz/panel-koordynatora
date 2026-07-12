@@ -143,8 +143,17 @@ class EskulapGateway:
         row = self._patients.get_patient(patient_id)
         return _mapping_to_model(Patient, row, PATIENT_FIELDS)
 
-    def get_patient_visits(self, patient_id) -> list[Visit]:
-        events = self._events.get_patient_visits(patient_id)
+    def get_patient_visits(
+        self,
+        patient_id,
+        date_from=None,
+        date_to=None,
+    ) -> list[Visit]:
+        events = self._events.get_patient_visits(
+            patient_id,
+            date_from,
+            date_to,
+        )
         return [
             _event_to_model(Visit, event)
             for event in events

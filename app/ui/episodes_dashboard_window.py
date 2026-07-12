@@ -1,4 +1,4 @@
-from PySide6.QtCore import Qt
+from PySide6.QtCore import QObject, QThread, Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -28,11 +28,14 @@ from app.repositories.episode_dashboard_repository import (
     list_dashboard_episodes,
 )
 from app.services.work_context import work_context
+from app.services.episode_synchronization_service import (
+    EpisodeSynchronizationService,
+)
 from app.ui.episode_details_window import EpisodeDetailsDialog
 from app.ui.theme.color_utils import apply_readable_item_colors
 from app.ui.theme.process_colors import task_status_colors
 from app.ui.ui_helpers import create_help_button
-from app.ui.widgets.busy_indicator import busy_operation
+from app.ui.widgets.busy_indicator import busy_operation, hide_busy, show_busy
 
 
 CONTACT_TOOLTIP = (
@@ -42,6 +45,17 @@ HELP_TEXT = (
     "Dashboard epizodów pokazuje pacjentów realizujących programy, "
     "najbliższe zadania oraz elementy wymagające uwagi koordynatora."
 )
+
+
+class EpisodeSyncWorker(QObject):
+    finished = Signal(object)
+    failed = Signal(str)
+
+    def run(self):
+        try:
+            self.finished.emit(EpisodeSynchronizationService().synchronize())
+        except Exception as exc:
+            self.failed.emit(str(exc))
 
 
 def _patient_value(patient, field_name):
@@ -101,6 +115,8 @@ class EpisodesDashboardWindow(QWidget):
         self._quick_filter = None
         self._initial_unit_selected = False
         self._oracle_error = None
+        self._sync_thread = None
+        self._sync_worker = None
 
         self.setWindowTitle("KOMPAS — Dashboard epizodów")
         self.resize(1680, 900)
@@ -263,7 +279,7 @@ class EpisodesDashboardWindow(QWidget):
         actions.addWidget(self.close_button)
         layout.addLayout(actions)
 
-        self.refresh_button.clicked.connect(self.refresh_dashboard)
+        self.refresh_button.clicked.connect(self.synchronize_and_refresh)
         self.details_button.clicked.connect(self.open_selected_episode)
         self.close_button.clicked.connect(self.close)
         self.table.cellDoubleClicked.connect(
@@ -278,6 +294,54 @@ class EpisodesDashboardWindow(QWidget):
             combo.currentIndexChanged.connect(self.apply_filters)
 
         self.refresh_dashboard()
+
+    def synchronize_and_refresh(self):
+        if self._sync_thread is not None:
+            return
+        self.refresh_button.setEnabled(False)
+        show_busy("Pobieranie danych z systemu Eskulap...", self)
+
+        self._sync_thread = QThread(self)
+        self._sync_worker = EpisodeSyncWorker()
+        self._sync_worker.moveToThread(self._sync_thread)
+        self._sync_thread.started.connect(self._sync_worker.run)
+        self._sync_worker.finished.connect(self._synchronization_finished)
+        self._sync_worker.failed.connect(self._synchronization_failed)
+        self._sync_worker.finished.connect(self._sync_thread.quit)
+        self._sync_worker.failed.connect(self._sync_thread.quit)
+        self._sync_thread.finished.connect(self._sync_worker.deleteLater)
+        self._sync_thread.finished.connect(self._sync_thread.deleteLater)
+        self._sync_thread.finished.connect(self._clear_sync_thread)
+        self._sync_thread.start()
+
+    def _clear_sync_thread(self):
+        self._sync_thread = None
+        self._sync_worker = None
+        self.refresh_button.setEnabled(True)
+        hide_busy(self)
+
+    def _synchronization_finished(self, summary):
+        hide_busy(self)
+        QMessageBox.information(
+            self,
+            "Synchronizacja zakończona",
+            "Synchronizacja zakończona.\n\n"
+            f"Epizody: {summary.episodes}\n"
+            f"Wizyty: {summary.visits}\n"
+            f"Nowych przypisań: {summary.new_assignments}\n"
+            f"Zmienionych statusów: {summary.status_changes}\n"
+            f"Błędy: {summary.error_count}",
+        )
+        self.refresh_dashboard()
+
+    def _synchronization_failed(self, message):
+        hide_busy(self)
+        QMessageBox.critical(
+            self,
+            "KOMPAS",
+            "Nie udało się wykonać synchronizacji z Eskulap:\n\n"
+            f"{message}",
+        )
 
     @staticmethod
     def _set_combo_items(combo, items):

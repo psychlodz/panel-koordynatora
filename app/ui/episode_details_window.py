@@ -51,6 +51,19 @@ def _text(value):
     return "" if value is None else str(value)
 
 
+def _eskulap_visit_text(record):
+    parts = []
+    for field_name in (
+        "eskulap_pracownik",
+        "eskulap_data_wizyty",
+        "eskulap_rodzaj_wizyty",
+    ):
+        value = record.get(field_name)
+        if value:
+            parts.append(str(value))
+    return "\n".join(parts) if parts else ""
+
+
 def _patient_value(patient, field_name, legacy_name=None):
     if patient is None:
         return None
@@ -387,10 +400,10 @@ class EpisodeDetailsDialog(QDialog):
         heading.setObjectName("panelTitle")
         layout.addWidget(heading)
 
-        table = QTableWidget(len(self.process_elements), 4)
+        table = QTableWidget(len(self.process_elements), 5)
         self._process_overview_table = table
         table.setHorizontalHeaderLabels(
-            ["Element procesu", "Status", "Termin", "Realizacja"]
+            ["Element procesu", "Status", "Termin", "Realizacja", "Wizyta Eskulap"]
         )
         _configure_table(table, 0)
         self._populate_process_overview_table()
@@ -413,6 +426,7 @@ class EpisodeDetailsDialog(QDialog):
                 element["status"] or WAITING_STATUS,
                 element["data_wymagana_do"] or element["data_zaplanowana"],
                 element["data_realizacji"],
+                _eskulap_visit_text(element),
             ]
             for column_index, value in enumerate(values):
                 item = QTableWidgetItem(_text(value))
@@ -469,7 +483,7 @@ class EpisodeDetailsDialog(QDialog):
         actions.addStretch(1)
         layout.addLayout(actions)
 
-        table = QTableWidget(len(self.tasks), 7)
+        table = QTableWidget(len(self.tasks), 8)
         self._process_tasks_table = table
         table.setHorizontalHeaderLabels(
             [
@@ -478,6 +492,7 @@ class EpisodeDetailsDialog(QDialog):
                 "Data wymagana do",
                 "Zaplanowano",
                 "Realizacja",
+                "Wizyta Eskulap",
                 "Źródło",
                 "Uwagi",
             ]
@@ -501,6 +516,7 @@ class EpisodeDetailsDialog(QDialog):
                 task["data_wymagana_do"],
                 task["data_zaplanowana"],
                 task["data_realizacji"],
+                _eskulap_visit_text(task),
                 task["zrodlo"],
                 task["uwagi"],
             ]
@@ -510,7 +526,7 @@ class EpisodeDetailsDialog(QDialog):
                     Qt.ItemDataRole.UserRole,
                     task.get("epizod_element_id"),
                 )
-                if column_index in (1, 2, 3, 4, 5):
+                if column_index in (1, 2, 3, 4, 6):
                     item.setTextAlignment(Qt.AlignmentFlag.AlignCenter)
                 else:
                     item.setTextAlignment(

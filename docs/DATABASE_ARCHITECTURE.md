@@ -162,3 +162,40 @@ wizyty może mieć tylko jedno aktywne przypisanie do klocka.
 Popup harmonogramu pracy wyświetla nazwy rodzajów wizyt z `RODZAJE_WIZYT`.
 Lokalny słownik PostgreSQL jest używany tylko jako fallback, gdy widok
 harmonogramu zwróci kody bez nazw.
+
+## Synchronizacja epizodów z Eskulap
+
+Synchronizacja epizodów jest jednokierunkowa:
+
+```text
+Eskulap / Oracle
+        ↓
+Eskulap Gateway
+        ↓
+EpisodeSynchronizationService
+        ↓
+PostgreSQL KOMPAS
+        ↓
+Dashboard Koordynatora
+```
+
+KOMPAS nie zapisuje nic do Oracle. Wizyty pacjenta są pobierane przez Gateway
+z `V_KOMPAS_WIZYTY`, a `WP_PARAMETR` jest dopasowywany do klocka procesu przez
+aktywne rekordy `pk_mapowanie_wizyt`.
+
+Reguły dopasowania:
+
+- jedna wizyta Eskulapa może zostać przypisana tylko do jednego elementu
+  epizodu,
+- jeden element epizodu może mieć tylko jedną przypisaną wizytę,
+- wizyty są przypisywane chronologicznie do pierwszych wolnych elementów
+  danego klocka,
+- `PKK_KWAL` jest oznaczany jako `ZREALIZOWANA`, bo kwalifikacja była warunkiem
+  utworzenia epizodu.
+
+Statusy automatyczne:
+
+- `DECYZJA = 'J'` → `ZREALIZOWANA`,
+- `DECYZJA = 'B'` → `ANULOWANA`,
+- istnieje data planowana i brak realizacji → `ZAPLANOWANA`,
+- brak wizyty → pozostaje dotychczasowy status.

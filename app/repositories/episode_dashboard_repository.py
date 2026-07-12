@@ -177,6 +177,9 @@ def _load_dashboard_episodes(current_user=None, current_unit=None):
                     z.data_realizacji,
                     z.eskulap_system,
                     z.eskulap_id,
+                    z.eskulap_pracownik,
+                    z.eskulap_data_wizyty,
+                    z.eskulap_rodzaj_wizyty,
                     COALESCE(ee.lp, el.lp) AS lp,
                     COALESCE(ee.nazwa, el.nazwa_w_sciezce) AS nazwa_w_sciezce,
                     COALESCE(

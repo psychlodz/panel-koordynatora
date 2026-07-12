@@ -471,6 +471,9 @@ CREATE TABLE IF NOT EXISTS pk_zadania (
     zrodlo text NOT NULL DEFAULT 'PROGRAM',
     eskulap_system text,
     eskulap_id text,
+    eskulap_pracownik text,
+    eskulap_data_wizyty timestamptz,
+    eskulap_rodzaj_wizyty text,
     uwagi text,
     created_at timestamptz NOT NULL DEFAULT now(),
     updated_at timestamptz,
@@ -486,6 +489,15 @@ CREATE TABLE IF NOT EXISTS pk_zadania (
 
 ALTER TABLE pk_zadania
 ADD COLUMN IF NOT EXISTS epizod_element_id bigint;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS eskulap_pracownik text;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS eskulap_data_wizyty timestamptz;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS eskulap_rodzaj_wizyty text;
 
 DO $$
 BEGIN
