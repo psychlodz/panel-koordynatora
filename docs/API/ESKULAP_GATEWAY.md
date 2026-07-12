@@ -49,7 +49,8 @@ Pobiera wizyty pacjenta. Zwraca listę `Visit`. Model zawiera także pola
 `parametr_kod`, `parametr_nazwa` i `parametr_czy_aktualne`, mapowane
 odpowiednio z `WP_PARAMETR` i słownika `CG_REF_CODES`.
 Jeżeli widok `V_KOMPAS_WIZYTY` zwraca wizytę zaplanowaną bez `DATA_WIZYTY`,
-Gateway przekazuje `DATA_PLANOWANA` jako `Visit.planned_date`.
+Gateway przekazuje `DATA_PLANOWANA` albo, dla starszego wariantu widoku,
+`DATA_WIZYTY_DO` jako `Visit.planned_date`.
 
 ### `get_patient_qualification_visits(date_from=None, date_to=None, only_unassigned=True)`
 
@@ -166,7 +167,7 @@ gdy widok Oracle nie zwróci nazw.
 Gateway zwraca `Visit.status` na podstawie kolumny `DECYZJA` z widoku
 `V_KOMPAS_WIZYTY` oraz `parametr_kod`/`parametr_nazwa`. Kolumna `DECYZJA` jest
 aliasem pola `RI_WIZYTY_W_PORADNIACH.WP_DECYZJA`.
-Repozytoria filtrują wizyty po `COALESCE(DATA_WIZYTY, DATA_PLANOWANA)`, a
+Repozytoria filtrują wizyty po `COALESCE(DATA_WIZYTY, DATA_WIZYTY_DO)`, a
 konsultacje po `COALESCE(DATA_PRZYJECIA, DATA_KONSULTACJI, DATA_PLANOWANA)`,
 więc wpisy zaplanowane w Eskulapie są widoczne w szczegółach epizodu jeszcze
 przed realizacją.

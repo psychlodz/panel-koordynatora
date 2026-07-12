@@ -206,6 +206,29 @@ def test_event_repository_maps_planned_visit_date():
     assert events[0].planned_date == "2026-07-12 10:00:00"
 
 
+def test_event_repository_maps_legacy_visit_planned_date():
+    original = event_repository._get_patient_visits
+    try:
+        event_repository._get_patient_visits = lambda *args: [
+            {
+                "wizyta_id": 701,
+                "pacjent_id": "P1",
+                "data_wizyty": None,
+                "data_wizyty_do": "2026-07-13 11:00:00",
+                "decyzja": None,
+                "parametr_kod": "F21",
+                "parametr_nazwa": "Wizyta planowana",
+            }
+        ]
+        events = event_repository.get_patient_visits("P1")
+    finally:
+        event_repository._get_patient_visits = original
+
+    assert len(events) == 1
+    assert events[0].event_date is None
+    assert events[0].planned_date == "2026-07-13 11:00:00"
+
+
 def test_event_repository_maps_planned_consultation_without_realization():
     original = event_repository._get_patient_consultations
     try:
@@ -262,6 +285,7 @@ def main():
     test_planned_eskulap_visit_is_planned_status()
     test_record_history_fetches_episode_when_payload_is_task_only()
     test_event_repository_maps_planned_visit_date()
+    test_event_repository_maps_legacy_visit_planned_date()
     test_event_repository_maps_planned_consultation_without_realization()
     test_event_repository_keeps_consultation_without_dates()
     print("OK: logika synchronizacji epizodow")

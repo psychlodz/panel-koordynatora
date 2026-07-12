@@ -19,7 +19,7 @@ from app.repositories.visit_mapping_repository import (
 SOURCE_SYSTEM = "ESKULAP"
 SOURCE_TYPE = "WIZYTA_KWALIFIKACYJNA_PKK"
 PKK_KWAL_BLOCK_CODE = "PKK_KWAL"
-VISIT_EFFECTIVE_DATE = "COALESCE(w.DATA_WIZYTY, w.DATA_PLANOWANA)"
+VISIT_EFFECTIVE_DATE = "COALESCE(w.DATA_WIZYTY, w.DATA_WIZYTY_DO)"
 logger = logging.getLogger(__name__)
 
 
@@ -224,7 +224,9 @@ def create_episode_from_qualification_visit(
             program_id=program_id,
             sciezka_id=sciezka_id,
             data_start=_episode_start_date(
-                visit.get("data_wizyty") or visit.get("data_planowana")
+                visit.get("data_wizyty")
+                or visit.get("data_planowana")
+                or visit.get("data_wizyty_do")
             ),
             koordynator_id=koordynator_id,
             source_system=SOURCE_SYSTEM,

@@ -92,7 +92,7 @@ def get_patient_visits(
             VISITS_VIEW,
             "wizyta_id",
             row.get("data_wizyty"),
-            planned_date=row.get("data_planowana"),
+            planned_date=row.get("data_planowana") or row.get("data_wizyty_do"),
             description=_description(
                 row,
                 "opis",

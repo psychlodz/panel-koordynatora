@@ -28,8 +28,9 @@ Minimalny kontrakt kolumn:
 
 - `PACJENT_ID`,
 - `DATA_WIZYTY`,
-- `DATA_PLANOWANA` — data planowanej wizyty; używana, gdy wizyta jest
-  wpisana w Eskulapie, ale nie ma jeszcze daty realizacji,
+- `DATA_WIZYTY_DO` — obecny techniczny fallback daty planowanej wizyty,
+- `DATA_PLANOWANA` — docelowy alias daty planowanej wizyty; używany, gdy
+  wizyta jest wpisana w Eskulapie, ale nie ma jeszcze daty realizacji,
 - `PARAMETR_KOD` — kod rodzaju wizyty z `WP_PARAMETR`,
 - `PARAMETR_NAZWA` — nazwa ze słownika `CG_REF_CODES`,
 - `PARAMETR_CZY_AKTUALNE` — aktualność kodu słownikowego,
@@ -39,8 +40,10 @@ Minimalny kontrakt kolumn:
 Widok może udostępniać dodatkowe informacje, np. identyfikator wizyty,
 status, jednostkę organizacyjną, personel i rodzaj świadczenia.
 Synchronizacja epizodu filtruje wizyty po dacie efektywnej
-`COALESCE(DATA_WIZYTY, DATA_PLANOWANA)`, żeby pokazywać także wizyty
-zaplanowane, które nie mają jeszcze daty realizacji.
+`COALESCE(DATA_WIZYTY, DATA_WIZYTY_DO)`, żeby pokazywać także wizyty
+zaplanowane, które nie mają jeszcze daty realizacji. Alias `DATA_PLANOWANA`
+pozostaje docelowym kontraktem widoku, ale aplikacja nie wymaga go twardo od
+starszego wdrożenia widoku.
 
 Wizyty kwalifikacyjne PKK są pobierane z `V_KOMPAS_WIZYTY`. Aplikacja
 rozpoznaje je przez aktywne mapowania klocka `PKK_KWAL` w

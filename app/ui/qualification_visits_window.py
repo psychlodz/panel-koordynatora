@@ -260,7 +260,9 @@ class QualificationVisitsWindow(QWidget):
             self.table.setRowCount(len(visits))
             for row_index, visit in enumerate(visits):
                 values = [
-                    visit.get("data_wizyty") or visit.get("data_planowana"),
+                    visit.get("data_wizyty")
+                    or visit.get("data_planowana")
+                    or visit.get("data_wizyty_do"),
                     visit.get("pesel"),
                     visit.get("nazwisko"),
                     visit.get("imie"),
