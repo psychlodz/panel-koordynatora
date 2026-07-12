@@ -9,6 +9,7 @@ if str(ROOT) not in sys.path:
 from app.ui.episode_details_presenter import (
     eskulap_visit_details,
     process_element_label,
+    process_element_tooltip,
     status_with_date,
 )
 
@@ -36,6 +37,23 @@ def test_missing_deadline_is_brak():
         }
     )
     assert text.endswith("Data realizacji do: brak")
+
+
+def test_auto_duplicate_label_is_visible():
+    record = {
+        "nazwa_w_sciezce": "Badanie obrazowe",
+        "data_wymagana_do": None,
+        "czy_aktywny": 1,
+        "typ_pochodzenia": "POWIELENIE_AUTOMATYCZNE",
+        "element_zrodlowy_id": 10,
+        "eskulap_system": "ESKULAP_BADANIA_OBRAZOWE",
+        "eskulap_id": "IMG-1",
+    }
+    text = process_element_label(record)
+    tooltip = process_element_tooltip(record)
+    assert "Powielenie z Eskulap" in text
+    assert "Element źródłowy: 10" in tooltip
+    assert "ESKULAP_BADANIA_OBRAZOWE / IMG-1" in tooltip
 
 
 def test_status_with_date_for_realized():
@@ -94,6 +112,7 @@ def test_window_has_no_bottom_tabs_and_uses_main_table_selection():
 def main():
     test_process_element_label_contains_deadline()
     test_missing_deadline_is_brak()
+    test_auto_duplicate_label_is_visible()
     test_status_with_date_for_realized()
     test_eskulap_details_do_not_show_date()
     test_missing_eskulap_details_are_brak()

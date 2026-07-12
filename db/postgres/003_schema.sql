@@ -397,7 +397,14 @@ CREATE TABLE IF NOT EXISTS pk_epizod_elementy (
     CONSTRAINT ck_pk_epizod_elementy_active
         CHECK (czy_aktywny IN (0, 1)),
     CONSTRAINT ck_pk_epizod_elementy_origin
-        CHECK (typ_pochodzenia IN ('SCIEZKA', 'POWIELENIE', 'RECZNIE')),
+        CHECK (
+            typ_pochodzenia IN (
+                'SCIEZKA',
+                'POWIELENIE',
+                'POWIELENIE_AUTOMATYCZNE',
+                'RECZNIE'
+            )
+        ),
     CONSTRAINT ck_pk_epizod_elementy_counts
         CHECK (
             min_liczba IS NULL
@@ -428,6 +435,7 @@ CREATE TABLE IF NOT EXISTS pk_epizod_elementy_historia (
             operacja IN (
                 'UTWORZENIE',
                 'POWIELENIE',
+                'POWIELENIE_AUTOMATYCZNE',
                 'DEZAKTYWACJA',
                 'REAKTYWACJA',
                 'EDYCJA'

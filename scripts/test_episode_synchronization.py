@@ -12,6 +12,10 @@ sys.modules.setdefault("oracledb", SimpleNamespace(connect=lambda *a, **k: None)
 from app.services.episode_synchronization_service import (
     PKK_KWAL_BLOCK_CODE,
     EpisodeSynchronizationService,
+    IMAGING_BLOCK_CODES,
+    SPECIALIST_CONSULTATION_BLOCK_CODES,
+    AUTO_DUPLICATE_ORIGIN,
+    match_events_to_elements,
     match_consultations_to_elements,
     match_visits_to_elements,
 )
@@ -47,11 +51,31 @@ def consultation(oracle_id, planned_when):
     )
 
 
+def imaging_order(oracle_id, when):
+    return SimpleNamespace(
+        oracle_id=str(oracle_id),
+        source="ESK_RAPORTY.V_KOMPAS_BADANIA",
+        event_type="IMAGING_ORDER",
+        event_date=datetime.fromisoformat(when),
+        planned_date=None,
+        realization_date=None,
+        status=None,
+        description="Badanie obrazowe",
+    )
+
+
 def element(element_id, block_code, lp, eskulap_id=None):
     return {
         "epizod_element_id": element_id,
+        "epizod_id": 77,
+        "element_id": 1000 + element_id,
+        "sciezka_element_id": 1000 + element_id,
+        "klocek_id": 2000 + element_id,
+        "element_zrodlowy_id": None,
         "klocek_kod": block_code,
+        "typ_pochodzenia": "SCIEZKA",
         "lp": lp,
+        "nazwa": block_code,
         "eskulap_id": eskulap_id,
     }
 
@@ -116,6 +140,98 @@ class FakeSyncConnection:
             )
         if normalized.startswith("INSERT INTO PK_EPIZOD_ELEMENTY_HISTORIA"):
             self.history_inserted = True
+            return SimpleNamespace(fetchone=lambda: None)
+        raise AssertionError(f"Nieobsługiwany SQL w teście: {sql}")
+
+
+class FakeAutoDuplicateConnection:
+    def __init__(self, source):
+        self.elements = [dict(source)]
+        self.next_id = max(int(source["epizod_element_id"]) + 1, 100)
+        self.history = []
+
+    def execute(self, sql, parameters=()):
+        normalized = " ".join(sql.split()).upper()
+        if normalized.startswith("SELECT * FROM PK_EPIZOD_ELEMENTY"):
+            element_id = int(parameters[0])
+            row = next(
+                (
+                    dict(element)
+                    for element in self.elements
+                    if int(element["epizod_element_id"]) == element_id
+                ),
+                None,
+            )
+            return SimpleNamespace(fetchone=lambda: row)
+        if (
+            "SELECT EE.EPIZOD_ELEMENT_ID" in normalized
+            and "FROM PK_EPIZOD_ELEMENTY EE" in normalized
+        ):
+            epizod_id = parameters[0]
+            rows = [
+                dict(element)
+                for element in sorted(
+                    self.elements,
+                    key=lambda row: (
+                        int(row.get("lp") or 0),
+                        int(row.get("epizod_element_id") or 0),
+                    ),
+                )
+                if element["epizod_id"] == epizod_id
+            ]
+            return SimpleNamespace(fetchall=lambda: rows)
+        if "SELECT COALESCE(MAX(LP)" in normalized and "KLOCEK_ID" in normalized:
+            epizod_id, klocek_id = parameters[1], parameters[2]
+            lp = max(
+                (
+                    int(element["lp"])
+                    for element in self.elements
+                    if element["epizod_id"] == epizod_id
+                    and element["klocek_id"] == klocek_id
+                ),
+                default=int(parameters[0]),
+            )
+            return SimpleNamespace(fetchone=lambda: {"lp": lp})
+        if "SELECT COALESCE(MAX(EE.LP)" in normalized:
+            return SimpleNamespace(fetchone=lambda: {"lp": 0})
+        if normalized.startswith("UPDATE PK_EPIZOD_ELEMENTY"):
+            epizod_id, new_lp = parameters
+            for element in self.elements:
+                if element["epizod_id"] == epizod_id and int(element["lp"]) >= int(new_lp):
+                    element["lp"] = int(element["lp"]) + 1
+            return SimpleNamespace(fetchone=lambda: None)
+        if normalized.startswith("INSERT INTO PK_EPIZOD_ELEMENTY("):
+            new_id = self.next_id
+            self.next_id += 1
+            self.elements.append(
+                {
+                    "epizod_element_id": new_id,
+                    "epizod_id": parameters[0],
+                    "element_id": parameters[1],
+                    "sciezka_element_id": parameters[1],
+                    "klocek_id": parameters[2],
+                    "element_zrodlowy_id": parameters[3],
+                    "nazwa": parameters[4],
+                    "lp": parameters[5],
+                    "min_liczba": parameters[6],
+                    "max_liczba": parameters[7],
+                    "termin_liczba": parameters[8],
+                    "jednostka_czasu_id": parameters[9],
+                    "termin_od_epizod_element_id": parameters[10],
+                    "czy_wymagany": parameters[11],
+                    "czy_wymaga_zlecenia": parameters[12],
+                    "czy_aktywny": 1,
+                    "typ_pochodzenia": parameters[13],
+                    "powod_modyfikacji": parameters[14],
+                    "created_by": parameters[15],
+                    "klocek_kod": self.elements[0]["klocek_kod"],
+                    "zadanie_id": None,
+                    "eskulap_id": None,
+                }
+            )
+            return SimpleNamespace(lastrowid=new_id, fetchone=lambda: None)
+        if normalized.startswith("INSERT INTO PK_EPIZOD_ELEMENTY_HISTORIA"):
+            self.history.append(parameters)
             return SimpleNamespace(fetchone=lambda: None)
         raise AssertionError(f"Nieobsługiwany SQL w teście: {sql}")
 
@@ -233,6 +349,92 @@ def test_invalid_specialist_consultation_visit_assignment_is_cleared():
     assert connection.task["eskulap_id"] is None
     assert connection.task["data_realizacji"] is None
     assert connection.history_inserted
+
+
+def test_specialist_consultations_create_automatic_duplicates():
+    source = element(1, "KONSULTACJA_SPECJALISTYCZNA", 4)
+    source.update(
+        {
+            "min_liczba": 0,
+            "max_liczba": None,
+            "termin_liczba": None,
+            "jednostka_czasu_id": None,
+            "termin_od_epizod_element_id": None,
+            "czy_wymagany": 0,
+            "czy_wymaga_zlecenia": 1,
+        }
+    )
+    connection = FakeAutoDuplicateConnection(source)
+    events = [
+        consultation(1001, "2026-07-01T10:00:00"),
+        consultation(1002, "2026-07-02T10:00:00"),
+        consultation(1003, "2026-07-03T10:00:00"),
+    ]
+
+    elements = EpisodeSynchronizationService(
+        gateway=SimpleNamespace()
+    )._ensure_event_elements(
+        connection,
+        {"epizod_id": 77},
+        [source],
+        events,
+        SPECIALIST_CONSULTATION_BLOCK_CODES,
+        "Test konsultacji",
+    )
+
+    assert len(elements) == 3
+    assert len(connection.history) == 2
+    assert {
+        element["typ_pochodzenia"]
+        for element in elements
+        if element["epizod_element_id"] != 1
+    } == {AUTO_DUPLICATE_ORIGIN}
+
+
+def test_imaging_orders_match_one_order_to_one_element():
+    assignments = match_events_to_elements(
+        [
+            element(1, "BADANIE_OBRAZOWE", 7),
+            element(2, "BADANIE_OBRAZOWE", 8),
+            element(3, "BADANIE_OBRAZOWE", 9),
+            element(4, "BADANIE_OBRAZOWE", 10),
+        ],
+        [
+            imaging_order(2003, "2026-07-03T10:00:00"),
+            imaging_order(2001, "2026-07-01T10:00:00"),
+            imaging_order(2002, "2026-07-02T10:00:00"),
+            imaging_order(2004, "2026-07-04T10:00:00"),
+        ],
+        IMAGING_BLOCK_CODES,
+    )
+
+    assert [row[0]["epizod_element_id"] for row in assignments] == [1, 2, 3, 4]
+    assert [row[1].oracle_id for row in assignments] == ["2001", "2002", "2003", "2004"]
+
+
+def test_event_repository_maps_imaging_realization_date():
+    original = event_repository._get_patient_exams
+    try:
+        event_repository._get_patient_exams = lambda *args: [
+            {
+                "badanie_skierowanie_id": 900,
+                "pacjent_id": "P1",
+                "data_skierowania": "2026-07-01 08:00:00",
+                "data_zaplanowana": "2026-07-05 09:00:00",
+                "data_realizacji": "2026-07-06 10:00:00",
+                "typ": "RTG",
+                "badanie_nazwa": "RTG klatki piersiowej",
+                "status": "WYKONANE",
+            }
+        ]
+        events = event_repository.get_patient_imaging_orders("P1")
+    finally:
+        event_repository._get_patient_exams = original
+
+    assert len(events) == 1
+    assert events[0].event_date == "2026-07-01 08:00:00"
+    assert events[0].planned_date == "2026-07-05 09:00:00"
+    assert events[0].realization_date == "2026-07-06 10:00:00"
 
 
 def test_planned_eskulap_visit_is_planned_status():
@@ -372,6 +574,9 @@ def main():
     test_visit_does_not_match_specialist_consultation_block()
     test_consultation_does_not_match_visit_based_consultation_block()
     test_invalid_specialist_consultation_visit_assignment_is_cleared()
+    test_specialist_consultations_create_automatic_duplicates()
+    test_imaging_orders_match_one_order_to_one_element()
+    test_event_repository_maps_imaging_realization_date()
     test_planned_eskulap_visit_is_planned_status()
     test_record_history_fetches_episode_when_payload_is_task_only()
     test_event_repository_maps_planned_visit_date()

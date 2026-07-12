@@ -57,6 +57,7 @@ psql -U kompas_app -d kompas -f db/postgres/003_schema.sql
 psql -U kompas_app -d kompas -f db/postgres/004_seed.sql
 psql -U kompas_app -d kompas -f db/postgres/005_indexes.sql
 psql -U postgres -d kompas -f db/postgres/006_grants.sql
+psql -U postgres -d kompas -f db/postgres/007_episode_auto_duplicates.sql
 ```
 
 Pełna kolejność instalacji to:
@@ -65,7 +66,8 @@ Pełna kolejność instalacji to:
 2. `003_schema.sql` — jako `kompas_app`, na bazie `kompas`,
 3. `004_seed.sql` — jako `kompas_app`, na bazie `kompas`,
 4. `005_indexes.sql` — jako `kompas_app`, na bazie `kompas`,
-5. `006_grants.sql` — jako `postgres`, na bazie `kompas`.
+5. `006_grants.sql` — jako `postgres`, na bazie `kompas`,
+6. `007_episode_auto_duplicates.sql` — jako `postgres`, na bazie `kompas`.
 
 Plik `002_extensions.sql` pozostaje pustym punktem rozszerzeń i obecnie
 nie wymaga wykonania.
@@ -73,6 +75,13 @@ nie wymaga wykonania.
 Skrypt `006_grants.sql` należy uruchomić na bazie `kompas` jako użytkownik
 `postgres`. Nadaje `kompas_app` dostęp do istniejących tabel i sekwencji
 oraz ustawia uprawnienia domyślne dla przyszłych obiektów.
+
+Skrypt `007_episode_auto_duplicates.sql` aktualizuje constrainty
+`pk_epizod_elementy` i `pk_epizod_elementy_historia`, aby KOMPAS mógł
+zapisywać automatyczne powielenia elementów epizodu dla konsultacji
+specjalistycznych i badań obrazowych. Ten sam skrypt tworzy też indeks
+`uq_pk_zadania_eskulap_event`, który zabezpiecza przed przypisaniem jednego
+zdarzenia Eskulapa do wielu zadań KOMPAS.
 
 Każdy skrypt ma włączone zatrzymanie po pierwszym błędzie. Nie przechodź
 do następnego kroku, dopóki bieżący skrypt nie zakończy się poprawnie.
@@ -263,6 +272,7 @@ psql -U kompas_app -d kompas -f db/postgres/003_schema.sql
 psql -U kompas_app -d kompas -f db/postgres/004_seed.sql
 psql -U kompas_app -d kompas -f db/postgres/005_indexes.sql
 psql -U postgres -d kompas -f db/postgres/006_grants.sql
+psql -U postgres -d kompas -f db/postgres/007_episode_auto_duplicates.sql
 ```
 
 Po instalacji wykonaj synchronizację słownika w aplikacji:

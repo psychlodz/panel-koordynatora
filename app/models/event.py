@@ -13,3 +13,4 @@ class Event:
     planned_date: date | datetime | None
     description: str | None
     oracle_id: str
+    realization_date: date | datetime | None = None

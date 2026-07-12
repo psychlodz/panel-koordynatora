@@ -4,6 +4,7 @@ from datetime import date, datetime
 
 
 WAITING_STATUS = "OCZEKUJE NA AKTYWACJĘ"
+AUTO_DUPLICATE_ORIGIN = "POWIELENIE_AUTOMATYCZNE"
 
 
 def _is_empty(value):
@@ -44,10 +45,35 @@ def process_element_label(record):
     suffix = ""
     if not record.get("czy_aktywny", 1):
         suffix = " [Dezaktywowany]"
+    elif record.get("typ_pochodzenia") == AUTO_DUPLICATE_ORIGIN:
+        suffix = " [Powielenie z Eskulap]"
     elif record.get("typ_pochodzenia") == "POWIELENIE":
         suffix = " [Powielenie]"
     deadline = _format_date(record.get("data_wymagana_do"))
     return f"{name}{suffix}\nData realizacji do: {deadline}"
+
+
+def process_element_tooltip(record):
+    tooltip = process_element_label(record)
+    if record.get("typ_pochodzenia") == AUTO_DUPLICATE_ORIGIN:
+        details = [
+            "",
+            "Powielenie z Eskulap",
+            "Element został utworzony automatycznie podczas synchronizacji,",
+            "ponieważ w Eskulapie znaleziono dodatkowe zdarzenie dla tego typu klocka.",
+        ]
+        source_element_id = record.get("element_zrodlowy_id")
+        if source_element_id:
+            details.append(f"Element źródłowy: {source_element_id}")
+        eskulap_system = record.get("eskulap_system")
+        eskulap_id = record.get("eskulap_id")
+        if eskulap_system or eskulap_id:
+            details.append(
+                f"Zdarzenie Eskulap: {text_or_missing(eskulap_system)} / "
+                f"{text_or_missing(eskulap_id)}"
+            )
+        tooltip = "\n".join([tooltip, *details])
+    return tooltip
 
 
 def status_with_date(record):

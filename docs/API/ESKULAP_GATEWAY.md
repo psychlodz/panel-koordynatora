@@ -177,6 +177,49 @@ Klocek `KONSULTACJA_SPECJALISTYCZNA` jest zasilany wyłącznie danymi z widoku
 mapowanie. Klocki wizytowe o nazwach zaczynających się od `KONSULTACJA_`, np.
 psychiatryczne lub psychologiczne, nadal mogą być zasilane z `V_KOMPAS_WIZYTY`,
 jeżeli są mapowane przez `pk_mapowanie_wizyt`.
+
+Klocek `BADANIE_OBRAZOWE` jest zasilany wyłącznie z listy badań obrazowych
+zwracanej przez `EskulapGateway.get_patient_imaging_orders()`, czyli przez
+widok `V_KOMPAS_BADANIA` z filtrem typu badania obrazowego. Nie jest
+uzupełniany przez wizyty ani konsultacje.
+
+### Zasada 1 zdarzenie Eskulapa = 1 element epizodu
+
+Dla konsultacji specjalistycznych i badań obrazowych synchronizacja działa
+według zasady 1:1:
+
+```text
+zdarzenie Eskulapa
+        ↓
+pk_epizod_elementy
+        ↓
+pk_zadania
+```
+
+Jeżeli Eskulap zwróci więcej konsultacji specjalistycznych albo badań
+obrazowych niż istnieje aktywnych elementów danego klocka w epizodzie,
+`EpisodeSynchronizationService` tworzy dodatkowe elementy tylko w bieżącym
+epizodzie. Szablon ścieżki w `pk_sciezka_elementy` nie jest modyfikowany.
+
+Automatycznie utworzony element otrzymuje:
+
+- `typ_pochodzenia = POWIELENIE_AUTOMATYCZNE`,
+- `element_zrodlowy_id` wskazujący element źródłowy,
+- wpis historii `POWIELENIE_AUTOMATYCZNE`,
+- powiązane zadanie w `pk_zadania`.
+
+Powiązanie ze zdarzeniem Eskulapa jest zapisane w `pk_zadania` w polach
+`eskulap_system` i `eskulap_id`. Baza PostgreSQL posiada częściowy indeks
+unikalny `uq_pk_zadania_eskulap_event`, który blokuje przypisanie tego samego
+zdarzenia Eskulapa do wielu zadań KOMPAS.
+
+Status elementu nadal wylicza `EpisodeStateService`:
+
+- zdarzenie bez daty planowanej i bez daty realizacji → `DO_ZAPLANOWANIA`,
+- zdarzenie z datą planowaną i bez realizacji → `ZAPLANOWANA`,
+- zdarzenie z datą realizacji → `ZREALIZOWANA`,
+- zdarzenie anulowane w Eskulapie → `ANULOWANA`.
+
 `EpisodeSynchronizationService` zapisuje powiązanie wizyty z elementem
 epizodu, a `EpisodeStateService` wylicza z tych danych aktualny stan.
 KOMPAS nie wykonuje żadnych zapisów do Oracle.

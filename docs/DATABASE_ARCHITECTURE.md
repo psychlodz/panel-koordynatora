@@ -188,9 +188,25 @@ KOMPAS nie zapisuje nic do Oracle. Wizyty pacjenta są pobierane przez Gateway
 z `V_KOMPAS_WIZYTY`, a `WP_PARAMETR` jest dopasowywany do klocka procesu przez
 aktywne rekordy `pk_mapowanie_wizyt`.
 
-`EpisodeSynchronizationService` zapisuje powiązania z wizytami Eskulapa,
+`EpisodeSynchronizationService` zapisuje powiązania ze zdarzeniami Eskulapa,
 daty, pracownika, rodzaj wizyty i techniczną decyzję Eskulapa. Nie wylicza
 statusów Dashboardu.
+
+Powiązanie ze zdarzeniem Eskulapa znajduje się w `pk_zadania`:
+
+- `eskulap_system` — techniczne źródło, np. `ESKULAP`, `ESKULAP_KONSULTACJE`,
+  `ESKULAP_BADANIA_OBRAZOWE`,
+- `eskulap_id` — identyfikator rekordu źródłowego w Oracle,
+- `epizod_element_id` — element epizodu, którego dotyczy zadanie.
+
+Baza posiada częściowy indeks unikalny `uq_pk_zadania_eskulap_event`, który
+pilnuje, aby jedno zdarzenie Eskulapa nie zostało przypisane do wielu zadań
+KOMPAS.
+
+Konsultacje specjalistyczne są pobierane wyłącznie z
+`ESK_RAPORTY.V_KOMPAS_KONSULTACJE`. Badania obrazowe są pobierane wyłącznie
+z `ESK_RAPORTY.V_KOMPAS_BADANIA` przez
+`EskulapGateway.get_patient_imaging_orders()`.
 
 Reguły dopasowania:
 
@@ -201,11 +217,15 @@ Reguły dopasowania:
   danego klocka,
 - `PKK_KWAL` jest powiązany z wizytą kwalifikacyjną, która była warunkiem
   utworzenia epizodu.
+- jeżeli konsultacji specjalistycznych albo badań obrazowych jest więcej niż
+  aktywnych elementów danego klocka w epizodzie, KOMPAS automatycznie tworzy
+  dodatkowe elementy epizodu z `typ_pochodzenia = POWIELENIE_AUTOMATYCZNE`;
+  szablon ścieżki nie jest zmieniany.
 
 Statusy automatyczne wylicza wyłącznie `EpisodeStateService`:
 
 - `PKK_KWAL` → `ZREALIZOWANA`,
 - istnieje data planowana i brak realizacji → `ZAPLANOWANA`,
-- data realizacji i `DECYZJA = 'J'` → `ZREALIZOWANA`,
+- istnieje data realizacji → `ZREALIZOWANA`,
 - `DECYZJA = 'B'` → `ANULOWANA`,
 - brak wizyty → `DO_ZAPLANOWANIA`.

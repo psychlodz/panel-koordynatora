@@ -42,6 +42,7 @@ from app.ui.episode_details_presenter import (
     WAITING_STATUS,
     eskulap_visit_details,
     process_element_label,
+    process_element_tooltip,
     status_with_date,
 )
 from app.ui.widgets.busy_indicator import hide_busy, show_busy
@@ -468,7 +469,10 @@ class EpisodeDetailsDialog(QDialog):
                         Qt.AlignmentFlag.AlignLeft
                         | Qt.AlignmentFlag.AlignVCenter
                     )
-                    item.setToolTip(_text(value))
+                    if column_index == 0:
+                        item.setToolTip(process_element_tooltip(element))
+                    else:
+                        item.setToolTip(_text(value))
                 table.setItem(
                     row_index,
                     column_index,

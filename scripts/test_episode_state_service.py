@@ -59,6 +59,17 @@ def test_completed_from_decision_j():
     assert state["status_wyliczony"] == STATUS_COMPLETED
 
 
+def test_completed_from_realization_date_without_decision():
+    state = EpisodeStateService()._calculate_element_state(
+        element(
+            eskulap_id="123",
+            eskulap_decyzja=None,
+            data_realizacji="2026-07-12 10:00:00",
+        )
+    )
+    assert state["status_wyliczony"] == STATUS_COMPLETED
+
+
 def test_cancelled_from_decision_b():
     state = EpisodeStateService()._calculate_element_state(
         element(
@@ -132,6 +143,7 @@ def main():
     test_pkk_kwal_always_completed()
     test_planned_without_realization()
     test_completed_from_decision_j()
+    test_completed_from_realization_date_without_decision()
     test_cancelled_from_decision_b()
     test_missing_visit_to_plan()
     test_next_task_is_first_active_to_plan_or_planned()

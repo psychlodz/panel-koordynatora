@@ -102,4 +102,9 @@ ON pk_zadania(element_id);
 CREATE INDEX IF NOT EXISTS idx_pk_zadania_epizod_element
 ON pk_zadania(epizod_element_id);
 
+CREATE UNIQUE INDEX IF NOT EXISTS uq_pk_zadania_eskulap_event
+ON pk_zadania(eskulap_system, eskulap_id)
+WHERE eskulap_system IS NOT NULL
+  AND eskulap_id IS NOT NULL;
+
 COMMIT;

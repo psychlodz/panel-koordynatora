@@ -87,6 +87,28 @@ Usunięte klocki:
 Nie pozostają one jako nieaktywne rekordy w nowych skryptach
 inicjalizacyjnych.
 
+### Klocki zasilane bezpośrednio ze zdarzeń Eskulapa
+
+Nie wszystkie klocki są zasilane przez mapowanie `WP_PARAMETR -> klocek`.
+Dla dwóch typów procesu obowiązuje osobne źródło:
+
+- `KONSULTACJA_SPECJALISTYCZNA` — wyłącznie widok
+  `ESK_RAPORTY.V_KOMPAS_KONSULTACJE`,
+- `BADANIE_OBRAZOWE` — wyłącznie widok `ESK_RAPORTY.V_KOMPAS_BADANIA`
+  przez `EskulapGateway.get_patient_imaging_orders()`.
+
+Dla tych klocków w epizodzie obowiązuje zasada:
+
+```text
+1 zdarzenie Eskulapa = 1 element epizodu = 1 zadanie KOMPAS
+```
+
+Jeżeli Eskulap zwróci więcej konsultacji specjalistycznych albo badań
+obrazowych niż przewiduje bazowa ścieżka, KOMPAS tworzy dodatkowe elementy
+wyłącznie w danym epizodzie. Powielony element ma
+`typ_pochodzenia = POWIELENIE_AUTOMATYCZNE` i wskazuje swój
+`element_zrodlowy_id`. Definicja ścieżki programu nie jest zmieniana.
+
 ## Projekt tabel PostgreSQL
 
 ### `pk_typy_elementow`

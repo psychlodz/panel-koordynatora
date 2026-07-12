@@ -291,7 +291,7 @@ class EpisodeStateService:
         elif decision == "B":
             status = STATUS_CANCELLED
             status_at = row.get("eskulap_data_wizyty") or realized
-        elif realized and decision == "J":
+        elif realized:
             status = STATUS_COMPLETED
             status_at = realized
         elif planned and not realized:

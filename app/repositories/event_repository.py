@@ -58,6 +58,7 @@ def _event(
     oracle_id_field,
     event_date,
     planned_date=None,
+    realization_date=None,
     description=None,
     status=None,
     model_class=Event,
@@ -75,6 +76,7 @@ def _event(
         planned_date=planned_date,
         description=_optional_text(description),
         oracle_id=oracle_id,
+        realization_date=realization_date,
         **model_fields,
     )
 
@@ -127,6 +129,7 @@ def get_patient_consultations(
             "konsultacja_id",
             row.get("data_przyjecia"),
             planned_date=row.get("data_planowana"),
+            realization_date=row.get("data_przyjecia"),
             description=_description(row, "opis", "tytul", "uwagi"),
             status=row.get("status"),
         )
@@ -149,6 +152,10 @@ def _exam_event(row, event_type) -> Event:
             row.get("data_zaplanowana")
             or row.get("data_planowana_wykonania")
             or row.get("data_planowana")
+        ),
+        realization_date=(
+            row.get("data_realizacji")
+            or row.get("data_pobrania")
         ),
         description=_description(
             row,
