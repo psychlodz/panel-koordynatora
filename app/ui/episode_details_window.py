@@ -1,5 +1,7 @@
 import logging
+import re
 import traceback
+from datetime import date, datetime
 
 from PySide6.QtWidgets import (
     QAbstractItemView,
@@ -19,6 +21,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QTableWidget,
     QTableWidgetItem,
+    QTextEdit,
     QVBoxLayout,
     QWidget,
 )
@@ -41,6 +44,7 @@ from app.services.work_context import work_context
 from app.ui.episode_details_presenter import (
     WAITING_STATUS,
     eskulap_visit_details,
+    eskulap_visit_tooltip,
     process_element_label,
     process_element_tooltip,
     status_with_date,
@@ -76,6 +80,51 @@ class EpisodeRefreshWorker(QObject):
 
 def _text(value):
     return "" if value is None else str(value)
+
+
+def _date_part(value):
+    if value is None or value == "":
+        return ""
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value).strip()[:10]
+
+
+def _time_part(value):
+    if value is None or value == "":
+        return ""
+    if isinstance(value, datetime):
+        return value.strftime("%H:%M")
+    text = str(value).strip()
+    if len(text) >= 16 and re.match(r"\d{4}-\d{2}-\d{2}", text):
+        return text[11:16]
+    return text[:5]
+
+
+def _is_plannable_element(element):
+    block_code = str(element.get("klocek_kod") or "").strip().upper()
+    source = str(element.get("eskulap_system") or "").strip().upper()
+    return block_code in {
+        "KONSULTACJA_SPECJALISTYCZNA",
+        "BADANIE_OBRAZOWE",
+    } or source in {
+        "ESKULAP_KONSULTACJE",
+        "ESKULAP_BADANIA_OBRAZOWE",
+    }
+
+
+def _validate_time(value, required=False):
+    text = str(value or "").strip()
+    if not text and not required:
+        return None
+    if not re.match(r"^\d{2}:\d{2}$", text):
+        raise ValueError("Godzina musi mieć format HH:MM.")
+    hour, minute = [int(part) for part in text.split(":")]
+    if hour > 23 or minute > 59:
+        raise ValueError("Podaj poprawną godzinę.")
+    return text
 
 
 def _patient_value(patient, field_name, legacy_name=None):
@@ -213,6 +262,99 @@ class EpisodeElementDuplicateDialog(QDialog):
             },
             reason,
         )
+
+
+class EpisodeElementPlanningDialog(QDialog):
+    def __init__(self, element, parent=None):
+        super().__init__(parent)
+        self.element = element
+        self.setWindowTitle("KOMPAS — Planowanie elementu epizodu")
+        self.resize(620, 460)
+
+        layout = QVBoxLayout(self)
+        form = QFormLayout()
+
+        element_name = (
+            element.get("nazwa_w_sciezce")
+            or element.get("nazwa")
+            or element.get("klocek_nazwa")
+            or "Element procesu"
+        )
+        event_type = element.get("eskulap_system") or element.get("klocek_kod")
+        source_name = element.get("eskulap_rodzaj_wizyty") or "brak"
+        eskulap_planned = element.get("eskulap_plan_data")
+
+        self.element_label = QLabel(_text(element_name))
+        self.event_type_label = QLabel(_text(event_type))
+        self.source_name_label = QLabel(_text(source_name))
+        self.eskulap_plan_label = QLabel(
+            _text(_date_part(eskulap_planned) or "brak")
+            + (
+                f" {_time_part(eskulap_planned)}"
+                if _time_part(eskulap_planned)
+                else ""
+            )
+        )
+
+        local_plan = element.get("data_zaplanowana")
+        default_source = local_plan or eskulap_planned
+        self.date_edit = QLineEdit(_date_part(default_source) or date.today().isoformat())
+        self.date_edit.setPlaceholderText("RRRR-MM-DD")
+        self.time_from_edit = QLineEdit(_time_part(default_source) or "08:00")
+        self.time_from_edit.setPlaceholderText("HH:MM")
+        self.time_to_edit = QLineEdit(_time_part(element.get("kompas_plan_godz_do")))
+        self.time_to_edit.setPlaceholderText("HH:MM, opcjonalnie")
+        self.notes_edit = QTextEdit()
+        self.notes_edit.setPlainText(_text(element.get("kompas_plan_uwagi")))
+        self.notes_edit.setPlaceholderText("Uwagi do terminu w KOMPAS, opcjonalnie")
+        self.notes_edit.setMaximumHeight(90)
+
+        form.addRow("Element:", self.element_label)
+        form.addRow("Typ zdarzenia:", self.event_type_label)
+        form.addRow("Nazwa z Eskulapa:", self.source_name_label)
+        form.addRow("Data planowana w Eskulapie:", self.eskulap_plan_label)
+        form.addRow("Data KOMPAS:", self.date_edit)
+        form.addRow("Godzina od:", self.time_from_edit)
+        form.addRow("Godzina do:", self.time_to_edit)
+        form.addRow("Uwagi:", self.notes_edit)
+        layout.addLayout(form)
+
+        info = QLabel(
+            "Status „Zaplanowana” zostanie ustawiony dopiero po zapisaniu "
+            "terminu w KOMPAS. Data planowana z Eskulapa jest tylko informacją."
+        )
+        info.setWordWrap(True)
+        info.setObjectName("infoLabel")
+        layout.addWidget(info)
+
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
+        polish_dialog_buttons(buttons)
+        buttons.accepted.connect(self._validate_and_accept)
+        buttons.rejected.connect(self.reject)
+        layout.addWidget(buttons)
+
+    def _validate_and_accept(self):
+        try:
+            datetime.strptime(self.date_edit.text().strip(), "%Y-%m-%d")
+            start = _validate_time(self.time_from_edit.text(), required=True)
+            end = _validate_time(self.time_to_edit.text(), required=False)
+            if end and end <= start:
+                raise ValueError("Godzina zakończenia musi być późniejsza niż rozpoczęcia.")
+        except ValueError as exc:
+            QMessageBox.warning(self, "KOMPAS", str(exc))
+            return
+        self.accept()
+
+    def values(self):
+        return {
+            "plan_date": self.date_edit.text().strip(),
+            "time_from": self.time_from_edit.text().strip(),
+            "time_to": self.time_to_edit.text().strip() or None,
+            "notes": self.notes_edit.toPlainText().strip() or None,
+        }
 
 
 class EpisodeDetailsDialog(QDialog):
@@ -396,6 +538,14 @@ class EpisodeDetailsDialog(QDialog):
         self.btn_duplicate_element.setToolTip(
             "Utwórz dodatkowe wykonanie zaznaczonego elementu tylko w tym epizodzie."
         )
+        self.btn_plan_element = QPushButton("Zaplanuj")
+        self.btn_plan_element.setToolTip(
+            "Zapisz albo zmień termin konsultacji lub badania obrazowego w KOMPAS."
+        )
+        self.btn_clear_plan_element = QPushButton("Usuń termin")
+        self.btn_clear_plan_element.setToolTip(
+            "Usuń lokalny termin KOMPAS dla zaznaczonego elementu."
+        )
         self.btn_deactivate_element = QPushButton("Dezaktywuj element")
         self.btn_deactivate_element.setToolTip(
             "Wyłącz zaznaczony element w tym epizodzie bez usuwania go z historii."
@@ -410,12 +560,16 @@ class EpisodeDetailsDialog(QDialog):
         )
         self.btn_refresh_episode.clicked.connect(self.refresh_from_eskulap)
         self.btn_duplicate_element.clicked.connect(self.duplicate_selected_element)
+        self.btn_plan_element.clicked.connect(self.plan_selected_element)
+        self.btn_clear_plan_element.clicked.connect(self.clear_selected_element_plan)
         self.btn_deactivate_element.clicked.connect(self.deactivate_selected_element)
         self.btn_reactivate_element.clicked.connect(self.reactivate_selected_element)
         self.btn_history_element.clicked.connect(self.show_selected_element_history)
         for button in (
             self.btn_refresh_episode,
             self.btn_duplicate_element,
+            self.btn_plan_element,
+            self.btn_clear_plan_element,
             self.btn_deactivate_element,
             self.btn_reactivate_element,
             self.btn_history_element,
@@ -472,7 +626,11 @@ class EpisodeDetailsDialog(QDialog):
                     if column_index == 0:
                         item.setToolTip(process_element_tooltip(element))
                     else:
-                        item.setToolTip(_text(value))
+                        item.setToolTip(
+                            eskulap_visit_tooltip(element)
+                            if column_index == 2
+                            else _text(value)
+                        )
                 table.setItem(
                     row_index,
                     column_index,
@@ -516,6 +674,8 @@ class EpisodeDetailsDialog(QDialog):
         selected = element is not None
         for button in (
             self.btn_duplicate_element,
+            self.btn_plan_element,
+            self.btn_clear_plan_element,
             self.btn_deactivate_element,
             self.btn_reactivate_element,
             self.btn_history_element,
@@ -525,6 +685,8 @@ class EpisodeDetailsDialog(QDialog):
         if not can_edit:
             tooltip = "Operacja wymaga uprawnienia EPISODE_PATH_EDIT."
             self.btn_duplicate_element.setToolTip(tooltip)
+            self.btn_plan_element.setToolTip(tooltip)
+            self.btn_clear_plan_element.setToolTip(tooltip)
             self.btn_deactivate_element.setToolTip(tooltip)
             self.btn_reactivate_element.setToolTip(tooltip)
             return
@@ -532,6 +694,17 @@ class EpisodeDetailsDialog(QDialog):
             is_active = bool(element.get("czy_aktywny", 1))
             self.btn_deactivate_element.setEnabled(is_active)
             self.btn_reactivate_element.setEnabled(not is_active)
+            plannable = selected and is_active and _is_plannable_element(element)
+            has_plan = bool(
+                element.get("data_zaplanowana")
+                or element.get("kompas_plan_data")
+            )
+            self.btn_plan_element.setEnabled(plannable)
+            self.btn_plan_element.setText("Zmień termin" if has_plan else "Zaplanuj")
+            self.btn_clear_plan_element.setEnabled(plannable and has_plan)
+        else:
+            self.btn_plan_element.setEnabled(False)
+            self.btn_clear_plan_element.setEnabled(False)
 
     def _refresh_process(self, selected_element_id=None):
         if selected_element_id is None:
@@ -625,6 +798,74 @@ class EpisodeDetailsDialog(QDialog):
         if not accepted:
             return None
         return value.strip()
+
+    def plan_selected_element(self):
+        element = self._selected_episode_element()
+        if element is None:
+            QMessageBox.information(
+                self,
+                "KOMPAS",
+                "Najpierw zaznacz konsultację albo badanie obrazowe.",
+            )
+            return
+        check = episode_path_service.can_plan_element(
+            element["epizod_element_id"]
+        )
+        if not check.get("allowed"):
+            QMessageBox.warning(
+                self,
+                "KOMPAS",
+                check.get("reason") or "Tego elementu nie można zaplanować.",
+            )
+            return
+        dialog = EpisodeElementPlanningDialog(element, self)
+        if dialog.exec() != QDialog.DialogCode.Accepted:
+            return
+        values = dialog.values()
+        try:
+            episode_path_service.plan_episode_element(
+                element["epizod_element_id"],
+                values["plan_date"],
+                values["time_from"],
+                values["time_to"],
+                values["notes"],
+                self.current_user,
+            )
+            self._refresh_process(element["epizod_element_id"])
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "KOMPAS",
+                f"Nie udało się zaplanować elementu:\n\n{exc}",
+            )
+
+    def clear_selected_element_plan(self):
+        element = self._selected_episode_element()
+        if element is None:
+            QMessageBox.information(
+                self,
+                "KOMPAS",
+                "Najpierw zaznacz element z terminem KOMPAS.",
+            )
+            return
+        if QMessageBox.question(
+            self,
+            "KOMPAS",
+            "Usunąć lokalny termin KOMPAS dla zaznaczonego elementu?",
+        ) != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            episode_path_service.clear_episode_element_plan(
+                element["epizod_element_id"],
+                self.current_user,
+            )
+            self._refresh_process(element["epizod_element_id"])
+        except Exception as exc:
+            QMessageBox.critical(
+                self,
+                "KOMPAS",
+                f"Nie udało się usunąć terminu:\n\n{exc}",
+            )
 
     def deactivate_selected_element(self):
         element_id = self._selected_episode_element_id()

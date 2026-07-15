@@ -126,6 +126,27 @@ def test_two_ranges_of_one_worker_are_two_popup_rows():
     assert len(first_cell(calendar, "F06", 5)["details"]) == 2
 
 
+def test_popup_details_are_sorted_by_worker_then_time():
+    calendar = build_visit_type_month_calendar(
+        [
+            record("F08", "Wizyta F8", 7, "Zofia Kowalska", "08:00", "09:00", 1),
+            record("F08", "Wizyta F8", 7, "Anna Nowak", "12:00", "13:00", 2),
+            record("F08", "Wizyta F8", 7, "Anna Nowak", "10:00", "11:00", 3),
+        ],
+        2026,
+        7,
+    )
+    details = first_cell(calendar, "F08", 7)["details"]
+    assert [
+        (item["pracownik"], item["godz_od"])
+        for item in details
+    ] == [
+        ("Anna Nowak", "10:00"),
+        ("Anna Nowak", "12:00"),
+        ("Zofia Kowalska", "08:00"),
+    ]
+
+
 def test_missing_name_uses_code_and_message():
     calendar = build_visit_type_month_calendar(
         [record("F7", None, 6, "Jan Kowalski", "08:00", "10:00", 1)],
@@ -176,6 +197,7 @@ def main():
     test_one_worker_many_visit_types_is_one_popup_row()
     test_two_workers_are_two_popup_rows()
     test_two_ranges_of_one_worker_are_two_popup_rows()
+    test_popup_details_are_sorted_by_worker_then_time()
     test_missing_name_uses_code_and_message()
     test_month_has_correct_number_of_days()
     test_date_range_can_cover_multiple_months()

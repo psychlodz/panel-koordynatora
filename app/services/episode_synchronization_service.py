@@ -388,6 +388,13 @@ class EpisodeSynchronizationService:
                 z.status,
                 z.data_zaplanowana,
                 z.data_realizacji,
+                z.kompas_plan_data,
+                z.kompas_plan_godz_od,
+                z.kompas_plan_godz_do,
+                z.kompas_plan_uwagi,
+                z.eskulap_plan_data,
+                z.eskulap_plan_godz_od,
+                z.eskulap_plan_godz_do,
                 z.eskulap_system,
                 z.eskulap_id
             FROM pk_epizod_elementy ee
@@ -743,6 +750,9 @@ class EpisodeSynchronizationService:
                 eskulap_id = NULL,
                 eskulap_pracownik = NULL,
                 eskulap_data_wizyty = NULL,
+                eskulap_plan_data = NULL,
+                eskulap_plan_godz_od = NULL,
+                eskulap_plan_godz_do = NULL,
                 eskulap_rodzaj_wizyty = NULL,
                 eskulap_decyzja = NULL,
                 updated_at = CURRENT_TIMESTAMP
@@ -806,12 +816,31 @@ class EpisodeSynchronizationService:
             event_date if decision == "J" else None
         )
         scheduled_date = planned_date or event_date
+        external_manual_planning = source in {SOURCE_CONSULTATION, SOURCE_IMAGING}
+        kompas_scheduled_date = None if external_manual_planning else scheduled_date
+        eskulap_plan_date = planned_date if external_manual_planning else None
+        clear_legacy_eskulap_plan = (
+            external_manual_planning
+            and not before.get("kompas_plan_data")
+            and _as_datetime(before.get("data_zaplanowana"))
+            == _as_datetime(scheduled_date)
+        )
 
         changed = (
             not before
             or str(before.get("eskulap_id") or "") != str(oracle_id or "")
             or str(before.get("eskulap_decyzja") or "") != str(decision or "")
-            or str(before.get("data_zaplanowana") or "") != str(scheduled_date or "")
+            or clear_legacy_eskulap_plan
+            or (
+                not external_manual_planning
+                and str(before.get("data_zaplanowana") or "")
+                != str(kompas_scheduled_date or "")
+            )
+            or (
+                external_manual_planning
+                and str(before.get("eskulap_plan_data") or "")
+                != str(eskulap_plan_date or "")
+            )
             or str(before.get("data_realizacji") or "") != str(realization_date or "")
         )
         if not changed:
@@ -819,12 +848,18 @@ class EpisodeSynchronizationService:
         connection.execute(
             """
             UPDATE pk_zadania
-            SET data_zaplanowana = COALESCE(?, data_zaplanowana),
+            SET data_zaplanowana = CASE
+                    WHEN ? = 1 THEN NULL
+                    ELSE COALESCE(?, data_zaplanowana)
+                END,
                 data_realizacji = COALESCE(?, data_realizacji),
                 eskulap_system = COALESCE(?, eskulap_system),
                 eskulap_id = COALESCE(?, eskulap_id),
                 eskulap_pracownik = COALESCE(?, eskulap_pracownik),
                 eskulap_data_wizyty = COALESCE(?, eskulap_data_wizyty),
+                eskulap_plan_data = ?,
+                eskulap_plan_godz_od = NULL,
+                eskulap_plan_godz_do = NULL,
                 eskulap_rodzaj_wizyty = COALESCE(?, eskulap_rodzaj_wizyty),
                 eskulap_decyzja = COALESCE(?, eskulap_decyzja),
                 uwagi = COALESCE(uwagi, ?),
@@ -832,12 +867,14 @@ class EpisodeSynchronizationService:
             WHERE zadanie_id = ?
             """,
             (
-                scheduled_date,
+                1 if clear_legacy_eskulap_plan else 0,
+                kompas_scheduled_date,
                 realization_date,
                 source,
                 str(oracle_id) if oracle_id is not None else None,
                 worker,
                 event_date or scheduled_date,
+                eskulap_plan_date,
                 visit_name,
                 decision,
                 SYNC_REASON,

@@ -144,3 +144,34 @@ def list_element_dependents(epizod_element_id):
 
 def list_element_history(epizod_element_id):
     return elements.list_element_history(epizod_element_id)
+
+
+def can_plan_element(epizod_element_id):
+    return elements.can_plan_element(epizod_element_id)
+
+
+def plan_episode_element(
+    epizod_element_id,
+    plan_date,
+    time_from,
+    time_to,
+    notes,
+    user,
+):
+    _require_edit(user)
+    return elements.plan_episode_element(
+        epizod_element_id,
+        plan_date,
+        time_from,
+        time_to,
+        notes,
+        _user_id(user),
+    )
+
+
+def clear_episode_element_plan(epizod_element_id, user):
+    _require_edit(user)
+    return elements.clear_episode_element_plan(
+        epizod_element_id,
+        _user_id(user),
+    )

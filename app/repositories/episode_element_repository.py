@@ -23,7 +23,9 @@ ACTIVE_TASK_STATUSES = {
     "W REALIZACJI",
 }
 SOURCE_CONSULTATION = "ESKULAP_KONSULTACJE"
+SOURCE_IMAGING = "ESKULAP_BADANIA_OBRAZOWE"
 SPECIALIST_CONSULTATION_BLOCK_CODES = {"KONSULTACJA_SPECJALISTYCZNA"}
+IMAGING_BLOCK_CODES = {"BADANIE_OBRAZOWE"}
 TERMINAL_TASK_STATUSES = COMPLETED_STATUSES | {"ANULOWANE", "POMINIETE", "POMINIĘTE"}
 
 
@@ -43,6 +45,22 @@ def _user_id(user_id):
 
 def _row_dict(row):
     return dict(row) if row is not None else None
+
+
+def _is_plannable_episode_element(row):
+    block_code = str(row.get("klocek_kod") or "").strip().upper()
+    source = str(row.get("eskulap_system") or "").strip().upper()
+    return (
+        block_code in SPECIALIST_CONSULTATION_BLOCK_CODES
+        or block_code in IMAGING_BLOCK_CODES
+        or source in {SOURCE_CONSULTATION, SOURCE_IMAGING}
+    )
+
+
+def _combined_plan_datetime(plan_date, time_from):
+    if not plan_date or not time_from:
+        return None
+    return f"{str(plan_date)[:10]} {str(time_from)[:5]}:00"
 
 
 def _is_invalid_specialist_consultation_assignment(row):
@@ -247,11 +265,21 @@ def list_episode_elements(epizod_id, include_inactive=True) -> list[dict]:
                 z.data_wymagana_do,
                 z.data_zaplanowana,
                 z.data_realizacji,
+                z.kompas_plan_data,
+                z.kompas_plan_godz_od,
+                z.kompas_plan_godz_do,
+                z.kompas_plan_uwagi,
+                z.kompas_plan_user_id,
+                z.kompas_plan_created_at,
+                z.kompas_plan_updated_at,
                 z.zrodlo,
                 z.eskulap_system,
                 z.eskulap_id,
                 z.eskulap_pracownik,
                 z.eskulap_data_wizyty,
+                z.eskulap_plan_data,
+                z.eskulap_plan_godz_od,
+                z.eskulap_plan_godz_do,
                 z.eskulap_rodzaj_wizyty,
                 z.eskulap_decyzja,
                 z.uwagi
@@ -274,6 +302,159 @@ def get_episode_element(epizod_element_id):
     initialize_database()
     with closing(create_connection()) as connection:
         return _element_snapshot(connection, epizod_element_id)
+
+
+def _task_snapshot(connection, epizod_element_id):
+    row = connection.execute(
+        """
+        SELECT
+            z.*,
+            k.kod AS klocek_kod,
+            k.nazwa AS klocek_nazwa,
+            ee.nazwa AS nazwa_elementu
+        FROM pk_zadania z
+        JOIN pk_epizod_elementy ee
+            ON ee.epizod_element_id = z.epizod_element_id
+        JOIN pk_klocki k
+            ON k.klocek_id = ee.klocek_id
+        WHERE z.epizod_element_id = ?
+        ORDER BY z.zadanie_id
+        LIMIT 1
+        """,
+        (epizod_element_id,),
+    ).fetchone()
+    return _row_dict(row)
+
+
+def can_plan_element(epizod_element_id) -> dict:
+    initialize_database()
+    with closing(create_connection()) as connection:
+        task = _task_snapshot(connection, epizod_element_id)
+        if task is None:
+            return {"allowed": False, "reason": "Nie znaleziono zadania elementu."}
+        if not _is_plannable_episode_element(task):
+            return {
+                "allowed": False,
+                "reason": "Ręczne planowanie dotyczy konsultacji i badań obrazowych.",
+            }
+        if _status(task.get("status")) in {
+            "ZREALIZOWANA",
+            "ZREALIZOWANO",
+            "ZREALIZOWANE",
+            "ANULOWANA",
+            "ANULOWANE",
+        }:
+            return {
+                "allowed": False,
+                "reason": "Nie można planować elementu zrealizowanego albo anulowanego.",
+            }
+        return {"allowed": True, "reason": ""}
+
+
+def plan_episode_element(
+    epizod_element_id,
+    plan_date,
+    time_from,
+    time_to=None,
+    notes=None,
+    user_id=None,
+):
+    initialize_database()
+    with closing(create_connection()) as connection:
+        with connection:
+            before = _task_snapshot(connection, epizod_element_id)
+            if before is None:
+                raise ValueError("Nie znaleziono zadania elementu.")
+            if not _is_plannable_episode_element(before):
+                raise ValueError(
+                    "Ręczne planowanie dotyczy konsultacji i badań obrazowych."
+                )
+            planned_at = _combined_plan_datetime(plan_date, time_from)
+            if planned_at is None:
+                raise ValueError("Podaj datę oraz godzinę rozpoczęcia.")
+            operation = (
+                "ZMIANA_TERMINU_ELEMENTU"
+                if before.get("data_zaplanowana")
+                or before.get("kompas_plan_data")
+                else "PLANOWANIE_ELEMENTU"
+            )
+            connection.execute(
+                """
+                UPDATE pk_zadania
+                SET data_zaplanowana = ?,
+                    kompas_plan_data = ?,
+                    kompas_plan_godz_od = ?,
+                    kompas_plan_godz_do = ?,
+                    kompas_plan_uwagi = ?,
+                    kompas_plan_user_id = ?,
+                    kompas_plan_created_at = COALESCE(
+                        kompas_plan_created_at,
+                        CURRENT_TIMESTAMP
+                    ),
+                    kompas_plan_updated_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE zadanie_id = ?
+                """,
+                (
+                    planned_at,
+                    str(plan_date)[:10],
+                    str(time_from)[:5],
+                    str(time_to)[:5] if time_to else None,
+                    str(notes or "").strip() or None,
+                    _user_id(user_id),
+                    before["zadanie_id"],
+                ),
+            )
+            after = _task_snapshot(connection, epizod_element_id)
+            record_history(
+                connection,
+                epizod_element_id,
+                operation,
+                before={"zadanie": before},
+                after={"zadanie": after},
+                reason="Ręczne zaplanowanie terminu w KOMPAS.",
+                user_id=user_id,
+            )
+            return after
+
+
+def clear_episode_element_plan(epizod_element_id, user_id=None):
+    initialize_database()
+    with closing(create_connection()) as connection:
+        with connection:
+            before = _task_snapshot(connection, epizod_element_id)
+            if before is None:
+                raise ValueError("Nie znaleziono zadania elementu.")
+            if not _is_plannable_episode_element(before):
+                raise ValueError(
+                    "Usuwanie terminu dotyczy konsultacji i badań obrazowych."
+                )
+            connection.execute(
+                """
+                UPDATE pk_zadania
+                SET data_zaplanowana = NULL,
+                    kompas_plan_data = NULL,
+                    kompas_plan_godz_od = NULL,
+                    kompas_plan_godz_do = NULL,
+                    kompas_plan_uwagi = NULL,
+                    kompas_plan_user_id = NULL,
+                    kompas_plan_updated_at = CURRENT_TIMESTAMP,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE zadanie_id = ?
+                """,
+                (before["zadanie_id"],),
+            )
+            after = _task_snapshot(connection, epizod_element_id)
+            record_history(
+                connection,
+                epizod_element_id,
+                "USUNIECIE_TERMINU_ELEMENTU",
+                before={"zadanie": before},
+                after={"zadanie": after},
+                reason="Usunięcie terminu zaplanowanego w KOMPAS.",
+                user_id=user_id,
+            )
+            return after
 
 
 def _blocking_realization(connection, epizod_element_id):

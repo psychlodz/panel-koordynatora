@@ -17,6 +17,10 @@ STATUS_PLANNED = "ZAPLANOWANA"
 STATUS_COMPLETED = "ZREALIZOWANA"
 STATUS_CANCELLED = "ANULOWANA"
 PKK_KWAL_BLOCK_CODE = "PKK_KWAL"
+SOURCE_CONSULTATION = "ESKULAP_KONSULTACJE"
+SOURCE_IMAGING = "ESKULAP_BADANIA_OBRAZOWE"
+SPECIALIST_CONSULTATION_BLOCK_CODES = {"KONSULTACJA_SPECJALISTYCZNA"}
+IMAGING_BLOCK_CODES = {"BADANIE_OBRAZOWE"}
 
 NEXT_TASK_STATUSES = {STATUS_TO_PLAN, STATUS_PLANNED}
 COMPLETED_STATUSES = {STATUS_COMPLETED, "ZREALIZOWANO", "ZREALIZOWANE"}
@@ -59,6 +63,16 @@ def datetime_value(value):
         return datetime.fromisoformat(text)
     except ValueError:
         return None
+
+
+def _is_external_manual_planning_element(row):
+    block_code = str(row.get("klocek_kod") or "").strip().upper()
+    source = str(row.get("eskulap_system") or "").strip().upper()
+    return (
+        block_code in SPECIALIST_CONSULTATION_BLOCK_CODES
+        or block_code in IMAGING_BLOCK_CODES
+        or source in {SOURCE_CONSULTATION, SOURCE_IMAGING}
+    )
 
 
 class EpisodeStateService:
@@ -257,11 +271,19 @@ class EpisodeStateService:
                 z.data_wymagana_do,
                 z.data_zaplanowana,
                 z.data_realizacji,
+                z.kompas_plan_data,
+                z.kompas_plan_godz_od,
+                z.kompas_plan_godz_do,
+                z.kompas_plan_uwagi,
+                z.kompas_plan_user_id,
                 z.zrodlo,
                 z.eskulap_system,
                 z.eskulap_id,
                 z.eskulap_pracownik,
                 z.eskulap_data_wizyty,
+                z.eskulap_plan_data,
+                z.eskulap_plan_godz_od,
+                z.eskulap_plan_godz_do,
                 z.eskulap_rodzaj_wizyty,
                 z.eskulap_decyzja,
                 z.uwagi,
@@ -284,6 +306,7 @@ class EpisodeStateService:
         has_visit = bool(row.get("eskulap_id"))
         planned = row.get("data_zaplanowana")
         realized = row.get("data_realizacji")
+        manual_planning_required = _is_external_manual_planning_element(row)
 
         if block_code == PKK_KWAL_BLOCK_CODE:
             status = STATUS_COMPLETED
@@ -294,6 +317,12 @@ class EpisodeStateService:
         elif realized:
             status = STATUS_COMPLETED
             status_at = realized
+        elif manual_planning_required and planned:
+            status = STATUS_PLANNED
+            status_at = planned
+        elif manual_planning_required:
+            status = STATUS_TO_PLAN
+            status_at = None
         elif planned and not realized:
             status = STATUS_PLANNED
             status_at = planned

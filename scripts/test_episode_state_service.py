@@ -12,6 +12,7 @@ from app.services.episode_state_service import (
     STATUS_COMPLETED,
     STATUS_PLANNED,
     STATUS_TO_PLAN,
+    datetime_value,
 )
 
 
@@ -25,7 +26,11 @@ def element(**values):
         "status_cache": None,
         "data_zaplanowana": None,
         "data_realizacji": None,
+        "kompas_plan_data": None,
+        "kompas_plan_godz_od": None,
+        "eskulap_plan_data": None,
         "eskulap_id": None,
+        "eskulap_system": None,
         "eskulap_decyzja": None,
         "eskulap_data_wizyty": None,
         "data_wymagana_do": None,
@@ -44,6 +49,41 @@ def test_pkk_kwal_always_completed():
 def test_planned_without_realization():
     state = EpisodeStateService()._calculate_element_state(
         element(data_zaplanowana="2026-07-12 10:00:00")
+    )
+    assert state["status_wyliczony"] == STATUS_PLANNED
+
+
+def test_consultation_eskulap_planned_date_is_to_plan():
+    state = EpisodeStateService()._calculate_element_state(
+        element(
+            eskulap_id="601",
+            eskulap_system="ESKULAP_KONSULTACJE",
+            eskulap_plan_data="2026-07-12 10:00:00",
+        )
+    )
+    assert state["status_wyliczony"] == STATUS_TO_PLAN
+
+
+def test_imaging_eskulap_planned_date_is_to_plan():
+    state = EpisodeStateService()._calculate_element_state(
+        element(
+            klocek_kod="BADANIE_OBRAZOWE",
+            eskulap_id="701",
+            eskulap_system="ESKULAP_BADANIA_OBRAZOWE",
+            eskulap_plan_data="2026-07-12 10:00:00",
+        )
+    )
+    assert state["status_wyliczony"] == STATUS_TO_PLAN
+
+
+def test_visit_block_planned_date_still_means_planned():
+    state = EpisodeStateService()._calculate_element_state(
+        element(
+            klocek_kod="KONSULTACJA_PSYCHIATRYCZNA_KOMPLEKSOWA",
+            eskulap_id="801",
+            eskulap_system="ESKULAP",
+            data_zaplanowana="2026-07-12 10:00:00",
+        )
     )
     assert state["status_wyliczony"] == STATUS_PLANNED
 
@@ -139,9 +179,16 @@ def test_dashboard_synchronizes_on_open():
     assert "EpisodeStateService().calculate_all_episode_states()" in dashboard_window
 
 
+def test_datetime_value_parses_datetime_strings():
+    assert datetime_value("2026-07-12 10:00:00").year == 2026
+
+
 def main():
     test_pkk_kwal_always_completed()
     test_planned_without_realization()
+    test_consultation_eskulap_planned_date_is_to_plan()
+    test_imaging_eskulap_planned_date_is_to_plan()
+    test_visit_block_planned_date_still_means_planned()
     test_completed_from_decision_j()
     test_completed_from_realization_date_without_decision()
     test_cancelled_from_decision_b()
@@ -151,6 +198,7 @@ def main():
     test_synchronization_service_does_not_calculate_statuses()
     test_dashboard_and_details_use_episode_state_service()
     test_dashboard_synchronizes_on_open()
+    test_datetime_value_parses_datetime_strings()
     print("OK: test_episode_state_service")
 
 

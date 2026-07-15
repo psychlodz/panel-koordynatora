@@ -533,8 +533,8 @@ def build_visit_type_calendar(
             cell["tooltip"] = cell["text"]
             cell["details"].sort(
                 key=lambda item: (
-                    item["godz_od"],
                     str(item["pracownik"] or "").casefold(),
+                    item["godz_od"],
                 )
             )
 

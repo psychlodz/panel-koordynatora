@@ -264,9 +264,19 @@ zdarzenia Eskulapa do wielu zadań KOMPAS.
 Status elementu nadal wylicza `EpisodeStateService`:
 
 - zdarzenie bez daty planowanej i bez daty realizacji → `DO_ZAPLANOWANIA`,
-- zdarzenie z datą planowaną i bez realizacji → `ZAPLANOWANA`,
+- dla konsultacji specjalistycznych i badań obrazowych data planowana
+  z Eskulapa jest zapisywana wyłącznie informacyjnie w `eskulap_plan_data`;
+  status pozostaje `DO_ZAPLANOWANIA`,
+- dla konsultacji specjalistycznych i badań obrazowych status
+  `ZAPLANOWANA` pojawia się dopiero po ręcznym zapisaniu terminu KOMPAS
+  w `data_zaplanowana` / `kompas_plan_*`,
+- dla zwykłych wizyt z `V_KOMPAS_WIZYTY` dotychczasowa obsługa dat
+  planowanych pozostaje bez zmian,
 - zdarzenie z datą realizacji → `ZREALIZOWANA`,
 - zdarzenie anulowane w Eskulapie → `ANULOWANA`.
+
+Ręczne planowanie konsultacji i badań obrazowych zapisuje termin wyłącznie
+w PostgreSQL KOMPAS. KOMPAS nie aktualizuje terminów w Oracle.
 
 `EpisodeSynchronizationService` zapisuje powiązanie wizyty z elementem
 epizodu, a `EpisodeStateService` wylicza z tych danych aktualny stan.

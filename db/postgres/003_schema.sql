@@ -438,7 +438,10 @@ CREATE TABLE IF NOT EXISTS pk_epizod_elementy_historia (
                 'POWIELENIE_AUTOMATYCZNE',
                 'DEZAKTYWACJA',
                 'REAKTYWACJA',
-                'EDYCJA'
+                'EDYCJA',
+                'PLANOWANIE_ELEMENTU',
+                'ZMIANA_TERMINU_ELEMENTU',
+                'USUNIECIE_TERMINU_ELEMENTU'
             )
         )
 );
@@ -452,11 +455,21 @@ CREATE TABLE IF NOT EXISTS pk_zadania (
     data_wymagana_do date,
     data_zaplanowana timestamptz,
     data_realizacji timestamptz,
+    kompas_plan_data date,
+    kompas_plan_godz_od time,
+    kompas_plan_godz_do time,
+    kompas_plan_uwagi text,
+    kompas_plan_user_id text,
+    kompas_plan_created_at timestamptz,
+    kompas_plan_updated_at timestamptz,
     zrodlo text NOT NULL DEFAULT 'PROGRAM',
     eskulap_system text,
     eskulap_id text,
     eskulap_pracownik text,
     eskulap_data_wizyty timestamptz,
+    eskulap_plan_data timestamptz,
+    eskulap_plan_godz_od time,
+    eskulap_plan_godz_do time,
     eskulap_rodzaj_wizyty text,
     eskulap_decyzja text,
     uwagi text,
@@ -486,6 +499,36 @@ ADD COLUMN IF NOT EXISTS eskulap_rodzaj_wizyty text;
 
 ALTER TABLE pk_zadania
 ADD COLUMN IF NOT EXISTS eskulap_decyzja text;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS kompas_plan_data date;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS kompas_plan_godz_od time;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS kompas_plan_godz_do time;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS kompas_plan_uwagi text;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS kompas_plan_user_id text;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS kompas_plan_created_at timestamptz;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS kompas_plan_updated_at timestamptz;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS eskulap_plan_data timestamptz;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS eskulap_plan_godz_od time;
+
+ALTER TABLE pk_zadania
+ADD COLUMN IF NOT EXISTS eskulap_plan_godz_do time;
 
 DO $$
 BEGIN

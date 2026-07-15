@@ -245,7 +245,14 @@ Reguły dopasowania:
 Statusy automatyczne wylicza wyłącznie `EpisodeStateService`:
 
 - `PKK_KWAL` → `ZREALIZOWANA`,
-- istnieje data planowana i brak realizacji → `ZAPLANOWANA`,
+- dla konsultacji specjalistycznych i badań obrazowych data planowana
+  z Eskulapa trafia do `eskulap_plan_data` i nie zmienia statusu na
+  `ZAPLANOWANA`,
+- dla konsultacji specjalistycznych i badań obrazowych `ZAPLANOWANA` oznacza
+  wyłącznie termin ręcznie potwierdzony w KOMPAS (`data_zaplanowana` oraz
+  pola `kompas_plan_*`),
+- dla zwykłych wizyt z `V_KOMPAS_WIZYTY` dotychczasowa interpretacja dat
+  planowanych pozostaje bez zmian,
 - istnieje data realizacji → `ZREALIZOWANA`,
 - `DECYZJA = 'B'` → `ANULOWANA`,
 - brak wizyty → `DO_ZAPLANOWANIA`.

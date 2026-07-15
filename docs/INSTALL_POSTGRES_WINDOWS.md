@@ -58,6 +58,7 @@ psql -U kompas_app -d kompas -f db/postgres/004_seed.sql
 psql -U kompas_app -d kompas -f db/postgres/005_indexes.sql
 psql -U postgres -d kompas -f db/postgres/006_grants.sql
 psql -U postgres -d kompas -f db/postgres/007_episode_auto_duplicates.sql
+psql -U postgres -d kompas -f db/postgres/008_episode_manual_planning.sql
 ```
 
 Pełna kolejność instalacji to:
@@ -67,7 +68,8 @@ Pełna kolejność instalacji to:
 3. `004_seed.sql` — jako `kompas_app`, na bazie `kompas`,
 4. `005_indexes.sql` — jako `kompas_app`, na bazie `kompas`,
 5. `006_grants.sql` — jako `postgres`, na bazie `kompas`,
-6. `007_episode_auto_duplicates.sql` — jako `postgres`, na bazie `kompas`.
+6. `007_episode_auto_duplicates.sql` — jako `postgres`, na bazie `kompas`,
+7. `008_episode_manual_planning.sql` — jako `postgres`, na bazie `kompas`.
 
 Plik `002_extensions.sql` pozostaje pustym punktem rozszerzeń i obecnie
 nie wymaga wykonania.
@@ -83,6 +85,11 @@ specjalistycznych i badań obrazowych. Ten sam skrypt tworzy też indeks
 `uq_pk_zadania_eskulap_event`, który zabezpiecza przed przypisaniem jednego
 zdarzenia Eskulapa do wielu zadań KOMPAS.
 
+Skrypt `008_episode_manual_planning.sql` dodaje lokalne pola planowania
+terminów KOMPAS dla konsultacji i badań obrazowych oraz informacyjne pola
+dat planowanych z Eskulapa. Data planowana z Eskulapa nie ustawia statusu
+`ZAPLANOWANA`; robi to dopiero termin zapisany ręcznie w KOMPAS.
+
 Każdy skrypt ma włączone zatrzymanie po pierwszym błędzie. Nie przechodź
 do następnego kroku, dopóki bieżący skrypt nie zakończy się poprawnie.
 
@@ -96,7 +103,7 @@ chcp 65001
 $env:PGCLIENTENCODING = "UTF8"
 ```
 
-Skrypty `db/postgres/001-006` wykonują dodatkowo:
+Skrypty `db/postgres/001-008` wykonują dodatkowo:
 
 ```sql
 SET client_encoding = 'UTF8';
@@ -273,6 +280,7 @@ psql -U kompas_app -d kompas -f db/postgres/004_seed.sql
 psql -U kompas_app -d kompas -f db/postgres/005_indexes.sql
 psql -U postgres -d kompas -f db/postgres/006_grants.sql
 psql -U postgres -d kompas -f db/postgres/007_episode_auto_duplicates.sql
+psql -U postgres -d kompas -f db/postgres/008_episode_manual_planning.sql
 ```
 
 Po instalacji wykonaj synchronizację słownika w aplikacji:

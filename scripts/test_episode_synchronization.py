@@ -23,7 +23,7 @@ from app.repositories.episode_element_repository import record_history
 from app.repositories import event_repository
 from app.services.episode_state_service import (
     EpisodeStateService,
-    STATUS_PLANNED,
+    STATUS_TO_PLAN,
 )
 
 
@@ -105,6 +105,12 @@ class FakeSyncConnection:
             "zadanie_id": 10,
             "data_zaplanowana": "2026-07-12 10:00:00",
             "data_realizacji": "2026-07-12 10:00:00",
+            "kompas_plan_data": None,
+            "kompas_plan_godz_od": None,
+            "kompas_plan_godz_do": None,
+            "eskulap_plan_data": None,
+            "eskulap_plan_godz_od": None,
+            "eskulap_plan_godz_do": None,
             "eskulap_system": "ESKULAP",
             "eskulap_id": "901",
             "eskulap_pracownik": "Lekarz Testowy",
@@ -119,17 +125,38 @@ class FakeSyncConnection:
         if normalized.startswith("SELECT * FROM PK_ZADANIA"):
             return SimpleNamespace(fetchone=lambda: dict(self.task))
         if normalized.startswith("UPDATE PK_ZADANIA"):
-            for field in (
-                "data_zaplanowana",
-                "data_realizacji",
-                "eskulap_system",
-                "eskulap_id",
-                "eskulap_pracownik",
-                "eskulap_data_wizyty",
-                "eskulap_rodzaj_wizyty",
-                "eskulap_decyzja",
-            ):
-                self.task[field] = None
+            if len(parameters) == 1:
+                for field in (
+                    "data_zaplanowana",
+                    "data_realizacji",
+                    "eskulap_system",
+                    "eskulap_id",
+                    "eskulap_pracownik",
+                    "eskulap_data_wizyty",
+                    "eskulap_plan_data",
+                    "eskulap_plan_godz_od",
+                    "eskulap_plan_godz_do",
+                    "eskulap_rodzaj_wizyty",
+                    "eskulap_decyzja",
+                ):
+                    self.task[field] = None
+            else:
+                clear_legacy = parameters[0] == 1
+                if clear_legacy:
+                    self.task["data_zaplanowana"] = None
+                elif parameters[1] is not None:
+                    self.task["data_zaplanowana"] = parameters[1]
+                if parameters[2] is not None:
+                    self.task["data_realizacji"] = parameters[2]
+                self.task["eskulap_system"] = parameters[3] or self.task["eskulap_system"]
+                self.task["eskulap_id"] = parameters[4] or self.task["eskulap_id"]
+                self.task["eskulap_pracownik"] = parameters[5] or self.task["eskulap_pracownik"]
+                self.task["eskulap_data_wizyty"] = parameters[6] or self.task["eskulap_data_wizyty"]
+                self.task["eskulap_plan_data"] = parameters[7]
+                self.task["eskulap_plan_godz_od"] = None
+                self.task["eskulap_plan_godz_do"] = None
+                self.task["eskulap_rodzaj_wizyty"] = parameters[8] or self.task["eskulap_rodzaj_wizyty"]
+                self.task["eskulap_decyzja"] = parameters[9] or self.task["eskulap_decyzja"]
             return SimpleNamespace(fetchone=lambda: None)
         if normalized.startswith("SELECT * FROM PK_EPIZOD_ELEMENTY"):
             return SimpleNamespace(
@@ -437,7 +464,7 @@ def test_event_repository_maps_imaging_realization_date():
     assert events[0].realization_date == "2026-07-06 10:00:00"
 
 
-def test_planned_eskulap_visit_is_planned_status():
+def test_eskulap_planned_consultation_is_still_to_plan():
     state = EpisodeStateService()._calculate_element_state(
         {
             "epizod_element_id": 1,
@@ -446,15 +473,37 @@ def test_planned_eskulap_visit_is_planned_status():
             "czy_aktywny": 1,
             "klocek_kod": "KONSULTACJA_SPECJALISTYCZNA",
             "status_cache": None,
-            "data_zaplanowana": "2026-07-12 10:00:00",
+            "data_zaplanowana": None,
             "data_realizacji": None,
             "eskulap_id": "601",
+            "eskulap_system": "ESKULAP_KONSULTACJE",
             "eskulap_decyzja": None,
             "eskulap_data_wizyty": "2026-07-12 10:00:00",
+            "eskulap_plan_data": "2026-07-12 10:00:00",
             "data_wymagana_do": None,
         }
     )
-    assert state["status_wyliczony"] == STATUS_PLANNED
+    assert state["status_wyliczony"] == STATUS_TO_PLAN
+
+
+def test_sync_consultation_keeps_eskulap_plan_separate_from_kompas_plan():
+    connection = FakeSyncConnection()
+    connection.task["data_zaplanowana"] = "2026-07-12 10:00:00"
+    connection.task["data_realizacji"] = None
+    connection.task["eskulap_system"] = "ESKULAP_KONSULTACJE"
+    connection.task["eskulap_id"] = "601"
+    element_row = element(77, "KONSULTACJA_SPECJALISTYCZNA", 1, eskulap_id="601")
+    element_row["zadanie_id"] = 10
+    event = consultation(601, "2026-07-12T10:00:00")
+
+    changed = EpisodeSynchronizationService(
+        gateway=SimpleNamespace()
+    )._update_task_from_visit(connection, 10, element_row, event)
+
+    assert changed
+    assert connection.task["data_zaplanowana"] is None
+    assert connection.task["eskulap_plan_data"] == event.planned_date
+    assert connection.history_inserted
 
 
 def test_record_history_fetches_episode_when_payload_is_task_only():
@@ -577,7 +626,8 @@ def main():
     test_specialist_consultations_create_automatic_duplicates()
     test_imaging_orders_match_one_order_to_one_element()
     test_event_repository_maps_imaging_realization_date()
-    test_planned_eskulap_visit_is_planned_status()
+    test_eskulap_planned_consultation_is_still_to_plan()
+    test_sync_consultation_keeps_eskulap_plan_separate_from_kompas_plan()
     test_record_history_fetches_episode_when_payload_is_task_only()
     test_event_repository_maps_planned_visit_date()
     test_event_repository_maps_legacy_visit_planned_date()
