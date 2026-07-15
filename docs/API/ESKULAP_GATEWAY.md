@@ -181,7 +181,7 @@ Zwraca listę `VisitTypeAvailabilityRecord` z polami:
 - `minuta_do`.
 
 Metoda korzysta wyłącznie z widoku
-`ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT`. Gateway zwraca rekordy
+`ESK_RAPORTY.V_KOMPAS_DOST_RODZ_WIZYT`. Gateway zwraca rekordy
 szczegółowe i nie wykonuje pivotu miesięcznego. Macierz miesięczna oraz
 scalanie zakresów godzinowych są wykonywane dopiero w `ScheduleService`.
 
@@ -194,7 +194,7 @@ RI_PLAN_PRACY_WARUNKI_NEW
         +
 V_KOMPAS_PARAMETRY_WIZYT
         ↓
-V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+V_KOMPAS_DOST_RODZ_WIZYT
         ↓
 EskulapGateway
         ↓
@@ -302,7 +302,7 @@ Gateway wymaga widoków:
 Moduł Harmonogram pracy wymaga dodatkowo widoku:
 
 - `ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`.
-- `ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT`.
+- `ESK_RAPORTY.V_KOMPAS_DOST_RODZ_WIZYT`.
 
 Badania laboratoryjne i obrazowe korzystają ze wspólnego widoku
 `V_KOMPAS_BADANIA` i są rozdzielane według typu badania.

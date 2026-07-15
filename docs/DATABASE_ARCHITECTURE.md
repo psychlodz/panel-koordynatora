@@ -66,7 +66,7 @@ aby wiele kodów `PLW_WP_PARAMETR` nie zwielokrotniało rekordów harmonogramu.
 Druga zakładka harmonogramu, „Dostępność rodzajów wizyt”, korzysta z widoku:
 
 ```text
-ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+ESK_RAPORTY.V_KOMPAS_DOST_RODZ_WIZYT
 ```
 
 Ten widok zwraca dane szczegółowe, bez miesięcznego pivotu. KOMPAS pobiera
@@ -113,7 +113,7 @@ flowchart TB
     O --> G
     G -->|"aktualne dane pacjenta"| UI
     G -->|"plan pracy z V_KOMPAS_PLAN_PRACY_KALENDARZ"| S
-    G -->|"dostępność rodzajów wizyt z V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT"| S
+    G -->|"dostępność rodzajów wizyt z V_KOMPAS_DOST_RODZ_WIZYT"| S
     S --> UI
     P -->|"programy, epizody, zadania"| UI
     UI -->|"zapis danych procesowych"| P

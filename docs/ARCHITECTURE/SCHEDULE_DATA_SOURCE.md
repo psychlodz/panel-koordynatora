@@ -149,7 +149,7 @@ Zakładka **Dostępność rodzajów wizyt** korzysta z osobnego widoku
 szczegółowego:
 
 ```text
-ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+ESK_RAPORTY.V_KOMPAS_DOST_RODZ_WIZYT
 ```
 
 Widok nie tworzy kolumn `D01`–`D31`. Zwraca rekordy szczegółowe z kolumnami:
@@ -178,7 +178,7 @@ RI_PLAN_PRACY_WARUNKI_NEW
         +
 V_KOMPAS_PARAMETRY_WIZYT
         ↓
-V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+V_KOMPAS_DOST_RODZ_WIZYT
         ↓
 EskulapGateway
         ↓

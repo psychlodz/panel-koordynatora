@@ -73,7 +73,7 @@ UI Harmonogramu
 → ScheduleService
 → EskulapGateway
 → ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ
-  albo ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+  albo ESK_RAPORTY.V_KOMPAS_DOST_RODZ_WIZYT
 → Oracle / Eskulap
 ```
 

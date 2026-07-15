@@ -55,7 +55,7 @@ def main():
         date_to=args.date_to,
         visit_type_codes=args.visit_type_code,
     )
-    print("Widok Oracle: ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT")
+    print("Widok Oracle: ESK_RAPORTY.V_KOMPAS_DOST_RODZ_WIZYT")
     print(
         f"Zakres: jo_id={args.jo_id}, od={args.date_from}, do={args.date_to}"
     )

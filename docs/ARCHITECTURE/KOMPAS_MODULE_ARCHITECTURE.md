@@ -60,7 +60,7 @@ Moduł zawiera dwie zakładki:
   godzinowych,
 - `Dostępność rodzajów wizyt` — miesięczna macierz kodów i nazw rodzajów
   wizyt, oparta o widok
-  `ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT`.
+  `ESK_RAPORTY.V_KOMPAS_DOST_RODZ_WIZYT`.
 
 Druga zakładka pobiera szczegółowe rekordy przez Gateway, a `ScheduleService`
 scala zachodzące lub stykające się zakresy godzinowe tylko w tekście komórki.
