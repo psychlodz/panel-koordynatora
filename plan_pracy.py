@@ -479,7 +479,7 @@ class PlanPracyApp(QWidget):
             self.info.setText("Błąd")
 
     def availability_day_header(self, day_date: date) -> str:
-        return f"{day_date.day:02d}\n{DNI_TYG[day_date.weekday()].upper()}"
+        return f"{day_date.strftime('%Y-%m-%d')}\n{DNI_TYG[day_date.weekday()]}"
 
     def redraw_visit_availability(self):
         calendar = self.visit_availability_calendar
