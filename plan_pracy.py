@@ -316,6 +316,21 @@ class PlanPracyApp(QWidget):
         availability_filters.addWidget(self.only_available_checkbox)
         availability_layout.addLayout(availability_filters)
 
+        availability_tables = QHBoxLayout()
+        availability_tables.setContentsMargins(0, 0, 0, 0)
+        availability_tables.setSpacing(0)
+
+        self.visit_availability_name_table = QTableWidget()
+        self.visit_availability_name_table.setWordWrap(True)
+        self.visit_availability_name_table.setMouseTracking(True)
+        self.visit_availability_name_table.setHorizontalScrollBarPolicy(
+            Qt.ScrollBarAlwaysOff
+        )
+        self.visit_availability_name_table.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAlwaysOff
+        )
+        self.visit_availability_name_table.setFixedWidth(340)
+
         self.visit_availability_table = QTableWidget()
         self.visit_availability_table.setWordWrap(True)
         self.visit_availability_table.setMouseTracking(True)
@@ -325,7 +340,16 @@ class PlanPracyApp(QWidget):
         self.visit_availability_table.horizontalHeader().setSectionResizeMode(
             QHeaderView.Interactive
         )
-        availability_layout.addWidget(self.visit_availability_table, 1)
+        self.visit_availability_table.verticalScrollBar().valueChanged.connect(
+            self.visit_availability_name_table.verticalScrollBar().setValue
+        )
+        self.visit_availability_name_table.verticalScrollBar().valueChanged.connect(
+            self.visit_availability_table.verticalScrollBar().setValue
+        )
+
+        availability_tables.addWidget(self.visit_availability_name_table)
+        availability_tables.addWidget(self.visit_availability_table, 1)
+        availability_layout.addLayout(availability_tables, 1)
         self.tabs.addTab(availability_tab, "Dostępność rodzajów wizyt")
 
         # Próba pobrania listy jednostek przy starcie. W razie braku połączenia
@@ -454,12 +478,16 @@ class PlanPracyApp(QWidget):
     def redraw_visit_availability(self):
         calendar = self.visit_availability_calendar
         table = getattr(self, "visit_availability_table", None)
-        if table is None:
+        name_table = getattr(self, "visit_availability_name_table", None)
+        if table is None or name_table is None:
             return
         if not calendar:
             table.clear()
             table.setRowCount(0)
             table.setColumnCount(0)
+            name_table.clear()
+            name_table.setRowCount(0)
+            name_table.setColumnCount(0)
             return
 
         pattern = self.visit_type_filter.text().strip().casefold()
@@ -472,26 +500,29 @@ class PlanPracyApp(QWidget):
         ]
         days = calendar.get("days", [])
 
+        name_table.clear()
+        name_table.setRowCount(len(rows))
+        name_table.setColumnCount(1)
+        name_table.setHorizontalHeaderLabels(["Rodzaj wizyty"])
+        name_table.verticalHeader().setVisible(False)
+
         table.clear()
         table.setRowCount(len(rows))
-        table.setColumnCount(2 + len(days))
+        table.setColumnCount(len(days))
         table.setHorizontalHeaderLabels(
-            ["Kod", "Rodzaj wizyty"]
-            + [self.availability_day_header(day) for day in days]
+            [self.availability_day_header(day) for day in days]
         )
         table.verticalHeader().setVisible(False)
 
         for row_index, row in enumerate(rows):
-            code_item = QTableWidgetItem(str(row.get("code", "")))
-            code_item.setTextAlignment(Qt.AlignCenter)
-            table.setItem(row_index, 0, code_item)
-
             name_item = QTableWidgetItem(str(row.get("name", "")))
-            name_item.setToolTip(str(row.get("name", "")))
+            name_item.setToolTip(
+                f"{row.get('name', '')}\nKod: {row.get('code', '')}"
+            )
             name_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
-            table.setItem(row_index, 1, name_item)
+            name_table.setItem(row_index, 0, name_item)
 
-            for day_index, day_date in enumerate(days, start=2):
+            for day_index, day_date in enumerate(days):
                 cell = row.get("cells", {}).get(day_date, {})
                 text = str(cell.get("text", "") or "")
                 item = QTableWidgetItem(text)
@@ -513,19 +544,31 @@ class PlanPracyApp(QWidget):
                     item.setForeground(QBrush(QColor(170, 170, 170)))
                 table.setItem(row_index, day_index, item)
 
-        table.setColumnWidth(0, 72)
-        table.setColumnWidth(1, 280)
-        for column in range(2, table.columnCount()):
+        name_table.setColumnWidth(0, 320)
+        name_table.resizeRowsToContents()
+        for column in range(table.columnCount()):
             table.setColumnWidth(column, 96)
         table.resizeRowsToContents()
-        for row in range(table.rowCount()):
-            table.setRowHeight(row, max(58, min(130, table.rowHeight(row))))
+        for row in range(max(table.rowCount(), name_table.rowCount())):
+            table_height = table.rowHeight(row) if row < table.rowCount() else 0
+            name_height = (
+                name_table.rowHeight(row)
+                if row < name_table.rowCount()
+                else 0
+            )
+            height = max(58, min(130, max(table_height, name_height)))
+            if row < table.rowCount():
+                table.setRowHeight(row, height)
+            if row < name_table.rowCount():
+                name_table.setRowHeight(row, height)
+        name_table.horizontalHeader().setSectionResizeMode(
+            0,
+            QHeaderView.Stretch,
+        )
         table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
         table.horizontalHeader().setStretchLastSection(False)
 
     def show_visit_availability_details(self, row: int, col: int):
-        if col < 2:
-            return
         item = self.visit_availability_table.item(row, col)
         if item is None:
             return
