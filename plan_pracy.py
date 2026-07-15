@@ -374,9 +374,15 @@ class PlanPracyApp(QWidget):
             return safe_int(self.default_jo_id, self.default_jo_id)
         return val
 
-    def selected_month(self):
-        selected = self.data_od.date().toPython()
-        return selected.year, selected.month
+    def selected_date_range(self):
+        start = self.data_od.date().toPython()
+        months = self.miesiace.value()
+        end = (
+            pd.Timestamp(start)
+            + pd.DateOffset(months=months)
+            - pd.DateOffset(days=1)
+        ).date()
+        return start, end
 
     def refresh_active_tab(self):
         if getattr(self, "tabs", None) is not None and self.tabs.currentIndex() == 1:
@@ -443,17 +449,17 @@ class PlanPracyApp(QWidget):
                 QMessageBox.warning(self, "Błąd", "Nieprawidłowy identyfikator jednostki.")
                 return
 
-            year, month = self.selected_month()
+            start, end = self.selected_date_range()
             self.info.setText("Pobieranie dostępności rodzajów wizyt...")
             with busy_operation(
                 self,
                 "Pobieranie dostępności rodzajów wizyt z Eskulapa...",
             ):
                 self.visit_availability_calendar = (
-                    self.schedule_service.get_visit_type_month_calendar(
+                    self.schedule_service.get_visit_type_date_range_calendar(
                         jo_id=jo_id,
-                        year=year,
-                        month=month,
+                        date_from=start,
+                        date_to=end,
                         only_available=self.only_available_checkbox.isChecked(),
                     )
                 )

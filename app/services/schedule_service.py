@@ -146,12 +146,35 @@ class ScheduleService:
         month = int(month)
         first_day = date(year, month, 1)
         last_day = date(year, month, monthrange(year, month)[1])
+        return self.get_visit_type_date_range_calendar(
+            jo_id=jo_id,
+            date_from=first_day,
+            date_to=last_day,
+            visit_type_filter=visit_type_filter,
+            only_available=only_available,
+        )
+
+    def get_visit_type_date_range_calendar(
+        self,
+        jo_id,
+        date_from,
+        date_to,
+        visit_type_filter="",
+        only_available=True,
+    ) -> dict:
+        date_from = self._date_value(date_from, "date_from")
+        date_to = self._date_value(date_to, "date_to")
+        if date_from > date_to:
+            raise ValueError(
+                "Data końcowa dostępności nie może być wcześniejsza "
+                "niż data początkowa."
+            )
 
         try:
             records = self.gateway.get_visit_type_availability(
                 jo_id=jo_id,
-                date_from=first_day,
-                date_to=last_day,
+                date_from=date_from,
+                date_to=date_to,
             )
         except Exception as exc:
             logger.exception(
@@ -161,10 +184,10 @@ class ScheduleService:
                 "Nie udało się pobrać dostępności rodzajów wizyt z Eskulapa."
             ) from exc
 
-        return build_visit_type_month_calendar(
+        return build_visit_type_date_range_calendar(
             records,
-            year,
-            month,
+            date_from,
+            date_to,
             visit_type_filter=visit_type_filter,
             only_available=only_available,
             visit_parameters=(
@@ -369,7 +392,45 @@ def build_visit_type_month_calendar(
         date(int(year), int(month), day)
         for day in range(1, monthrange(int(year), int(month))[1] + 1)
     ]
+    return build_visit_type_calendar(
+        records,
+        days,
+        visit_type_filter=visit_type_filter,
+        only_available=only_available,
+        visit_parameters=visit_parameters,
+    )
 
+
+def build_visit_type_date_range_calendar(
+    records,
+    date_from,
+    date_to,
+    visit_type_filter="",
+    only_available=True,
+    visit_parameters=None,
+):
+    date_from = _as_date(date_from)
+    date_to = _as_date(date_to)
+    days = [
+        item.date()
+        for item in pd.date_range(start=date_from, end=date_to, freq="D")
+    ]
+    return build_visit_type_calendar(
+        records,
+        days,
+        visit_type_filter=visit_type_filter,
+        only_available=only_available,
+        visit_parameters=visit_parameters,
+    )
+
+
+def build_visit_type_calendar(
+    records,
+    days,
+    visit_type_filter="",
+    only_available=True,
+    visit_parameters=None,
+):
     plan_records = {}
     for record in records:
         try:
@@ -485,8 +546,10 @@ def build_visit_type_month_calendar(
         ),
     )
     return {
-        "year": int(year),
-        "month": int(month),
+        "year": days[0].year if days else None,
+        "month": days[0].month if days else None,
+        "date_from": days[0] if days else None,
+        "date_to": days[-1] if days else None,
         "days": days,
         "rows": rows,
     }

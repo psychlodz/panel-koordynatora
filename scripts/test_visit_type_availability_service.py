@@ -15,6 +15,7 @@ sys.modules.setdefault(
 
 from app.models.work_schedule import VisitTypeAvailabilityRecord
 from app.services.schedule_service import (
+    build_visit_type_date_range_calendar,
     build_visit_type_month_calendar,
     merge_time_ranges,
 )
@@ -143,6 +144,17 @@ def test_month_has_correct_number_of_days():
     assert len(april["days"]) == 30
 
 
+def test_date_range_can_cover_multiple_months():
+    calendar = build_visit_type_date_range_calendar(
+        [],
+        "2026-07-15",
+        "2026-09-14",
+    )
+    assert len(calendar["days"]) == 62
+    assert calendar["days"][0].isoformat() == "2026-07-15"
+    assert calendar["days"][-1].isoformat() == "2026-09-14"
+
+
 def test_can_show_empty_dictionary_rows():
     calendar = build_visit_type_month_calendar(
         [],
@@ -166,6 +178,7 @@ def main():
     test_two_ranges_of_one_worker_are_two_popup_rows()
     test_missing_name_uses_code_and_message()
     test_month_has_correct_number_of_days()
+    test_date_range_can_cover_multiple_months()
     test_can_show_empty_dictionary_rows()
     print("OK: test_visit_type_availability_service")
 
