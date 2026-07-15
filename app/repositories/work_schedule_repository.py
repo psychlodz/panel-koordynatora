@@ -9,6 +9,7 @@ from db import create_connection
 
 SQL_IDENTIFIER = re.compile(r"^[A-Za-z0-9_$#.]+$")
 CANONICAL_WORK_SCHEDULE_VIEW = "ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ"
+VISIT_TYPE_AVAILABILITY_VIEW = "ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT"
 logger = logging.getLogger(__name__)
 
 
@@ -271,4 +272,85 @@ def list_work_schedule(
                 return _fetch_schedule_rows(cursor, fallback_sql, parameters)
 
 
-__all__ = ["list_work_schedule"]
+def _normalize_visit_type_code(value):
+    text = str(value or "").strip().upper()
+    match = re.fullmatch(r"F0?([1-9])", text)
+    if match:
+        return f"F0{match.group(1)}"
+    return text
+
+
+def list_visit_type_availability(
+    jo_id,
+    date_from,
+    date_to,
+    visit_type_codes=None,
+) -> list[dict]:
+    """Odczytuje szczegółową dostępność rodzajów wizyt jednym SELECT-em."""
+
+    config = load_config()
+    parameters = {
+        "jo_id": jo_id,
+        "date_from": _date_text(date_from, "date_from"),
+        "date_to": _date_text(date_to, "date_to"),
+    }
+    conditions = [
+        "p.JO_ID = :jo_id",
+        """
+        p.DATA_DNIA BETWEEN TO_DATE(:date_from, 'YYYY-MM-DD')
+                        AND TO_DATE(:date_to, 'YYYY-MM-DD')
+        """,
+    ]
+
+    codes = [
+        _normalize_visit_type_code(value)
+        for value in (visit_type_codes or [])
+        if str(value or "").strip()
+    ]
+    if codes:
+        placeholders = []
+        for index, code in enumerate(dict.fromkeys(codes)):
+            name = f"visit_type_code_{index}"
+            placeholders.append(f":{name}")
+            parameters[name] = code
+        conditions.append(
+            "p.PARAMETR_KOD IN (" + ", ".join(placeholders) + ")"
+        )
+
+    sql = f"""
+        SELECT
+            p.JO_ID,
+            p.JO_SYMBOL,
+            p.JO_NAZWA,
+            p.DATA_DNIA,
+            p.PRACOWNIK_ID,
+            p.PRACOWNIK,
+            p.PLN_ID,
+            p.PLW_ID,
+            p.PARAMETR_KOD,
+            p.PARAMETR_NAZWA,
+            p.GODZ_OD,
+            p.GODZ_DO,
+            p.MINUTA_OD,
+            p.MINUTA_DO
+        FROM {VISIT_TYPE_AVAILABILITY_VIEW} p
+        WHERE {" AND ".join(conditions)}
+        ORDER BY
+            p.PARAMETR_KOD,
+            p.DATA_DNIA,
+            p.MINUTA_OD,
+            p.PRACOWNIK
+    """
+
+    with closing(
+        create_connection(
+            config.database_user,
+            config.database_password,
+            config.database_dsn,
+        )
+    ) as connection:
+        with closing(connection.cursor()) as cursor:
+            return _fetch_schedule_rows(cursor, sql, parameters)
+
+
+__all__ = ["list_work_schedule", "list_visit_type_availability"]

@@ -73,11 +73,14 @@ UI Harmonogramu
 → ScheduleService
 → EskulapGateway
 → ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ
+  albo ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
 → Oracle / Eskulap
 ```
 
 Widok Oracle jest tylko do odczytu. Popup kalendarza pokazuje nazwy rodzajów
 wizyt z pola `RODZAJE_WIZYT`; kody pozostają danymi technicznymi.
+Druga zakładka harmonogramu, „Dostępność rodzajów wizyt”, pobiera szczegóły
+dostępności jednym zapytaniem i tworzy macierz miesięczną w aplikacji.
 
 ## Budowanie
 

@@ -63,6 +63,25 @@ Widok łączy `RI_OWNER.RI_PLAN_PRACY_NEW` z zagregowanymi warunkami z
 `RI_OWNER.RI_PLAN_PRACY_WARUNKI_NEW`. Warunki są agregowane po `PLN_ID`,
 aby wiele kodów `PLW_WP_PARAMETR` nie zwielokrotniało rekordów harmonogramu.
 
+Druga zakładka harmonogramu, „Dostępność rodzajów wizyt”, korzysta z widoku:
+
+```text
+ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+```
+
+Ten widok zwraca dane szczegółowe, bez miesięcznego pivotu. KOMPAS pobiera
+cały miesiąc jednym zapytaniem przez `EskulapGateway.get_visit_type_availability`,
+a `ScheduleService` tworzy macierz dni miesiąca w pamięci aplikacji.
+
+Widok używa `RI_PLAN_PRACY_NEW`, `RI_PLAN_PRACY_WARUNKI_NEW`,
+`RI_PRACOWNICY`, `SZ_JEDNOSTKI_ORGANIZACYJNE` oraz
+`V_KOMPAS_PARAMETRY_WIZYT`. Normalizuje kody `WP_PARAMETR`, np. `F1` → `F01`,
+i ogranicza wynik do zakresu `F01`–`F18`.
+
+Scalanie zakresów odbywa się tylko na potrzeby tekstu komórki UI. Szczegóły
+pracowników pozostają rozdzielone i są wykorzystywane przez popup bez
+dodatkowych zapytań Oracle.
+
 ## PostgreSQL
 
 PostgreSQL przechowuje:
@@ -94,6 +113,7 @@ flowchart TB
     O --> G
     G -->|"aktualne dane pacjenta"| UI
     G -->|"plan pracy z V_KOMPAS_PLAN_PRACY_KALENDARZ"| S
+    G -->|"dostępność rodzajów wizyt z V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT"| S
     S --> UI
     P -->|"programy, epizody, zadania"| UI
     UI -->|"zapis danych procesowych"| P

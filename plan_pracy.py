@@ -31,6 +31,7 @@ from PySide6.QtWidgets import (
     QSpinBox,
     QTableWidget,
     QTableWidgetItem,
+    QTabWidget,
     QVBoxLayout,
     QWidget,
     QDateEdit,
@@ -40,6 +41,7 @@ from PySide6.QtWidgets import (
     QSplitter,
     QListWidget,
     QListWidgetItem,
+    QCheckBox,
     QMenuBar,
     QStyledItemDelegate,
     QStyle,
@@ -140,9 +142,11 @@ class PlanPracyApp(QWidget):
         self.cfg = load_config()
         self.df_last = pd.DataFrame()
         self.df_view = pd.DataFrame()
+        self.visit_availability_calendar = None
         self.current_start = None
         self.current_end = None
         self._updating_filters = False
+        self._ready_for_auto_refresh = False
         self.person_color_map: dict[str, str] = {}
         self.schedule_service = ScheduleService()
 
@@ -202,8 +206,8 @@ class PlanPracyApp(QWidget):
         self.miesiace.setMaximum(12)
         self.miesiace.setValue(self.default_months)
 
-        self.btn_load = QPushButton("Pokaż kalendarz")
-        self.btn_load.clicked.connect(self.zaladuj)
+        self.btn_load = QPushButton("Odśwież")
+        self.btn_load.clicked.connect(self.refresh_active_tab)
 
         self.btn_export = QPushButton("Eksport do Excel")
         self.btn_export.clicked.connect(self.eksportuj_excel)
@@ -240,8 +244,15 @@ class PlanPracyApp(QWidget):
         self.info = QLabel("Gotowy")
         layout.addWidget(self.info)
 
+        self.tabs = QTabWidget()
+        self.tabs.currentChanged.connect(self.on_schedule_tab_changed)
+        layout.addWidget(self.tabs, 1)
+
+        employee_tab = QWidget()
+        employee_layout = QVBoxLayout(employee_tab)
+        employee_layout.setContentsMargins(0, 0, 0, 0)
         body = QSplitter(Qt.Horizontal)
-        layout.addWidget(body, 1)
+        employee_layout.addWidget(body, 1)
 
         left_panel = QWidget()
         left_panel.setMinimumWidth(260)
@@ -286,6 +297,36 @@ class PlanPracyApp(QWidget):
         body.addWidget(self.table)
         body.setStretchFactor(0, 0)
         body.setStretchFactor(1, 1)
+        self.tabs.addTab(employee_tab, "Kalendarz pracowników")
+
+        availability_tab = QWidget()
+        availability_layout = QVBoxLayout(availability_tab)
+        availability_layout.setContentsMargins(4, 4, 4, 4)
+
+        availability_filters = QHBoxLayout()
+        availability_filters.addWidget(QLabel("Rodzaj wizyty:"))
+        self.visit_type_filter = QLineEdit()
+        self.visit_type_filter.setPlaceholderText("Filtruj po kodzie lub nazwie...")
+        self.visit_type_filter.textChanged.connect(self.redraw_visit_availability)
+        availability_filters.addWidget(self.visit_type_filter, 1)
+
+        self.only_available_checkbox = QCheckBox("Tylko rodzaje z dostępnością")
+        self.only_available_checkbox.setChecked(True)
+        self.only_available_checkbox.toggled.connect(self.zaladuj_dostepnosc_wizyt)
+        availability_filters.addWidget(self.only_available_checkbox)
+        availability_layout.addLayout(availability_filters)
+
+        self.visit_availability_table = QTableWidget()
+        self.visit_availability_table.setWordWrap(True)
+        self.visit_availability_table.setMouseTracking(True)
+        self.visit_availability_table.cellClicked.connect(
+            self.show_visit_availability_details
+        )
+        self.visit_availability_table.horizontalHeader().setSectionResizeMode(
+            QHeaderView.Interactive
+        )
+        availability_layout.addWidget(self.visit_availability_table, 1)
+        self.tabs.addTab(availability_tab, "Dostępność rodzajów wizyt")
 
         # Próba pobrania listy jednostek przy starcie. W razie braku połączenia
         # aplikacja nadal pozwala pracować z domyślnym JO_ID z config.ini.
@@ -293,6 +334,12 @@ class PlanPracyApp(QWidget):
             self.odswiez_jednostki(show_errors=False)
         except Exception:
             logging.exception("Nie udało się pobrać listy jednostek przy starcie")
+        self.data_od.dateChanged.connect(self.on_schedule_filters_changed)
+        self.miesiace.valueChanged.connect(self.on_schedule_filters_changed)
+        self.jednostka_combo.currentIndexChanged.connect(
+            self.on_schedule_filters_changed
+        )
+        self._ready_for_auto_refresh = True
         if not self.selection_mode:
             QTimer.singleShot(0, self.zaladuj)
 
@@ -302,6 +349,29 @@ class PlanPracyApp(QWidget):
         if val is None:
             return safe_int(self.default_jo_id, self.default_jo_id)
         return val
+
+    def selected_month(self):
+        selected = self.data_od.date().toPython()
+        return selected.year, selected.month
+
+    def refresh_active_tab(self):
+        if getattr(self, "tabs", None) is not None and self.tabs.currentIndex() == 1:
+            self.zaladuj_dostepnosc_wizyt()
+        else:
+            self.zaladuj()
+
+    def on_schedule_tab_changed(self, index):
+        if not self._ready_for_auto_refresh or self.selection_mode:
+            return
+        if index == 1 and self.visit_availability_calendar is None:
+            QTimer.singleShot(0, self.zaladuj_dostepnosc_wizyt)
+        elif index == 0 and self.df_last.empty:
+            QTimer.singleShot(0, self.zaladuj)
+
+    def on_schedule_filters_changed(self, *args):
+        if not self._ready_for_auto_refresh or self.selection_mode:
+            return
+        QTimer.singleShot(0, self.refresh_active_tab)
 
     def pobierz_jednostki(self) -> pd.DataFrame:
         return self.schedule_service.list_organizational_units()
@@ -341,6 +411,185 @@ class PlanPracyApp(QWidget):
                     "Szczegóły zapisano w logs\\plan_pracy.log",
                 )
             self.info.setText("Nie pobrano listy jednostek")
+
+    def zaladuj_dostepnosc_wizyt(self, *args):
+        try:
+            jo_id = safe_int(self.current_jo_id(), None)
+            if jo_id is None:
+                QMessageBox.warning(self, "Błąd", "Nieprawidłowy identyfikator jednostki.")
+                return
+
+            year, month = self.selected_month()
+            self.info.setText("Pobieranie dostępności rodzajów wizyt...")
+            with busy_operation(
+                self,
+                "Pobieranie dostępności rodzajów wizyt z Eskulapa...",
+            ):
+                self.visit_availability_calendar = (
+                    self.schedule_service.get_visit_type_month_calendar(
+                        jo_id=jo_id,
+                        year=year,
+                        month=month,
+                        only_available=self.only_available_checkbox.isChecked(),
+                    )
+                )
+                self.redraw_visit_availability()
+            rows_count = len(self.visit_availability_calendar.get("rows", []))
+            self.info.setText(
+                f"Wczytano dostępność rodzajów wizyt: {rows_count} pozycji."
+            )
+        except Exception:
+            logging.exception("Błąd podczas ładowania dostępności rodzajów wizyt")
+            QMessageBox.critical(
+                self,
+                "Błąd",
+                "Nie udało się pobrać dostępności rodzajów wizyt z Eskulapa.\n\n"
+                "Szczegóły zapisano w logs\\plan_pracy.log",
+            )
+            self.info.setText("Błąd")
+
+    def availability_day_header(self, day_date: date) -> str:
+        return f"{day_date.day:02d}\n{DNI_TYG[day_date.weekday()].upper()}"
+
+    def redraw_visit_availability(self):
+        calendar = self.visit_availability_calendar
+        table = getattr(self, "visit_availability_table", None)
+        if table is None:
+            return
+        if not calendar:
+            table.clear()
+            table.setRowCount(0)
+            table.setColumnCount(0)
+            return
+
+        pattern = self.visit_type_filter.text().strip().casefold()
+        rows = [
+            row
+            for row in calendar.get("rows", [])
+            if not pattern
+            or pattern in str(row.get("code", "")).casefold()
+            or pattern in str(row.get("name", "")).casefold()
+        ]
+        days = calendar.get("days", [])
+
+        table.clear()
+        table.setRowCount(len(rows))
+        table.setColumnCount(2 + len(days))
+        table.setHorizontalHeaderLabels(
+            ["Kod", "Rodzaj wizyty"]
+            + [self.availability_day_header(day) for day in days]
+        )
+        table.verticalHeader().setVisible(False)
+
+        for row_index, row in enumerate(rows):
+            code_item = QTableWidgetItem(str(row.get("code", "")))
+            code_item.setTextAlignment(Qt.AlignCenter)
+            table.setItem(row_index, 0, code_item)
+
+            name_item = QTableWidgetItem(str(row.get("name", "")))
+            name_item.setToolTip(str(row.get("name", "")))
+            name_item.setTextAlignment(Qt.AlignLeft | Qt.AlignVCenter)
+            table.setItem(row_index, 1, name_item)
+
+            for day_index, day_date in enumerate(days, start=2):
+                cell = row.get("cells", {}).get(day_date, {})
+                text = str(cell.get("text", "") or "")
+                item = QTableWidgetItem(text)
+                item.setTextAlignment(Qt.AlignCenter)
+                item.setToolTip(str(cell.get("tooltip", "") or text))
+                item.setData(Qt.UserRole, cell.get("details", []))
+                item.setData(
+                    Qt.UserRole + 1,
+                    {
+                        "code": row.get("code"),
+                        "name": row.get("name"),
+                        "date": day_date,
+                    },
+                )
+                item.setBackground(
+                    QBrush(self.cell_base_color(row_index, day_date))
+                )
+                if not text:
+                    item.setForeground(QBrush(QColor(170, 170, 170)))
+                table.setItem(row_index, day_index, item)
+
+        table.setColumnWidth(0, 72)
+        table.setColumnWidth(1, 280)
+        for column in range(2, table.columnCount()):
+            table.setColumnWidth(column, 96)
+        table.resizeRowsToContents()
+        for row in range(table.rowCount()):
+            table.setRowHeight(row, max(58, min(130, table.rowHeight(row))))
+        table.horizontalHeader().setSectionResizeMode(QHeaderView.Interactive)
+        table.horizontalHeader().setStretchLastSection(False)
+
+    def show_visit_availability_details(self, row: int, col: int):
+        if col < 2:
+            return
+        item = self.visit_availability_table.item(row, col)
+        if item is None:
+            return
+        details = item.data(Qt.UserRole) or []
+        if not details:
+            return
+        meta = item.data(Qt.UserRole + 1) or {}
+        day_date = meta.get("date")
+        code = meta.get("code", "")
+        name = meta.get("name", "")
+        first = details[0] if details else {}
+        unit = " — ".join(
+            part
+            for part in [
+                str(first.get("jo_symbol") or "").strip(),
+                str(first.get("jo_nazwa") or "").strip(),
+            ]
+            if part
+        )
+
+        dlg = QDialog(self)
+        dlg.setWindowTitle("Dostępność rodzaju wizyty")
+        dlg.resize(820, 460)
+        layout = QVBoxLayout(dlg)
+        title = QLabel(
+            f"{name} ({code})\n"
+            f"Data: {day_date.isoformat() if day_date else ''}\n"
+            f"Jednostka: {unit or 'brak danych jednostki'}"
+        )
+        title.setWordWrap(True)
+        layout.addWidget(title)
+
+        tbl = QTableWidget()
+        tbl.setColumnCount(3)
+        tbl.setHorizontalHeaderLabels(
+            ["Pracownik", "Rodzaje wizyt", "Przedział czasowy"]
+        )
+        tbl.setRowCount(len(details))
+        tbl.setWordWrap(True)
+        for row_index, detail in enumerate(details):
+            values = [
+                str(detail.get("pracownik") or ""),
+                str(detail.get("rodzaje_wizyt") or ""),
+                str(detail.get("przedzial") or ""),
+            ]
+            for column_index, value in enumerate(values):
+                cell_item = QTableWidgetItem(value)
+                cell_item.setToolTip(value)
+                if column_index == 2:
+                    cell_item.setTextAlignment(Qt.AlignCenter)
+                else:
+                    cell_item.setTextAlignment(Qt.AlignLeft | Qt.AlignTop)
+                tbl.setItem(row_index, column_index, cell_item)
+        tbl.setColumnWidth(0, 240)
+        tbl.setColumnWidth(1, 390)
+        tbl.setColumnWidth(2, 150)
+        tbl.horizontalHeader().setStretchLastSection(True)
+        tbl.resizeRowsToContents()
+        layout.addWidget(tbl, 1)
+
+        btn_close = QPushButton("Zamknij")
+        btn_close.clicked.connect(dlg.close)
+        layout.addWidget(btn_close)
+        dlg.exec()
 
     def pobierz_plan(self, jo_id: int, data_od: str, data_do: str) -> pd.DataFrame:
         logging.info("Pobieranie planu: jo_id=%s, data_od=%s, data_do=%s", jo_id, data_od, data_do)

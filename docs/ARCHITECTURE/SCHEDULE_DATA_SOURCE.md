@@ -142,3 +142,58 @@ polem technicznym do diagnostyki i fallbacku, gdy widok nie zwróci nazwy.
 Jeżeli pole zawiera wiele nazw rozdzielonych średnikami, popup pokazuje je
 jako listę wieloliniową w jednej komórce tabeli. Jeden pracownik i jeden
 zakres godzin nadal pozostają jednym wierszem popupu.
+
+## Dostępność rodzajów wizyt
+
+Zakładka **Dostępność rodzajów wizyt** korzysta z osobnego widoku
+szczegółowego:
+
+```text
+ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+```
+
+Widok nie tworzy kolumn `D01`–`D31`. Zwraca rekordy szczegółowe z kolumnami:
+
+- `JO_ID`,
+- `JO_SYMBOL`,
+- `JO_NAZWA`,
+- `DATA_DNIA`,
+- `PRACOWNIK_ID`,
+- `PRACOWNIK`,
+- `PLN_ID`,
+- `PLW_ID`,
+- `PARAMETR_KOD`,
+- `PARAMETR_NAZWA`,
+- `GODZ_OD`,
+- `GODZ_DO`,
+- `MINUTA_OD`,
+- `MINUTA_DO`.
+
+Przepływ:
+
+```text
+RI_PLAN_PRACY_NEW
+        +
+RI_PLAN_PRACY_WARUNKI_NEW
+        +
+V_KOMPAS_PARAMETRY_WIZYT
+        ↓
+V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+        ↓
+EskulapGateway
+        ↓
+ScheduleService
+        ↓
+Zakładka „Dostępność rodzajów wizyt”
+        ↓
+Popup szczegółów
+```
+
+Przekazany raport SQL był podstawą algorytmu rozwijania planów na dni,
+normalizacji kodów `F1` → `F01`, scalania zakresów oraz prezentacji miesięcznej.
+Aplikacja nie wykonuje jednak pivotu w Oracle. Macierz miesięczna jest
+generowana dynamicznie w `ScheduleService`.
+
+Przy zmianie miesiąca KOMPAS pobiera pełny zestaw szczegółowy jednym
+zapytaniem. Kliknięcie komórki popupu korzysta z danych już pobranych i nie
+wykonuje kolejnego zapytania do Oracle.

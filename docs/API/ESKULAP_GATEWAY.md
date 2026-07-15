@@ -160,6 +160,54 @@ Gateway rozdziela kody na `rodzaje_wizyt_lista`, a nazwy z Oracle na
 `RODZAJE_WIZYT`; lokalny słownik PostgreSQL jest używany tylko jako fallback,
 gdy widok Oracle nie zwróci nazw.
 
+### `get_visit_type_availability(jo_id, date_from, date_to, visit_type_codes=None)`
+
+Pobiera szczegółową dostępność rodzajów wizyt dla jednostki i zakresu dat.
+Zwraca listę `VisitTypeAvailabilityRecord` z polami:
+
+- `jo_id`,
+- `jo_symbol`,
+- `jo_nazwa`,
+- `data_dnia`,
+- `pracownik_id`,
+- `pracownik`,
+- `pln_id`,
+- `plw_id`,
+- `parametr_kod`,
+- `parametr_nazwa`,
+- `godz_od`,
+- `godz_do`,
+- `minuta_od`,
+- `minuta_do`.
+
+Metoda korzysta wyłącznie z widoku
+`ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT`. Gateway zwraca rekordy
+szczegółowe i nie wykonuje pivotu miesięcznego. Macierz miesięczna oraz
+scalanie zakresów godzinowych są wykonywane dopiero w `ScheduleService`.
+
+Przepływ danych:
+
+```text
+RI_PLAN_PRACY_NEW
+        +
+RI_PLAN_PRACY_WARUNKI_NEW
+        +
+V_KOMPAS_PARAMETRY_WIZYT
+        ↓
+V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT
+        ↓
+EskulapGateway
+        ↓
+ScheduleService
+        ↓
+Zakładka „Dostępność rodzajów wizyt”
+        ↓
+Popup szczegółów
+```
+
+Widok normalizuje kody `WP_PARAMETR`, np. `F1` → `F01`, i zwraca wyłącznie
+kody z zakresu `F01`–`F18`.
+
 ### Synchronizacja epizodów
 
 `EpisodeSynchronizationService` pobiera wizyty pacjentów przez
@@ -254,6 +302,7 @@ Gateway wymaga widoków:
 Moduł Harmonogram pracy wymaga dodatkowo widoku:
 
 - `ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ`.
+- `ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT`.
 
 Badania laboratoryjne i obrazowe korzystają ze wspólnego widoku
 `V_KOMPAS_BADANIA` i są rozdzielane według typu badania.

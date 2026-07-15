@@ -9,7 +9,10 @@ from app.models.patient import Patient
 from app.models.qualification_visit import QualificationVisit
 from app.models.visit import Visit
 from app.models.visit_parameter import VisitParameter
-from app.models.work_schedule import WorkScheduleEntry
+from app.models.work_schedule import (
+    VisitTypeAvailabilityRecord,
+    WorkScheduleEntry,
+)
 from app.repositories import (
     event_repository,
     organizational_unit_repository,
@@ -76,6 +79,23 @@ WORK_SCHEDULE_FIELDS = {
     "pln_opis": "pln_opis",
     "rodzaje_wizyt_kody": "rodzaje_wizyt_kody",
     "rodzaje_wizyt": "rodzaje_wizyt",
+}
+
+VISIT_TYPE_AVAILABILITY_FIELDS = {
+    "jo_id": "jo_id",
+    "jo_symbol": "jo_symbol",
+    "jo_nazwa": "jo_nazwa",
+    "data_dnia": "data_dnia",
+    "pracownik_id": "pracownik_id",
+    "pracownik": "pracownik",
+    "pln_id": "pln_id",
+    "plw_id": "plw_id",
+    "parametr_kod": "parametr_kod",
+    "parametr_nazwa": "parametr_nazwa",
+    "godz_od": "godz_od",
+    "godz_do": "godz_do",
+    "minuta_od": "minuta_od",
+    "minuta_do": "minuta_do",
 }
 
 
@@ -275,6 +295,28 @@ class EskulapGateway:
                 WorkScheduleEntry,
                 row,
                 WORK_SCHEDULE_FIELDS,
+            )
+            for row in rows
+        ]
+
+    def get_visit_type_availability(
+        self,
+        jo_id,
+        date_from,
+        date_to,
+        visit_type_codes=None,
+    ) -> list[VisitTypeAvailabilityRecord]:
+        rows = self._work_schedule.list_visit_type_availability(
+            jo_id=jo_id,
+            date_from=date_from,
+            date_to=date_to,
+            visit_type_codes=visit_type_codes,
+        )
+        return [
+            _mapping_to_model(
+                VisitTypeAvailabilityRecord,
+                row,
+                VISIT_TYPE_AVAILABILITY_FIELDS,
             )
             for row in rows
         ]

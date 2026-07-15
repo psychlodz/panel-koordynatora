@@ -54,6 +54,19 @@ danych dostępowych i nie wykonuje SQL.
 `PRACOWNIK_ID`, `PRACOWNIK`, `GODZ_OD`, `GODZ_DO`, `PLN_ID`, `PLN_OPIS`
 i `RODZAJE_WIZYT_KODY` oraz `RODZAJE_WIZYT`.
 
+Moduł zawiera dwie zakładki:
+
+- `Kalendarz pracowników` — dotychczasowy widok pracy osób w przedziałach
+  godzinowych,
+- `Dostępność rodzajów wizyt` — miesięczna macierz kodów i nazw rodzajów
+  wizyt, oparta o widok
+  `ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT`.
+
+Druga zakładka pobiera szczegółowe rekordy przez Gateway, a `ScheduleService`
+scala zachodzące lub stykające się zakresy godzinowe tylko w tekście komórki.
+Popup szczegółów korzysta z danych już pobranych dla miesiąca i nie wykonuje
+dodatkowych zapytań Oracle.
+
 ### Programy
 
 Zarządza definicjami programów KOMPAS oraz ich dostępnością dla jednostek
@@ -144,7 +157,7 @@ flowchart LR
     S["ScheduleService"]
     G["EskulapGateway"]
     R["work_schedule_repository"]
-    O[("Oracle / ESK_RAPORTY.V_KOMPAS_PLAN_PRACY_KALENDARZ")]
+    O[("Oracle / widoki harmonogramu ESK_RAPORTY")]
 
     H --> S
     S --> G

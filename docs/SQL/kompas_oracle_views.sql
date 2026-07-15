@@ -171,6 +171,107 @@ WHERE NVL(pln.pln_czy_aktualny, 'T') = 'T'
   );
 /
 
+CREATE OR REPLACE VIEW ESK_RAPORTY.V_KOMPAS_DOSTEPNOSC_RODZAJOW_WIZYT AS
+WITH dni AS (
+    SELECT TRUNC(SYSDATE) - 365 + LEVEL - 1 AS data_dnia
+    FROM dual
+    CONNECT BY LEVEL <= 365 * 3
+),
+warunki AS (
+    SELECT
+        plw.plw_id,
+        plw.plw_pln_id,
+        CASE
+            WHEN REGEXP_LIKE(TRIM(UPPER(plw.plw_wp_parametr)), '^F[1-9]$')
+                THEN 'F0' || SUBSTR(TRIM(UPPER(plw.plw_wp_parametr)), 2)
+            ELSE TRIM(UPPER(plw.plw_wp_parametr))
+        END AS parametr_kod
+    FROM RI_OWNER.RI_PLAN_PRACY_WARUNKI_NEW plw
+    WHERE plw.plw_wp_parametr IS NOT NULL
+      AND NVL(plw.plw_typ, 'W') = 'W'
+),
+parametry AS (
+    SELECT
+        parametr_kod,
+        MAX(parametr_nazwa) AS parametr_nazwa,
+        MAX(czy_aktualne) AS czy_aktualne
+    FROM (
+        SELECT
+            CASE
+                WHEN REGEXP_LIKE(TRIM(UPPER(pw.parametr_kod)), '^F[1-9]$')
+                    THEN 'F0' || SUBSTR(TRIM(UPPER(pw.parametr_kod)), 2)
+                ELSE TRIM(UPPER(pw.parametr_kod))
+            END AS parametr_kod,
+            pw.parametr_nazwa,
+            pw.czy_aktualne
+        FROM ESK_RAPORTY.V_KOMPAS_PARAMETRY_WIZYT pw
+    )
+    GROUP BY parametr_kod
+)
+SELECT
+    pln.pln_jo_jednostka_id AS jo_id,
+    jo.jo_symbol AS jo_symbol,
+    jo.jo_nazwa AS jo_nazwa,
+    d.data_dnia AS data_dnia,
+    pln.pln_prac_pracownik_id AS pracownik_id,
+    prac.prac_nazwisko || ' ' || prac.prac_imie AS pracownik,
+    pln.pln_id AS pln_id,
+    warunki.plw_id AS plw_id,
+    warunki.parametr_kod AS parametr_kod,
+    NVL(parametry.parametr_nazwa, warunki.parametr_kod) AS parametr_nazwa,
+    TO_CHAR(pln.pln_godz_od, 'HH24:MI') AS godz_od,
+    TO_CHAR(pln.pln_godz_do, 'HH24:MI') AS godz_do,
+    TO_NUMBER(TO_CHAR(pln.pln_godz_od, 'HH24')) * 60
+        + TO_NUMBER(TO_CHAR(pln.pln_godz_od, 'MI')) AS minuta_od,
+    TO_NUMBER(TO_CHAR(pln.pln_godz_do, 'HH24')) * 60
+        + TO_NUMBER(TO_CHAR(pln.pln_godz_do, 'MI')) AS minuta_do
+FROM RI_OWNER.RI_PLAN_PRACY_NEW pln
+JOIN dni d
+    ON d.data_dnia BETWEEN TRUNC(pln.pln_data_od)
+                       AND TRUNC(NVL(pln.pln_data_do, d.data_dnia))
+JOIN warunki
+    ON warunki.plw_pln_id = pln.pln_id
+LEFT JOIN parametry
+    ON parametry.parametr_kod = warunki.parametr_kod
+LEFT JOIN RI_OWNER.RI_PRACOWNICY prac
+    ON prac.prac_pracownik_id = pln.pln_prac_pracownik_id
+LEFT JOIN RI_OWNER.SZ_JEDNOSTKI_ORGANIZACYJNE jo
+    ON jo.jo_jednostka_id = pln.pln_jo_jednostka_id
+WHERE NVL(pln.pln_czy_aktualny, 'T') = 'T'
+  AND NVL(pln.pln_czy_wolne, 'N') = 'N'
+  AND REGEXP_LIKE(warunki.parametr_kod, '^F(0[1-9]|1[0-8])$')
+  AND (
+        (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 0
+            AND NVL(pln.pln_po, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 1
+            AND NVL(pln.pln_wt, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 2
+            AND NVL(pln.pln_sr, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 3
+            AND NVL(pln.pln_cz, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 4
+            AND NVL(pln.pln_pi, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 5
+            AND NVL(pln.pln_so, 'N') = 'T'
+        )
+     OR (
+            TRUNC(d.data_dnia) - TRUNC(d.data_dnia, 'IW') = 6
+            AND NVL(pln.pln_ni, 'N') = 'T'
+        )
+  );
+/
+
 -- Kontrakt KOMPAS wymaga kolumny DATA_KONSULTACJI.
 -- Po zmianie SQL należy ręcznie wykonać poniższe CREATE OR REPLACE VIEW
 -- w Oracle na koncie z uprawnieniami do schematu ESK_RAPORTY.
